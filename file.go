@@ -209,6 +209,11 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 		}
 		_ = writeResponse
 
+		if true {
+			methodNotAllowed(w, r)
+			return
+		}
+
 		var request Request
 		contentType, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type"))
 		switch contentType {
@@ -245,10 +250,6 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 			unsupportedContentType(w, r)
 			return
 		}
-		// NOTE: application/x-www-form-urlencoded, multipart/form-data and
-		// application/json are accepted but if the type is not "text" then
-		// anything other than multipart/form-data will result in
-		// unsupportedContentType(w, r).
 		methodNotAllowed(w, r)
 	default:
 		methodNotAllowed(w, r)
