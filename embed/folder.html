@@ -91,9 +91,7 @@
                 <div class="tr ma2"><a href="/admin/createsite/" class="linktext tr nowrap dib w-100 h-100">create site</a></div>
                 {{- else if eq (head $.Path) "notes" }}
                 <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createnote` }}/{{ if tail $.Path }}?category={{ head (tail $.Path) }}{{ end }}" class="linktext tr nowrap dib w-100 h-100">create note</a></div>
-                <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createpost` }}/" class="linktext tr nowrap dib w-100 h-100">create post</a></div>
                 {{- else if eq (head $.Path) "posts" }}
-                <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createnote` }}/" class="linktext tr nowrap dib w-100 h-100">create note</a></div>
                 <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createpost` }}/{{ if tail $.Path }}?category={{ head (tail $.Path) }}{{ end }}" class="linktext tr nowrap dib w-100 h-100">create post</a></div>
                 {{- else if eq (head $.Path) "pages" }}
                 <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createnote` }}/" class="linktext tr nowrap dib w-100 h-100">create note</a></div>
