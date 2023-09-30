@@ -27,49 +27,54 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 		Errors   []string   `json:"errors,omitempty"`
 	}
 
-	getType := func(filePath string) string {
-		head, tail, _ := strings.Cut(filePath, "/")
-		ext := path.Ext(filePath)
-		switch head {
-		case "notes", "posts":
-			if strings.Count(filePath, "/") > 2 {
-				// Return 404 for files that are more than 1 folder deep inside
-				// notes or posts.
-				//
-				// (ok)     notes/file.md
-				// (ok)     notes/foo/file.md
-				// (not ok) notes/foo/bar/file.md
-				return ""
-			}
-			if ext != ".md" && ext != ".txt" {
-				return ""
-			}
-			return "text"
-		case "pages":
-			if ext != ".html" {
-				return ""
-			}
-			return "text"
-		case "public":
-			next, _, _ := strings.Cut(tail, "/")
-			if next != "images" && next != "themes" {
-				return ""
-			}
-			switch ext {
-			case ".html", ".css", ".js", ".md", ".txt", ".csv", ".tsv", ".json", ".xml", ".toml", ".yaml", ".yml", ".svg":
-				return "text"
-			case ".ico", ".jpeg", ".jpg", ".png", ".gif":
-				return "image"
-			case ".eot", ".otf", ".ttf", ".woff", ".woff2":
-				return "font"
-			case ".gz":
-				return "gzip"
-			default:
-				return ""
-			}
-		default:
-			return ""
+	var typ string
+	head, tail, _ := strings.Cut(filePath, "/")
+	ext := path.Ext(filePath)
+	switch head {
+	case "notes", "posts":
+		if strings.Count(filePath, "/") > 2 {
+			// Return 404 for files that are more than 1 folder deep inside
+			// notes or posts.
+			//
+			// (ok)     notes/file.md
+			// (ok)     notes/foo/file.md
+			// (not ok) notes/foo/bar/file.md
+			notFound(w, r)
+			return
 		}
+		if ext != ".md" && ext != ".txt" {
+			notFound(w, r)
+			return
+		}
+		typ = "text"
+	case "pages":
+		if ext != ".html" {
+			notFound(w, r)
+			return
+		}
+		typ = "text"
+	case "public":
+		next, _, _ := strings.Cut(tail, "/")
+		if next != "images" && next != "themes" {
+			notFound(w, r)
+			return
+		}
+		switch ext {
+		case ".html", ".css", ".js", ".md", ".txt", ".csv", ".tsv", ".json", ".xml", ".toml", ".yaml", ".yml", ".svg":
+			typ = "text"
+		case ".ico", ".jpeg", ".jpg", ".png", ".gif":
+			typ = "image"
+		case ".eot", ".otf", ".ttf", ".woff", ".woff2":
+			typ = "font"
+		case ".gz":
+			typ = "gzip"
+		default:
+			notFound(w, r)
+			return
+		}
+	default:
+		notFound(w, r)
+		return
 	}
 
 	switch r.Method {
@@ -148,13 +153,12 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 			response.Status = Success
 		}
 		response.Path = filePath
+		response.Type = typ
 		response.IsDir = fileInfo.IsDir()
 		modTime := fileInfo.ModTime()
 		if !modTime.IsZero() {
 			response.ModTime = &modTime
 		}
-		_, tail, _ := strings.Cut(filePath, "/")
-		response.Type = getType(filePath)
 		switch response.Type {
 		case "image", "font", "gzip":
 			response.Location = nbrew.Scheme + nbrew.AdminDomain + "/" + path.Join("admin", sitePrefix, tail)
