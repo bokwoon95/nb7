@@ -335,6 +335,7 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 		// If it's a theme file that is not html, just write it into public/theme/*
 
 		// If it's a theme file that is html, find all other pages that depend on this template and render them into public/posts/*/tmp.html and public/*/tmp.html and if all succeed then start renaming all those tmp.html into index.html and write the content into public/theme/*
+
 		readerFrom, err := nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, filePath), 0644)
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
