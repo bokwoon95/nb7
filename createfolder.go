@@ -122,9 +122,14 @@ func (nbrew *Notebrew) createfolder(w http.ResponseWriter, r *http.Request, user
 			} else if response.Status.Equal(ErrForbiddenFolderName) || response.Status.Equal(ErrFolderAlreadyExists) {
 				status = string(response.Status)
 				redirectURL = nbrew.Scheme + nbrew.AdminDomain + "/" + path.Join("admin", sitePrefix, response.Folder) + "/"
-			} else {
-				status = string(response.Status)
-				redirectURL = nbrew.Scheme + nbrew.AdminDomain + "/" + path.Join("admin", sitePrefix, response.Folder, response.Name) + "/"
+			} else if response.Status.Equal(CreateFolderSuccess) {
+				status = fmt.Sprintf(
+					`%s Created folder <a href="%s" class="linktext">%s</a>`,
+					response.Status.Code(),
+					"/"+path.Join("admin", sitePrefix, response.Folder, response.Name)+"/",
+					response.Name,
+				)
+				redirectURL = nbrew.Scheme + nbrew.AdminDomain + "/" + path.Join("admin", sitePrefix, response.Folder) + "/"
 			}
 			err := nbrew.setSession(w, r, "flash", map[string]any{
 				"status": status,

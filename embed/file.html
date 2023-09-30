@@ -51,7 +51,7 @@
 </div>
 {{- else }}
 <div>
-    {{- if referer }}
+    {{- if and referer (ne $.Status.Code "NB-00060") }}
     <a href="{{ referer }}" class="linktext" data-go-back>&larr; back</a>
     <span>&boxv;</span>
     {{- end }}
