@@ -52,7 +52,7 @@ func HashpasswordCommand(args ...string) (*HashpasswordCmd, error) {
 		cmd.Password = b
 		return &cmd, nil
 	}
-	fmt.Println("Press Ctrl+C to exit.")
+	fmt.Fprintln(os.Stderr, "Press Ctrl+C to exit.")
 	for {
 		fmt.Fprint(os.Stderr, "Password (will be hidden from view): ")
 		password, err := term.ReadPassword(int(syscall.Stdin))
