@@ -29,8 +29,10 @@ the last thing would probably be to make the site into a usable PWA on iOS then 
 TODO: notebrew createpost, notebrew createnote "this is a new note" -site bokwoon -category breh -slug "weegee"
 TODO: allow users to update their email address, but whenever that happens send a message to the old email with a password reset link (add new columns: users.old_email, users.old_email_reset_token_hash) that is invalidated after like 30 days. So if the user has their email changed by an attacker they have up to 30 days to take back control. Once a new password is set, the email reverts back to the old one.
 TODO: upload files, download themes from github
-TODO: storage tab in the menu bar whenever you are in a particular site. It shows a percentage! e.g. (0% of 100 MB). If no limit, then just show "storage".
-    - If there's no space in the menu bar, consider replacing the notebrew link on the left hand side with the content site link.
+TODO: coalesce the following into a single "site" tab in the menu bar
+- the link to the content site
+- the storage used and storage breakdown
+- site-wide search
 TODO: cut | copy | paste | rename (no need for link indexing and rewriting yet, that comes later)
 TODO: preview mode for posts and pages (need to figure out rendering already). Once we figure out rendering, we can implement render-on-write whenever a user creates or updates a file. That means we can also implement viewing the content page! Which means implementing the default post.html and posts.html templates!
 TODO: createpage | createfile
