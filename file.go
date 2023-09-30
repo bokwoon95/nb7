@@ -24,6 +24,7 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 		Type     string     `json:"type,omitempty"`
 		Content  string     `json:"content,omitempty"`
 		Location string     `json:"location,omitempty"`
+		Errors   []string   `json:"errors,omitempty"`
 	}
 
 	getType := func(filePath string) string {
@@ -190,6 +191,16 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 				if err != nil {
 					getLogger(r.Context()).Error(err.Error())
 				}
+				return
+			}
+			if !response.Status.Success() {
+				err := nbrew.setSession(w, r, "flash", &response)
+				if err != nil {
+					getLogger(r.Context()).Error(err.Error())
+					internalServerError(w, r, err)
+					return
+				}
+				http.Redirect(w, r, nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix, filePath), http.StatusFound)
 				return
 			}
 		}
