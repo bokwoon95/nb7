@@ -1,7 +1,9 @@
 package nb7
 
 import (
+	"database/sql"
 	"encoding/json"
+	"fmt"
 	"html/template"
 	"io"
 	"io/fs"
@@ -10,6 +12,8 @@ import (
 	"path"
 	"strings"
 	"time"
+
+	"github.com/bokwoon95/sq"
 )
 
 func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, sitePrefix, filePath string, fileInfo fs.FileInfo) {
@@ -207,12 +211,6 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 			http.Redirect(w, r, nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix, filePath), http.StatusFound)
 			return
 		}
-		_ = writeResponse
-
-		if true {
-			methodNotAllowed(w, r)
-			return
-		}
 
 		var request Request
 		contentType, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type"))
@@ -250,7 +248,94 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 			unsupportedContentType(w, r)
 			return
 		}
-		methodNotAllowed(w, r)
+
+		response := Response{
+			Path:  filePath,
+			IsDir: fileInfo.IsDir(),
+			Type:  typ,
+		}
+		modTime := fileInfo.ModTime()
+		if !modTime.IsZero() {
+			response.ModTime = &modTime
+		}
+
+		if nbrew.DB != nil {
+			result, err := sq.FetchOneContext(r.Context(), nbrew.DB, sq.CustomQuery{
+				Dialect: nbrew.Dialect,
+				Format:  "SELECT {*} FROM site WHERE site_name = {siteName}",
+				Values: []any{
+					sq.StringParam("siteName", strings.TrimPrefix(sitePrefix, "@")),
+				},
+			}, func(row *sq.Row) (result struct {
+				StorageLimit sql.NullInt64
+				StorageUsed  int64
+			}) {
+				result.StorageLimit = row.NullInt64("storage_limit")
+				result.StorageUsed = row.Int64("storage_used")
+				return result
+			})
+			if err != nil {
+				getLogger(r.Context()).Error(err.Error())
+				internalServerError(w, r, err)
+				return
+			}
+			if result.StorageLimit.Valid && result.StorageUsed+int64(len(request.Content)) > result.StorageLimit.Int64 {
+				response.Status = Error(fmt.Sprintf("%s Cannot save note, storage limit of %s exceeded", ErrStorageLimitExceeded.Code(), fileSizeToString(result.StorageLimit.Int64)))
+				writeResponse(w, r, response)
+				return
+			}
+			logger := getLogger(r.Context())
+			defer func() {
+				storageUsed, err := getFileSize(nbrew.FS, sitePrefix)
+				if err != nil {
+					logger.Error(err.Error())
+					return
+				}
+				_, err = sq.Exec(nbrew.DB, sq.CustomQuery{
+					Dialect: nbrew.Dialect,
+					Format:  "UPDATE site SET storage_used = {storageUsed} WHERE site_name = {siteName}",
+					Values: []any{
+						sq.Int64Param("storageUsed", storageUsed),
+						sq.StringParam("siteName", strings.TrimPrefix(sitePrefix, "@")),
+					},
+				})
+				if err != nil {
+					logger.Error(err.Error())
+					return
+				}
+			}()
+		}
+
+		if head == "notes" {
+			readerFrom, err := nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, filePath), 0644)
+			if err != nil {
+				getLogger(r.Context()).Error(err.Error())
+				internalServerError(w, r, err)
+				return
+			}
+			_, err = readerFrom.ReadFrom(strings.NewReader(request.Content))
+			if err != nil {
+				getLogger(r.Context()).Error(err.Error())
+				internalServerError(w, r, err)
+				return
+			}
+			response.Status = UpdateSuccess
+			writeResponse(w, r, response)
+			return
+		}
+
+		// If it's a note, just write it into admin/notes/*
+
+		// If it's a post, render post to public/posts/*/tmp.html then if it passes rename the tmp.html into index.html and write the content into admin/posts/*
+
+		// If it's a page, render page to public/*/tmp.html then if it passes rename tmp.html into index.html and write the content into admin/pages/*
+
+		// If it's an image, just write the image into public/images/*
+
+		// If it's a theme file that is not html, just write it into public/theme/*
+
+		// If it's a theme file that is html, find all other pages that depend on this template and render them into public/posts/*/tmp.html and public/*/tmp.html and if all succeed then start renaming all those tmp.html into index.html and write the content into public/theme/*
+		badRequest(w, r, fmt.Errorf("stop"))
 	default:
 		methodNotAllowed(w, r)
 	}

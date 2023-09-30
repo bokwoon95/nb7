@@ -144,20 +144,7 @@ func badRequest(w http.ResponseWriter, r *http.Request, serverErr error) {
 	var msg string
 	var maxBytesErr *http.MaxBytesError
 	if errors.As(serverErr, &maxBytesErr) {
-		// https://yourbasic.org/golang/formatting-byte-size-to-human-readable-format/
-		const unit = 1000
-		var limit string
-		if maxBytesErr.Limit < unit {
-			limit = fmt.Sprintf("%d B", maxBytesErr.Limit)
-		} else {
-			div, exp := int64(unit), 0
-			for n := maxBytesErr.Limit / unit; n >= unit; n /= unit {
-				div *= unit
-				exp++
-			}
-			limit = fmt.Sprintf("%.1f %cB", float64(maxBytesErr.Limit)/float64(div), "kMGTPE"[exp])
-		}
-		msg = "the data you are sending is too big (max " + limit + ")"
+		msg = "the data you are sending is too big (max " + fileSizeToString(maxBytesErr.Limit) + ")"
 	} else {
 		contentType, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type"))
 		if contentType == "application/json" {

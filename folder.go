@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"html/template"
 	"io/fs"
 	"log/slog"
@@ -481,14 +480,15 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 	}
 
 	funcMap := map[string]any{
-		"join":       path.Join,
-		"base":       path.Base,
-		"trimPrefix": strings.TrimPrefix,
-		"isEven":     func(i int) bool { return i%2 == 0 },
-		"username":   func() string { return username },
-		"referer":    func() string { return r.Referer() },
-		"sitePrefix": func() string { return sitePrefix },
-		"safeHTML":   func(s string) template.HTML { return template.HTML(s) },
+		"join":             path.Join,
+		"base":             path.Base,
+		"trimPrefix":       strings.TrimPrefix,
+		"fileSizeToString": fileSizeToString,
+		"isEven":           func(i int) bool { return i%2 == 0 },
+		"username":         func() string { return username },
+		"referer":          func() string { return r.Referer() },
+		"sitePrefix":       func() string { return sitePrefix },
+		"safeHTML":         func(s string) template.HTML { return template.HTML(s) },
 		"head": func(s string) string {
 			head, _, _ := strings.Cut(s, "/")
 			return head
@@ -541,22 +541,6 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 				b.WriteString(`/`)
 			}
 			return template.HTML(b.String())
-		},
-		"fileSizeToString": func(size int64) string {
-			// https://yourbasic.org/golang/formatting-byte-size-to-human-readable-format/
-			if size < 0 {
-				return ""
-			}
-			const unit = 1000
-			if size < unit {
-				return fmt.Sprintf("%d B", size)
-			}
-			div, exp := int64(unit), 0
-			for n := size / unit; n >= unit; n /= unit {
-				div *= unit
-				exp++
-			}
-			return fmt.Sprintf("%.1f %cB", float64(size)/float64(div), "kMGTPE"[exp])
 		},
 	}
 	tmpl, err := template.New("folder.html").Funcs(funcMap).ParseFS(rootFS, "embed/folder.html")
