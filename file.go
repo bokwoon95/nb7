@@ -306,24 +306,6 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 			}()
 		}
 
-		if head == "notes" {
-			readerFrom, err := nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, filePath), 0644)
-			if err != nil {
-				getLogger(r.Context()).Error(err.Error())
-				internalServerError(w, r, err)
-				return
-			}
-			_, err = readerFrom.ReadFrom(strings.NewReader(request.Content))
-			if err != nil {
-				getLogger(r.Context()).Error(err.Error())
-				internalServerError(w, r, err)
-				return
-			}
-			response.Status = UpdateSuccess
-			writeResponse(w, r, response)
-			return
-		}
-
 		// If it's a note, just write it into admin/notes/*
 
 		// If it's a post, render post to public/posts/*/tmp.html then if it passes rename the tmp.html into index.html and write the content into admin/posts/*
