@@ -193,16 +193,14 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 				}
 				return
 			}
-			if !response.Status.Success() {
-				err := nbrew.setSession(w, r, "flash", &response)
-				if err != nil {
-					getLogger(r.Context()).Error(err.Error())
-					internalServerError(w, r, err)
-					return
-				}
-				http.Redirect(w, r, nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix, filePath), http.StatusFound)
+			err := nbrew.setSession(w, r, "flash", &response)
+			if err != nil {
+				getLogger(r.Context()).Error(err.Error())
+				internalServerError(w, r, err)
 				return
 			}
+			http.Redirect(w, r, nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix, filePath), http.StatusFound)
+			return
 		}
 		_ = writeResponse
 		// NOTE: application/x-www-form-urlencoded, multipart/form-data and
