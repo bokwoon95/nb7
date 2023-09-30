@@ -2,6 +2,7 @@ package nb7
 
 import (
 	"encoding/json"
+	"errors"
 	"html/template"
 	"io"
 	"io/fs"
@@ -72,6 +73,7 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 			notFound(w, r)
 			return
 		}
+		//
 	default:
 		notFound(w, r)
 		return
@@ -207,6 +209,49 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 			return
 		}
 		_ = writeResponse
+
+		var request Request
+		contentType, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type"))
+		switch contentType {
+		case "application/json":
+			if typ != "text" {
+				unsupportedContentType(w, r)
+				return
+			}
+			err := json.NewDecoder(r.Body).Decode(&request)
+			if err != nil {
+				var syntaxErr *json.SyntaxError
+				if err == io.EOF || err == io.ErrUnexpectedEOF || errors.As(err, &syntaxErr) {
+					badRequest(w, r, err)
+					return
+				}
+				getLogger(r.Context()).Error(err.Error())
+				internalServerError(w, r, err)
+				return
+			}
+		case "application/x-www-form-urlencoded", "multipart/form-data":
+			if contentType == "multipart/form-data" {
+				err := r.ParseMultipartForm(5 << 20 /* 5MB */)
+				if err != nil {
+					badRequest(w, r, err)
+					return
+				}
+			} else {
+				if typ != "text" {
+					unsupportedContentType(w, r)
+					return
+				}
+				err := r.ParseForm()
+				if err != nil {
+					badRequest(w, r, err)
+					return
+				}
+			}
+			request.Content = r.Form.Get("content")
+		default:
+			unsupportedContentType(w, r)
+			return
+		}
 		// NOTE: application/x-www-form-urlencoded, multipart/form-data and
 		// application/json are accepted but if the type is not "text" then
 		// anything other than multipart/form-data will result in

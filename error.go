@@ -44,16 +44,17 @@ const (
 	ErrMailerNotEnabled          = Error("NB-03070 mailer not enabled")
 	ErrMailerMisconfigured       = Error("NB-03080 mailer misconfigured")
 	ErrMailSendingFailed         = Error("NB-03090 mail sending failed")
-	ErrUpdateFailed              = Error("NB-03100 update failed")
-	ErrMaxSitesReached           = Error("NB-03110 max sites reached")
-	ErrMissingFolderArgument     = Error("NB-03120 missing folder argument")
-	ErrInvalidFolderArgument     = Error("NB-03130 invalid folder argument")
-	ErrNothingToDelete           = Error("NB-03140 nothing to delete")
-	ErrDeleteFailed              = Error("NB-03150 delete failed")
-	ErrInvalidCategoryType       = Error("NB-03160 invalid category type")
-	ErrCategoryAlreadyExists     = Error("NB-03170 category already exists")
-	ErrForbiddenFolderName       = Error("NB-03180 forbidden folder name")
-	ErrFolderAlreadyExists       = Error("NB-03190 folder already exists")
+	ErrDataTooBig                = Error("NB-03100 data too big")
+	ErrUpdateFailed              = Error("NB-03110 update failed")
+	ErrMaxSitesReached           = Error("NB-03120 max sites reached")
+	ErrMissingFolderArgument     = Error("NB-03130 missing folder argument")
+	ErrInvalidFolderArgument     = Error("NB-03140 invalid folder argument")
+	ErrNothingToDelete           = Error("NB-03150 nothing to delete")
+	ErrDeleteFailed              = Error("NB-03160 delete failed")
+	ErrInvalidCategoryType       = Error("NB-03170 invalid category type")
+	ErrCategoryAlreadyExists     = Error("NB-03180 category already exists")
+	ErrForbiddenFolderName       = Error("NB-03190 forbidden folder name")
+	ErrFolderAlreadyExists       = Error("NB-03200 folder already exists")
 
 	// Class 04 - Validation
 	ErrValidationFailed    = Error("NB-04000 validation failed")
@@ -156,7 +157,9 @@ func badRequest(w http.ResponseWriter, r *http.Request, err error) {
 	w.WriteHeader(http.StatusBadRequest)
 	encoder := json.NewEncoder(w)
 	encoder.SetEscapeHTML(false)
-	err = encoder.Encode(map[string]any{"status": status})
+	err = encoder.Encode(map[string]any{
+		"status": status,
+	})
 	if err != nil {
 		getLogger(r.Context()).Error(err.Error())
 	}
@@ -169,7 +172,9 @@ func notAuthenticated(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 		encoder := json.NewEncoder(w)
 		encoder.SetEscapeHTML(false)
-		err := encoder.Encode(map[string]any{"status": ErrNotAuthenticated})
+		err := encoder.Encode(map[string]any{
+			"status": ErrNotAuthenticated,
+		})
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
 		}
@@ -208,7 +213,9 @@ func notAuthorized(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusForbidden)
 		encoder := json.NewEncoder(w)
 		encoder.SetEscapeHTML(false)
-		err := encoder.Encode(map[string]any{"status": ErrNotAuthorized})
+		err := encoder.Encode(map[string]any{
+			"status": ErrNotAuthorized,
+		})
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
 		}
@@ -240,7 +247,9 @@ func notFound(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		encoder := json.NewEncoder(w)
 		encoder.SetEscapeHTML(false)
-		err := encoder.Encode(map[string]any{"status": ErrNotFound})
+		err := encoder.Encode(map[string]any{
+			"status": ErrNotFound,
+		})
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
 		}
@@ -271,7 +280,9 @@ func methodNotAllowed(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusMethodNotAllowed)
 	encoder := json.NewEncoder(w)
 	encoder.SetEscapeHTML(false)
-	err := encoder.Encode(map[string]any{"status": status})
+	err := encoder.Encode(map[string]any{
+		"status": status,
+	})
 	if err != nil {
 		getLogger(r.Context()).Error(err.Error())
 	}
@@ -289,7 +300,9 @@ func unsupportedContentType(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusUnsupportedMediaType)
 	encoder := json.NewEncoder(w)
 	encoder.SetEscapeHTML(false)
-	err := encoder.Encode(map[string]any{"status": status})
+	err := encoder.Encode(map[string]any{
+		"status": status,
+	})
 	if err != nil {
 		getLogger(r.Context()).Error(err.Error())
 	}
@@ -302,7 +315,9 @@ func internalServerError(w http.ResponseWriter, r *http.Request, serverErr error
 		w.WriteHeader(http.StatusInternalServerError)
 		encoder := json.NewEncoder(w)
 		encoder.SetEscapeHTML(false)
-		err := encoder.Encode(map[string]any{"status": ErrServerError})
+		err := encoder.Encode(map[string]any{
+			"status": ErrServerError,
+		})
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
 		}

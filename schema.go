@@ -42,8 +42,10 @@ func automigrate(dialect string, db *sql.DB) error {
 
 type SITE struct {
 	sq.TableStruct
-	SITE_ID   sq.UUIDField   `ddl:"primarykey"`
-	SITE_NAME sq.StringField `ddl:"notnull len=500 unique"` // only lowercase letters, digits and hyphen
+	SITE_ID      sq.UUIDField   `ddl:"primarykey"`
+	SITE_NAME    sq.StringField `ddl:"notnull len=500 unique"` // only lowercase letters, digits and hyphen
+	STORAGE_USED sq.NumberField
+	STORAGE_MAX  sq.NumberField
 }
 
 type USERS struct {
