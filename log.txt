@@ -29,8 +29,9 @@ the last thing would probably be to make the site into a usable PWA on iOS then 
 TODO: notebrew createpost, notebrew createnote "this is a new note" -site bokwoon -category breh -slug "weegee"
 TODO: allow users to update their email address, but whenever that happens send a message to the old email with a password reset link (add new columns: users.old_email, users.old_email_reset_token_hash) that is invalidated after like 30 days. So if the user has their email changed by an attacker they have up to 30 days to take back control. Once a new password is set, the email reverts back to the old one.
 TODO: upload files, download themes from github
-TODO: preview mode for posts and pages (need to figure out rendering already)
-TODO: file (POST, may need to move UpdateSuccess Error higher up right after logout) | createpage | createfile | cut | copy | paste | rename (no need for link indexing and rewriting yet, that comes later)
+TODO: cut | copy | paste | rename (no need for link indexing and rewriting yet, that comes later)
+TODO: preview mode for posts and pages (need to figure out rendering already). Once we figure out rendering, we can implement render-on-write whenever a user creates or updates a file. That means we can also implement viewing the content page! Which means implementing the default post.html and posts.html templates!
+TODO: createpage | createfile
 
 notebrew backup ~/Downloads/2023-04-01-004455-notebrew-admin.zip
 notebrew backup ~/Downloads/2023-04-01-004455-notebrew-admin/
