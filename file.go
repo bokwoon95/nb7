@@ -2,7 +2,6 @@ package nb7
 
 import (
 	"encoding/json"
-	"errors"
 	"html/template"
 	"io"
 	"io/fs"
@@ -73,12 +72,12 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 			notFound(w, r)
 			return
 		}
-		//
 	default:
 		notFound(w, r)
 		return
 	}
 
+	r.Body = http.MaxBytesReader(w, r.Body, 15<<20 /* 15MB */)
 	switch r.Method {
 	case "GET":
 		writeResponse := func(w http.ResponseWriter, r *http.Request, response Response) {
@@ -220,18 +219,12 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 			}
 			err := json.NewDecoder(r.Body).Decode(&request)
 			if err != nil {
-				var syntaxErr *json.SyntaxError
-				if err == io.EOF || err == io.ErrUnexpectedEOF || errors.As(err, &syntaxErr) {
-					badRequest(w, r, err)
-					return
-				}
-				getLogger(r.Context()).Error(err.Error())
-				internalServerError(w, r, err)
+				badRequest(w, r, err)
 				return
 			}
 		case "application/x-www-form-urlencoded", "multipart/form-data":
 			if contentType == "multipart/form-data" {
-				err := r.ParseMultipartForm(5 << 20 /* 5MB */)
+				err := r.ParseMultipartForm(15 << 20 /* 15MB */)
 				if err != nil {
 					badRequest(w, r, err)
 					return

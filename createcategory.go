@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
-	"io"
 	"io/fs"
 	"mime"
 	"net/http"
@@ -128,13 +127,7 @@ func (nbrew *Notebrew) createcategory(w http.ResponseWriter, r *http.Request, us
 		case "application/json":
 			err := json.NewDecoder(r.Body).Decode(&request)
 			if err != nil {
-				var syntaxErr *json.SyntaxError
-				if err == io.EOF || err == io.ErrUnexpectedEOF || errors.As(err, &syntaxErr) {
-					badRequest(w, r, err)
-					return
-				}
-				getLogger(r.Context()).Error(err.Error())
-				internalServerError(w, r, err)
+				badRequest(w, r, err)
 				return
 			}
 		case "application/x-www-form-urlencoded", "multipart/form-data":

@@ -45,16 +45,17 @@ const (
 	ErrMailerMisconfigured       = Error("NB-03080 mailer misconfigured")
 	ErrMailSendingFailed         = Error("NB-03090 mail sending failed")
 	ErrDataTooBig                = Error("NB-03100 data too big")
-	ErrUpdateFailed              = Error("NB-03110 update failed")
-	ErrMaxSitesReached           = Error("NB-03120 max sites reached")
-	ErrMissingFolderArgument     = Error("NB-03130 missing folder argument")
-	ErrInvalidFolderArgument     = Error("NB-03140 invalid folder argument")
-	ErrNothingToDelete           = Error("NB-03150 nothing to delete")
-	ErrDeleteFailed              = Error("NB-03160 delete failed")
-	ErrInvalidCategoryType       = Error("NB-03170 invalid category type")
-	ErrCategoryAlreadyExists     = Error("NB-03180 category already exists")
-	ErrForbiddenFolderName       = Error("NB-03190 forbidden folder name")
-	ErrFolderAlreadyExists       = Error("NB-03200 folder already exists")
+	ErrStorageLimitExceeded      = Error("NB-03110 storage limit exceeded")
+	ErrUpdateFailed              = Error("NB-03120 update failed")
+	ErrMaxSitesReached           = Error("NB-03130 max sites reached")
+	ErrMissingFolderArgument     = Error("NB-03140 missing folder argument")
+	ErrInvalidFolderArgument     = Error("NB-03150 invalid folder argument")
+	ErrNothingToDelete           = Error("NB-03160 nothing to delete")
+	ErrDeleteFailed              = Error("NB-03170 delete failed")
+	ErrInvalidCategoryType       = Error("NB-03180 invalid category type")
+	ErrCategoryAlreadyExists     = Error("NB-03190 category already exists")
+	ErrForbiddenFolderName       = Error("NB-03200 forbidden folder name")
+	ErrFolderAlreadyExists       = Error("NB-03210 folder already exists")
 
 	// Class 04 - Validation
 	ErrValidationFailed    = Error("NB-04000 validation failed")
@@ -139,30 +140,68 @@ var errorTemplate = template.Must(template.
 	ParseFS(rootFS, "embed/error.html"),
 )
 
-func badRequest(w http.ResponseWriter, r *http.Request, err error) {
-	var status string
-	contentType, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type"))
-	if contentType == "application/json" {
-		if err == io.EOF {
-			status = string(ErrBadRequest) + ": missing JSON body"
-		} else if err == io.ErrUnexpectedEOF {
-			status = string(ErrBadRequest) + ": malformed JSON"
+func badRequest(w http.ResponseWriter, r *http.Request, serverErr error) {
+	var msg string
+	var maxBytesErr *http.MaxBytesError
+	if errors.As(serverErr, &maxBytesErr) {
+		// https://yourbasic.org/golang/formatting-byte-size-to-human-readable-format/
+		const unit = 1000
+		var limit string
+		if maxBytesErr.Limit < unit {
+			limit = fmt.Sprintf("%d B", maxBytesErr.Limit)
 		} else {
-			status = string(ErrBadRequest) + ": " + err.Error()
+			div, exp := int64(unit), 0
+			for n := maxBytesErr.Limit / unit; n >= unit; n /= unit {
+				div *= unit
+				exp++
+			}
+			limit = fmt.Sprintf("%.1f %cB", float64(maxBytesErr.Limit)/float64(div), "kMGTPE"[exp])
 		}
+		msg = "the data you are sending is too big (max " + limit + ")"
 	} else {
-		status = string(ErrBadRequest) + ": " + err.Error()
+		contentType, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type"))
+		if contentType == "application/json" {
+			if serverErr == io.EOF {
+				msg = "missing JSON body"
+			} else if serverErr == io.ErrUnexpectedEOF {
+				msg = "malformed JSON"
+			} else {
+				msg = serverErr.Error()
+			}
+		} else {
+			msg = serverErr.Error()
+		}
 	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusBadRequest)
-	encoder := json.NewEncoder(w)
-	encoder.SetEscapeHTML(false)
-	err = encoder.Encode(map[string]any{
-		"status": status,
+	accept, _, _ := mime.ParseMediaType(r.Header.Get("Accept"))
+	if accept == "application/json" {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		encoder := json.NewEncoder(w)
+		encoder.SetEscapeHTML(false)
+		serverErr = encoder.Encode(map[string]any{
+			"status": string(ErrBadRequest) + ": " + msg,
+		})
+		if serverErr != nil {
+			getLogger(r.Context()).Error(serverErr.Error())
+		}
+		return
+	}
+	buf := bufPool.Get().(*bytes.Buffer)
+	buf.Reset()
+	defer bufPool.Put(buf)
+	err := errorTemplate.Execute(buf, map[string]any{
+		"Title":    `400 bad request`,
+		"Headline": "401 bad request",
+		"Byline":   msg,
 	})
 	if err != nil {
 		getLogger(r.Context()).Error(err.Error())
+		http.Error(w, string(ErrBadRequest)+": "+msg, http.StatusBadRequest)
+		return
 	}
+	w.Header().Set("Content-Security-Policy", defaultContentSecurityPolicy)
+	w.WriteHeader(http.StatusBadRequest)
+	buf.WriteTo(w)
 }
 
 func notAuthenticated(w http.ResponseWriter, r *http.Request) {
@@ -275,37 +314,76 @@ func notFound(w http.ResponseWriter, r *http.Request) {
 }
 
 func methodNotAllowed(w http.ResponseWriter, r *http.Request) {
-	status := string(ErrMethodNotAllowed) + ": " + r.Method
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusMethodNotAllowed)
-	encoder := json.NewEncoder(w)
-	encoder.SetEscapeHTML(false)
-	err := encoder.Encode(map[string]any{
-		"status": status,
+	accept, _, _ := mime.ParseMediaType(r.Header.Get("Accept"))
+	if accept == "application/json" {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		encoder := json.NewEncoder(w)
+		encoder.SetEscapeHTML(false)
+		err := encoder.Encode(map[string]any{
+			"status": string(ErrMethodNotAllowed) + ": " + r.Method,
+		})
+		if err != nil {
+			getLogger(r.Context()).Error(err.Error())
+		}
+		return
+	}
+	buf := bufPool.Get().(*bytes.Buffer)
+	buf.Reset()
+	defer bufPool.Put(buf)
+	err := errorTemplate.Execute(buf, map[string]any{
+		"Referer":  r.Referer(),
+		"Title":    "405 method not allowed",
+		"Headline": "405 method not allowed: " + r.Method,
 	})
 	if err != nil {
 		getLogger(r.Context()).Error(err.Error())
+		http.Error(w, string(ErrNotFound), http.StatusMethodNotAllowed)
+		return
 	}
+	w.Header().Set("Content-Security-Policy", defaultContentSecurityPolicy)
+	w.WriteHeader(http.StatusMethodNotAllowed)
+	buf.WriteTo(w)
 }
 
 func unsupportedContentType(w http.ResponseWriter, r *http.Request) {
 	contentType := r.Header.Get("Content-Type")
-	status := ErrUnsupportedMediaType.Code()
+	var msg string
 	if contentType == "" {
-		status += " missing Content-Type"
+		msg = "missing Content-Type"
 	} else {
-		status = " unsupported Content-Type: " + contentType
+		msg = "unsupported Content-Type: " + contentType
 	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusUnsupportedMediaType)
-	encoder := json.NewEncoder(w)
-	encoder.SetEscapeHTML(false)
-	err := encoder.Encode(map[string]any{
-		"status": status,
+	accept, _, _ := mime.ParseMediaType(r.Header.Get("Accept"))
+	if accept == "application/json" {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnsupportedMediaType)
+		encoder := json.NewEncoder(w)
+		encoder.SetEscapeHTML(false)
+		err := encoder.Encode(map[string]any{
+			"status": ErrUnsupportedMediaType.Code() + ": " + msg,
+		})
+		if err != nil {
+			getLogger(r.Context()).Error(err.Error())
+		}
+		return
+	}
+	buf := bufPool.Get().(*bytes.Buffer)
+	buf.Reset()
+	defer bufPool.Put(buf)
+	err := errorTemplate.Execute(buf, map[string]any{
+		"Referer":  r.Referer(),
+		"Title":    "415 unsupported media type",
+		"Headline": msg,
 	})
 	if err != nil {
 		getLogger(r.Context()).Error(err.Error())
+		http.Error(w, ErrUnsupportedMediaType.Code()+": "+msg, http.StatusUnsupportedMediaType)
+		return
 	}
+	w.Header().Set("Content-Security-Policy", defaultContentSecurityPolicy)
+	w.WriteHeader(http.StatusUnsupportedMediaType)
+	buf.WriteTo(w)
 }
 
 func internalServerError(w http.ResponseWriter, r *http.Request, serverErr error) {
