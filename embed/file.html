@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="/admin/static/tachyons.min.css">
+<link rel="stylesheet" href="/admin/static/styles.css">
+<script type="module" src="/admin/static/autoclose-details.js"></script>
+<script type="module" src="/admin/static/disable-click-selection.js"></script>
+<script type="module" src="/admin/static/go-back.js"></script>
+<title>{{ if title }}{{ title }}{{ else }}Untitled{{ end }}</title>
+<body class="centered-body">
+<nav class="mv2 bg-dark-cyan white flex flex-wrap items-center">
+    <a href="https://notebrew.com/" class="ma2">notebrew🖋️☕</a>
+    <span class="flex-grow-1"></span>
+    <a href="" class="ma2">🔎 search</a>
+    <a href="" class="ma2">{{ if username }}@{{ username }}{{ else }}user{{ end }}</a>
+    <a href="/admin/logout/" class="ma2">logout</a>
+</nav>
+{{- if and $.Status (ne $.Status.Code "NB-00000") }}
+{{- if $.Status.Success }}
+<div role="alert" class="alert-success mv2 pa2 br2 flex items-center">
+    <div>{{ safeHTML $.Status.Message }}</div>
+    <div class="flex-grow-1"></div>
+    <button class="f3 bg-transparent bn color-success o-70 hover-black" data-dismiss-alert>&times;</button>
+</div>
+{{- else }}
+<div role="alert" class="alert-danger mv2 pa2 br2 flex items-center">
+    <div>{{ safeHTML $.Status.Message }}</div>
+    <div class="flex-grow-1"></div>
+    <button class="f3 bg-transparent bn color-success o-70 hover-black" data-dismiss-alert>&times;</button>
+</div>
+{{- end }}
+{{- end }}
+{{- if eq $.Type "image" }}
+<div class="mv5 w-70 w-60-m w-50-l center">
+    {{- if referer }}
+    <div><a href="{{ referer }}" class="linktext" data-go-back>&larr; back</a></div>
+    {{- end }}
+    <h3 class="f3 mv2 tc b">image file</h3>
+    <div class="mv2 tc">image file</div>
+</div>
+{{- else if eq $.Type "font" "gzip" }}
+<div class="mv5 w-70 w-60-m w-50-l center">
+    {{- if referer }}
+    <div><a href="{{ referer }}" class="linktext" data-go-back>&larr; back</a></div>
+    {{- end }}
+    <h3 class="f3 mv2 tc b">cannot display this file</h3>
+    <div class="mv2 tc">choose to <a href="" class="linktext">download</a> it instead.</div>
+</div>
+{{- else }}
+<div>
+    {{- if referer }}
+    <a href="{{ referer }}" class="linktext" data-go-back>&larr; back</a>
+    <span>&boxv;</span>
+    {{- end }}
+    {{ $parentDir := dir $.Path }}
+    {{ $head := head $.Path }}
+    {{- if ne $parentDir $head }}
+    <a href="/{{ join `admin` sitePrefix $parentDir }}/" class="linktext">{{ base $parentDir }}</a>
+    <span>&boxv;</span>
+    {{- end }}
+    <a href="/{{ join `admin` sitePrefix $head }}/" class="linktext">{{ $head }}</a>
+    <span>&boxv;</span>
+    <a href="/{{ join `admin` sitePrefix }}/" class="linktext">admin</a>
+</div>
+<div class="mv2"><span class="b">{{ base $.Path }}</span> <a href="" class="f6 mh1 linktext">rename</a></div>
+<form method="post" enctype="multipart/form-data" class="mv1">
+    <textarea name="content" dir="auto" class="w-100 pa2 pa3-m min-h5 h6 resize-vertical">{{ $.Content }}</textarea>
+    <button type="submit" class="button ba br2 pa2 mv3 w-100">Save</button>
+</form>
+{{- end }}

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="/admin/static/tachyons.min.css">
+<link rel="stylesheet" href="/admin/static/styles.css">
+<script type="module" src="/admin/static/go-back.js"></script>
+<title>Create site</title>
+<body class="centered-body">
+<nav class="mv2 bg-dark-cyan white flex justify-between items-center">
+    <a href="https://notebrew.com/" class="ma2">notebrew🖋️☕</a>
+    <span class="flex-grow-1"></span>
+    <a href="" class="ma2">🔎 search</a>
+    <a href="" class="ma2">{{ if username }}@{{ username }}{{ else }}user{{ end }}</a>
+    <a href="/admin/logout/" class="ma2">logout</a>
+</nav>
+{{- if eq $.Status.Code "NB-03100" }}
+<div class="mv5 w-80 w-70-m w-60-l center">
+    {{- if referer }}
+    <div><a href="{{ referer }}" class="linktext" data-go-back>&larr; back</a></div>
+    {{- end }}
+    <div class="mv3 b">You have already reached the maximum of 10 sites, cannot create any more.</div>
+    <div><a href="/admin/" class="linktext">View sites</a></div>
+</div>
+{{- else }}
+<form method="post" action="/admin/createsite/" class="mv5 w-80 w-70-m w-60-l center">
+    {{- if referer }}
+    <div><a href="{{ referer }}" class="linktext" data-go-back>&larr; back</a></div>
+    {{- end }}
+    <h1 class="f3 mv3 b">Create a new site</h1>
+    <div class="mv3">
+        <div><label for="siteName" class="b">Site name:</label></div>
+        <input id="siteName" name="siteName" value="{{ $.SiteName }}" class="pv1 ph2 br2 ba w-100{{ if index $.ValidationErrors `siteName` }} b--invalid-red{{ end }}" autocomplete="on" required>
+        <ul>
+            {{- range $i, $error := index $.ValidationErrors "siteName" }}
+            <li class="f6 invalid-red list-style-disc">{{ $error.Message }}</li>
+            {{- end }}
+        </ul>
+    </div>
+    <button type="submit" class="button ba br2 pa2 mv3 w-100">Create site</button>
+</form>
+{{- end }}

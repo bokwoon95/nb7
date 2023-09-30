@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="/admin/static/tachyons.min.css">
+<link rel="stylesheet" href="/admin/static/styles.css">
+<script type="module" src="/admin/static/autoclose-details.js"></script>
+<script type="module" src="/admin/static/disable-click-selection.js"></script>
+<script type="module" src="/admin/static/dismiss-alert.js"></script>
+<script type="module" src="/admin/static/persist-sort-order.js"></script>
+<title>{{ if $.Path }}{{ base $.Path }}{{ else }}admin{{ end }}</title>
+<body class="centered-body">
+<nav class="mv2 bg-dark-cyan white flex flex-wrap items-center">
+    <a href="https://notebrew.com/" class="ma2">notebrew🖋️☕</a>
+    <span class="flex-grow-1"></span>
+    {{- if $.ContentSiteURL }}
+    <a href="{{ $.ContentSiteURL }}" class="ma2">{{ neatenURL $.ContentSiteURL }}</a>
+    {{- end }}
+    <a href="" class="ma2">🔎 search</a>
+    <a href="" class="ma2">{{ if username }}@{{ username }}{{ else }}user{{ end }}</a>
+    <a href="/admin/logout/" class="ma2">logout</a>
+</nav>
+{{- if and $.Status (ne $.Status.Code "NB-00000") }}
+{{- if $.Status.Success }}
+<div role="alert" class="alert-success mv2 pa2 br2 flex items-center">
+    <div>{{ safeHTML $.Status.Message }}</div>
+    <div class="flex-grow-1"></div>
+    <button class="f3 bg-transparent bn color-success o-70 hover-black" data-dismiss-alert>&times;</button>
+</div>
+{{- else }}
+<div role="alert" class="alert-danger mv2 pa2 br2 flex items-center">
+    <div>{{ safeHTML $.Status.Message }}</div>
+    <div class="flex-grow-1"></div>
+    <button class="f3 bg-transparent bn color-success o-70 hover-black" data-dismiss-alert>&times;</button>
+</div>
+{{- end }}
+{{- end }}
+<div class="mv2 flex flex-wrap items-center">
+    <div class="flex-grow-1"></div>
+    <div class="flex items-center">
+        <details class="relative pointer mh1" data-disable-click-selection>
+            <summary role="button" class="flex items-center ba br2 b--black ph2 h2 transparent-button dashed-border hide-marker">
+                <span>5 items cut</span>
+                {{ template "octicon-triangle-down" }}
+            </summary>
+            <div class="absolute bg-white br2 hide-marker" style="top: calc(2rem + 4px); right: 0px; z-index: 1000; border: 1px solid black;">
+                {{- if $.Path }}
+                <div class="tr ma2"><button type="button" class="link linktext tr nowrap dib w-100 h-100">paste</button></div>
+                <div class="tr ma2"><a href="" class="link linktext tr nowrap dib w-100 h-100">view</a></div>
+                <div class="tr ma2"><button type="button" class="link dark-red tr nowrap dib w-100 h-100">clear</button></div>
+                {{- else }}
+                <div class="tr ma2"><a href="" class="link linktext tr nowrap dib w-100 h-100">view</a></div>
+                {{- end }}
+            </div>
+        </details>
+    </div>
+    {{- if and $.Path (ne (head $.Path) "public") }}
+    <div class="flex items-center">
+        <details class="relative pointer mh1" data-disable-click-selection>
+            <summary role="button" class="flex items-center button ba br2 b--black ph2 h2 hide-marker">
+                <span>sort by</span>
+                {{ template "octicon-triangle-down" }}
+            </summary>
+            <div class="absolute bg-white br2" style="top: calc(2rem + 4px); right: 0px; z-index: 1000; border: 1px solid black;">
+                {{- if or (eq (head $.Path) "notes") (eq (head $.Path) "posts") }}
+                <div class="tr ma2"><a href="?sort=created&order={{ $.Order }}" class="link linktext tr nowrap dib w-100 h-100{{ if eq $.Sort `created` }} arrow-before{{ end }}">date created</a></div>
+                <div class="tr ma2"><a href="?sort=edited&order={{ $.Order }}" class="link linktext tr nowrap dib w-100 h-100{{ if eq $.Sort `edited` }} arrow-before{{ end }}">date edited</a></div>
+                <div class="tr ma2"><a href="?sort=title&order={{ $.Order }}" class="link linktext tr nowrap dib w-100 h-100{{ if eq $.Sort `title` }} arrow-before{{ end }}">title</a></div>
+                {{- else }}
+                <div class="tr ma2"><a href="?sort=name&order={{ $.Order }}" class="link linktext tr nowrap dib w-100 h-100{{ if eq $.Sort `name` }} arrow-before{{ end }}">name</a></div>
+                <div class="tr ma2"><a href="?sort=edited&order={{ $.Order }}" class="link linktext tr nowrap dib w-100 h-100{{ if eq $.Sort `edited` }} arrow-before{{ end }}">date edited</a></div>
+                {{- end }}
+                <hr>
+                <div class="tr ma2"><a href="?sort={{ $.Sort }}&order=asc" class="link linktext tr nowrap dib w-100 h-100{{ if eq $.Order `asc` }} arrow-before{{ end }}">ascending</a></div>
+                <div class="tr ma2"><a href="?sort={{ $.Sort }}&order=desc" class="link linktext tr nowrap dib w-100 h-100{{ if eq $.Order `desc` }} arrow-before{{ end }}">descending</a></div>
+            </div>
+        </details>
+    </div>
+    {{- end }}
+    <div class="flex items-center">
+        <details class="relative pointer ml1" title="create" data-disable-click-selection>
+            <summary role="button" class="flex items-center button ba br2 b--black ph2 h2 hide-marker">
+                {{ template "octicon-plus" }}
+                {{ template "octicon-triangle-down" }}
+            </summary>
+            <div class="absolute bg-white br2" style="top: calc(2rem + 4px); right: 0px; z-index: 1000; border: 1px solid black;">
+                {{- if eq $.Path "" }}
+                <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createnote` }}/" class="linktext tr nowrap dib w-100 h-100">create note</a></div>
+                <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createpost` }}/" class="linktext tr nowrap dib w-100 h-100">create post</a></div>
+                <div class="tr ma2"><a href="/admin/createsite/" class="linktext tr nowrap dib w-100 h-100">create site</a></div>
+                {{- else if eq (head $.Path) "notes" }}
+                <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createnote` }}/{{ if tail $.Path }}?category={{ head (tail $.Path) }}{{ end }}" class="linktext tr nowrap dib w-100 h-100">create note</a></div>
+                <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createpost` }}/" class="linktext tr nowrap dib w-100 h-100">create post</a></div>
+                {{- else if eq (head $.Path) "posts" }}
+                <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createnote` }}/" class="linktext tr nowrap dib w-100 h-100">create note</a></div>
+                <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createpost` }}/{{ if tail $.Path }}?category={{ head (tail $.Path) }}{{ end }}" class="linktext tr nowrap dib w-100 h-100">create post</a></div>
+                {{- else if eq (head $.Path) "pages" }}
+                <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createnote` }}/" class="linktext tr nowrap dib w-100 h-100">create note</a></div>
+                <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createpost` }}/" class="linktext tr nowrap dib w-100 h-100">create post</a></div>
+                <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createpage` }}/?folder={{ $.Path }}" class="linktext tr nowrap dib w-100 h-100">create page</a></div>
+                <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createfolder` }}?folder={{ $.Path }}" class="linktext tr nowrap dib w-100 h-100">create folder</a></div>
+                {{- else if and (eq (head $.Path) "public") (eq (head (tail $.Path)) "themes") }}
+                <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createnote` }}/" class="linktext tr nowrap dib w-100 h-100">create note</a></div>
+                <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createpost` }}/" class="linktext tr nowrap dib w-100 h-100">create post</a></div>
+                <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createfile` }}/?folder={{ $.Path }}" class="linktext tr nowrap dib w-100 h-100">create file</a></div>
+                <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createfolder` }}?folder={{ $.Path }}" class="linktext tr nowrap dib w-100 h-100">create folder</a></div>
+                {{- else }}
+                <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createnote` }}/" class="linktext tr nowrap dib w-100 h-100">create note</a></div>
+                <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createpost` }}/" class="linktext tr nowrap dib w-100 h-100">create post</a></div>
+                {{- end }}
+            </div>
+        </details>
+    </div>
+</div>
+<div class="mv2">{{ generateBreadcrumbLinks $.Path }}</div>
+{{- if $.Path }}
+<form>
+{{- end }}
+    {{- if and $.Path $.IsDir }}
+    <input type="hidden" name="folder" value="{{ $.Path }}">
+    {{- end }}
+    {{- range $i, $entry := $.Entries }}
+    {{- if eq $.Path "" }}
+    <div class="min-h2 mv1{{ if isEven $i }} bg-lighter-gray{{ else }} bg-mostly-white{{ end }}">
+        {{- if eq $entry.Name "notes" }}
+        <details data-dont-autoclose-details>
+            <summary class="pointer hide-marker flex flex-wrap items-center" data-disable-click-selection>
+                {{ template "heroicons-dir" }}
+                <a href="/{{ join `admin` sitePrefix `notes` }}/" class="linktext ma1 dib">notes/</a>
+                <span class="f6 mid-gray">({{ filecount $entry.NumFolders $entry.NumFiles}})</span>
+                <span class="flex-grow-1"></span>
+                <span class="flex items-center ph1">
+                    {{ template "octicon-triangle-down" }}
+                </span>
+            </summary>
+            <div class="ph2 mid-gray f6">
+                Notes are private and can only be accessed by the owner(s) of a site.
+            </div>
+        </details>
+        {{- else if eq $entry.Name "pages" }}
+        <details data-dont-autoclose-details>
+            <summary class="pointer hide-marker flex flex-wrap items-center" data-disable-click-selection>
+                {{ template "heroicons-dir" }}
+                <a href="/{{ join `admin` sitePrefix `pages` }}/" class="linktext ma1 dib">pages/</a>
+                <span class="f6 mid-gray">({{ filecount $entry.NumFolders $entry.NumFiles}})</span>
+                <span class="flex-grow-1"></span>
+                <span class="flex items-center ph1">
+                    {{ template "octicon-triangle-down" }}
+                </span>
+            </summary>
+            <div class="ph2 mid-gray f6">
+                Pages are public and can be viewed at <a href="{{ $.ContentSiteURL }}" class="linktext">{{ neatenURL $.ContentSiteURL }}</a>. Pages may invoke other HTML templates defined in the <a href="public/themes/" class="linktext">themes</a> folder
+                <br><br>
+                More info: <a href="" class="linktext">The Definitive Guide to Writing HTML Pages in Notebrew</a>.
+            </div>
+        </details>
+        {{- else if eq $entry.Name "posts" }}
+        <details data-dont-autoclose-details>
+            <summary class="pointer hide-marker flex flex-wrap items-center" data-disable-click-selection>
+                {{ template "heroicons-dir" }}
+                <a href="/{{ join `admin` sitePrefix `posts` }}/" class="linktext ma1 dib">posts/</a>
+                <span class="f6 mid-gray">({{ filecount $entry.NumFolders $entry.NumFiles}})</span>
+                <span class="flex-grow-1"></span>
+                <span class="flex items-center ph1">
+                    {{ template "octicon-triangle-down" }}
+                </span>
+            </summary>
+            <div class="ph2 mid-gray f6">
+                Posts are public and can be viewed at <a href="{{ $.ContentSiteURL }}posts/" class="linktext">{{ neatenURL $.ContentSiteURL }}/posts</a>.
+            </div>
+        </details>
+        {{- else if eq $entry.Name "public" }}
+        <details data-dont-autoclose-details>
+            <summary class="pointer hide-marker flex flex-wrap items-center" data-disable-click-selection>
+                {{ template "heroicons-dir" }}
+                <a href="/{{ join `admin` sitePrefix `public` }}/" class="linktext ma1 dib">public/</a>
+                <span class="f6 mid-gray">({{ filecount $entry.NumFolders $entry.NumFiles}})</span>
+                <span class="flex-grow-1"></span>
+                <span class="flex items-center ph1">
+                    {{ template "octicon-triangle-down" }}
+                </span>
+            </summary>
+            <div class="ph2 mid-gray f6">
+                Contains the site's generated static files (read-only).
+            </div>
+        </details>
+        {{- else if eq $entry.Name "public/themes" }}
+        <details data-dont-autoclose-details>
+            <summary class="pointer hide-marker flex flex-wrap items-center" data-disable-click-selection>
+                {{ template "heroicons-dir" }}
+                <a href="/{{ join `admin` sitePrefix `public/themes` }}/" class="linktext ma1 dib">themes/</a>
+                <span class="f6 mid-gray">({{ filecount $entry.NumFolders $entry.NumFiles}})</span>
+                <span class="flex-grow-1"></span>
+                <span class="flex items-center mh1">
+                    {{ template "octicon-triangle-down" }}
+                </span>
+            </summary>
+            <div class="ph2 mid-gray f6">
+                Contain HTML templates as well as site assets (CSS stylesheets, JavaScript scripts, images).
+                <br><br>
+                More info: <a href="" class="linktext">The Definitive Guide to Writing HTML Pages in Notebrew</a>.
+            </div>
+        </details>
+        {{- else if $entry.IsSite }}
+        <div class="flex flex-wrap items-center">
+            <a href="{{ $entry.Name }}/" class="linktext ma1 dib">{{ $entry.Name }}/</a>
+            {{- if not $entry.IsUser }}
+            <div class="flex-grow-1"></div>
+            <details class="relative" data-disable-click-selection>
+                <summary role="button" title="More actions" class="flex items-center button ba br2 b--black h2 hide-marker ph1 pointer">
+                    {{ template "octicon-triangle-down" }}
+                </summary>
+                <div class="absolute bg-white br2" style="top: calc(2rem + 2px); right: 0px; z-index: 1000; border: 1px solid black;">
+                    <div class="tr ma2"><a href="/admin/deletesite/?name={{ trimPrefix $entry.Name `@` }}" class="link dark-red tr nowrap dib w-100 h-100">delete site</a></div>
+                </div>
+            </details>
+            {{- end }}
+        </div>
+        {{- else }}
+        <div>
+            <a href="{{ $entry.Name }}/" class="linktext ma1 dib">{{ $entry.Name }}/</a>
+        </div>
+        {{- end }}
+    </div>
+    {{- else }}
+    <div class="min-h2 mv1{{ if isEven $i }} bg-lighter-gray{{ else }} bg-mostly-white{{ end }}">
+        <label for="{{ $entry.Name }}" class="flex items-center pointer" data-disable-click-selection>
+            {{- if ne $.Path "public" }}
+            <div>
+                <input type="checkbox" id="{{ $entry.Name }}" name="name" value="{{ $entry.Name }}" class="ma1 pointer">
+            </div>
+            {{- end }}
+            <div class="br2 truncate mh1">
+                <div class="flex items-center">
+                    {{- if $entry.IsDir }}
+                    {{ template "heroicons-dir" }}
+                    {{- end }}
+                    <a href="/{{ join `admin` sitePrefix $.Path $entry.Name }}{{ if $entry.IsDir }}/{{ end }}" class="linktext ma1 truncate">{{ $entry.Name }}{{ if $entry.IsDir }}/{{ end }}</a>
+                    {{- if $entry.IsDir }}
+                    <span class="f6 mid-gray">({{ filecount $entry.NumFolders $entry.NumFiles}})</span>
+                    {{- else }}
+                    <span class="ma1 f6 mid-gray">{{ fileSizeToString $entry.Size }}</span>
+                    {{- end }}
+                </div>
+                {{- if and (not $entry.IsDir) (or (eq (head $.Path) "notes") (eq (head $.Path) "posts")) }}
+                <div class="mh1 b truncate">{{ if $entry.Title }}{{ $entry.Title }}{{ else }}Untitled{{ end }}</div>
+                <div class="mh1 mid-gray truncate f6">{{ if $entry.Preview }}{{ $entry.Preview }}{{ else }}No additional text{{ end }}</div>
+                {{- end }}
+            </div>
+            <div class="flex-grow-1"></div>
+            <details class="relative" data-disable-click-selection>
+                <summary role="button" title="More actions" class="flex items-center button ba br2 b--black h2 hide-marker ph1">
+                    {{ template "octicon-triangle-down" }}
+                </summary>
+                <div class="absolute bg-white br2" style="top: calc(2rem + 2px); right: 0px; z-index: 1000; border: 1px solid black;">
+                    <div class="tr ma2"><button type="submit" name="name" value="{{ $entry.Name }}" class="link linktext tr nowrap dib w-100 h-100">cut</button></div>
+                    <div class="tr ma2"><button type="submit" name="name" value="{{ $entry.Name }}" class="link linktext tr nowrap dib w-100 h-100">copy</button></div>
+                    <div class="tr ma2"><button type="submit" formaction="/{{ join `admin` sitePrefix `delete` }}/" name="name" value="{{ $entry.Name }}" class="link dark-red tr nowrap dib w-100 h-100">delete</button></div>
+                </div>
+            </details>
+        </label>
+    </div>
+    {{- end }}
+    {{- else }}
+    {{- if eq (head $.Path) "notes" }}
+    <div class="mv4">folder is empty, <a href="/{{ join `admin` sitePrefix `createnote` }}/{{ if tail $.Path }}?category={{ head (tail $.Path) }}{{ end }}" class="linktext">create a new note</a></div>
+    {{- else if eq (head $.Path) "pages" }}
+    <div class="mv4">folder is empty, <a href="" class="linktext">create a new page</a></div>
+    {{- else if eq (head $.Path) "posts" }}
+    <div class="mv4">folder is empty, <a href="/{{ join `admin` sitePrefix `createpost` }}/{{ if tail $.Path }}?category={{ head (tail $.Path) }}{{ end }}" class="linktext">create a new post</a></div>
+    {{- else }}
+    <div class="mv4">folder is empty</div>
+    {{- end }}
+    {{- end }}
+{{- if $.Path }}
+</form>
+{{- end }}
+<div class="mv5"></div>
+
+{{- define "octicon-plus" }}
+<svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-plus">
+    <path d="M7.75 2a.75.75 0 0 1 .75.75V7h4.25a.75.75 0 0 1 0 1.5H8.5v4.25a.75.75 0 0 1-1.5 0V8.5H2.75a.75.75 0 0 1 0-1.5H7V2.75A.75.75 0 0 1 7.75 2Z"></path>
+</svg>
+{{- end }}
+
+{{- define "octicon-triangle-down" }}
+<svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-triangle-down">
+    <path d="m4.427 7.427 3.396 3.396a.25.25 0 0 0 .354 0l3.396-3.396A.25.25 0 0 0 11.396 7H4.604a.25.25 0 0 0-.177.427Z"></path>
+</svg>
+{{- end }}
+
+{{- define "heroicons-dir" }}
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="ma1">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
+</svg>
+{{- end }}
+
+{{- define "heroicons-globe" }}
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="ma1">
+  <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
+</svg>
+{{- end }}
+
+{{- define "heroicons-question-mark-circle" }}
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" class="ma1">
+  <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
+</svg>
+{{- end }}
+
+{{- define "heroicons-information-circle" }}
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="ma1">
+  <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+</svg>
+{{- end }}
+
+{{- define "ellipsis-horizontal" }}
+<svg fill="none" width="16" height="16" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg" class="ma1 items-center">
+    <path d="M5 12H5.01M12 12H12.01M19 12H19.01M6 12C6 12.5523 5.55228 13 5 13C4.44772 13 4 12.5523 4 12C4 11.4477 4.44772 11 5 11C5.55228 11 6 11.4477 6 12ZM13 12C13 12.5523 12.5523 13 12 13C11.4477 13 11 12.5523 11 12C11 11.4477 11.4477 11 12 11C12.5523 11 13 11.4477 13 12ZM20 12C20 12.5523 19.5523 13 19 13C18.4477 13 18 12.5523 18 12C18 11.4477 18.4477 11 19 11C19.5523 11 20 11.4477 20 12Z" stroke="#4A5568" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+</svg>
+{{- end }}

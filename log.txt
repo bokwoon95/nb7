@@ -1,0 +1,58 @@
+fs.go
+schema.go
+notebrew.go
+error.go
+signup.go
+login.go
+logout.go
+resetpassword.go
+folder.go
+file.go
+createsite.go
+deletesite.go
+delete.go
+createnote.go
+createpost.go
+createcategory.go
+createfolder.go
+createpage.go
+createfile.go
+clipboard.go
+rename.go
+...
+serve_http.go
+new.go
+
+Search Indexing => Link Indexing and rewrites => PWA => publish
+the last thing would probably be to make the site into a usable PWA on iOS then you're done, you can publish it to the world.
+
+TODO: notebrew createpost, notebrew createnote "this is a new note" -site bokwoon -category breh -slug "weegee"
+TODO: allow users to update their email address, but whenever that happens send a message to the old email with a password reset link (add new columns: users.old_email, users.old_email_reset_token_hash) that is invalidated after like 30 days. So if the user has their email changed by an attacker they have up to 30 days to take back control. Once a new password is set, the email reverts back to the old one.
+TODO: upload files, download themes from github
+TODO: preview mode for posts and pages (need to figure out rendering already)
+TODO: file (POST, may need to move UpdateSuccess Error higher up right after logout) | createpage | createfile | cut | copy | paste | rename (no need for link indexing and rewriting yet, that comes later)
+
+notebrew backup ~/Downloads/2023-04-01-004455-notebrew-admin.zip
+notebrew backup ~/Downloads/2023-04-01-004455-notebrew-admin/
+notebrew backup s3://...
+notebrew restore ~/Downloads/2023-04-01-004455-notebrew-admin.zip
+notebrew restore ~/Downloads/2023-04-01-004455-notebrew-admin/
+notebrew restore ~/Downloads/2023-04-01-004455-notebrew-admin/
+notebrew restore s3://...
+backup.txt, backup-cron.txt, admin-mailer.txt, mailto-admin.txt
+- how to give users the option of single backup vs timestamped backups? should we even offer that option?
+- no, if a user wants timestamped backups they can always roll their own backup strategy on the admin directory. notebrew's native backup is meant for small scale self hosters who don't have the storage luxury of repeatedly backing up the same directory multiple times. meaning it always overwrite to one location and that's it. it's basically there to guard against the main server going down and its data becoming unrecoverable. If people are interested, then can always pass in their custom FS implementation which creates a new timestamped backup everytime OpenReaderFrom is called.
+
+-db/-database -addr/-address -backup s3:// -backup-cron <cron expr>
+
+notebrew restore s3://
+
+2023-04-01-004455-notebrew-admin.zip
+
+if a backup job fails, it uses the mailer to send a warning email to the email of the root user in the database
+- uses admin-mailer.txt so that you can probably use the more durable and free gmail than a high volume but expensive mailgun/mailchimp for important emails that you really need to receive.
+- how to record failures? no record needed, if a job fails it just sends the email and moves on until 24hrs later when it attempts to run the job again. If there's an error, it's up to the recipient of the email to check within the time period until the next job or else he will keep getting pinged by the failure emails over and over again.
+
+TODO: we need cross-handler tests to check for nil DB == 404, Content-Type headers are all set appropriately, etc.
+
+TODO: S3FS with an optional CDN cache in front of it for everything inside a site/ directory. What happens is that after a site html file is generated, an extra CDN URL rewriting layer crawls the HTML and rewrites all content links to CDN links instead. The user can enable/disable this automatic postprocessing step anytime, and they can also visit any page and toggle CDN links/server links on a per-page basis. And whenever a new copy of the html file is generated to s3, notebrew also cache-busts the CDN link.

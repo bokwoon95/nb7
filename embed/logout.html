@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="/admin/static/tachyons.min.css">
+<link rel="stylesheet" href="/admin/static/styles.css">
+<script type="module" src="/admin/static/go-back.js"></script>
+<title>logout</title>
+<body class="centered-body">
+<nav class="mv2 bg-dark-cyan white flex items-center">
+    <a href="https://notebrew.com/" class="ma2">notebrew🖋️☕</a>
+</nav>
+<form method="post" action="/admin/logout/" class="mv5 w-70 w-60-m w-50-l center">
+    {{- if referer }}
+    <div><a href="{{ referer }}" class="linktext" data-go-back>&larr; back</a></div>
+    {{- end }}
+    <h3 class="f4 mv2 b tc">Are you sure you wish to log out?</h3>
+    <button type="submit" class="button ba br2 b--black pa2 w-100">Log Out</button>
+</form>

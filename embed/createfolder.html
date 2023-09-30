@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="/admin/static/tachyons.min.css">
+<link rel="stylesheet" href="/admin/static/styles.css">
+<script type="module" src="/admin/static/go-back.js"></script>
+<title>Create folder</title>
+<body class="centered-body">
+<nav class="mv2 bg-dark-cyan white flex justify-between items-center">
+    <a href="https://notebrew.com/" class="ma2">notebrew🖋️☕</a>
+    <span class="flex-grow-1"></span>
+    <a href="" class="ma2">🔎 search</a>
+    <a href="" class="ma2">{{ if username }}@{{ username }}{{ else }}user{{ end }}</a>
+    <a href="/admin/logout/" class="ma2">logout</a>
+</nav>
+{{- if eq $.Status.Code "NB-03110" "NB-03120" }}
+<div class="mv5 w-80 w-70-m w-60-l center">
+    {{- if referer }}
+    <div><a href="{{ referer }}" class="linktext" data-go-back>&larr; back</a></div>
+    {{- end }}
+    <div class="mv3 b tc">Can't create folder here.</div>
+</div>
+{{- else }}
+<form method="post" action="/{{ join `admin` sitePrefix `createfolder` }}/" class="mv5 w-80 w-70-m w-60-l center">
+    {{- if referer }}
+    <div><a href="{{ referer }}" class="linktext" data-go-back>&larr; back</a></div>
+    {{- end }}
+    <h1 class="f3 mv3 b">Create a folder in <a href="/{{ join `admin` sitePrefix $.Folder }}/" class="linktext">{{ base $.Folder }}/</a></h1>
+    <input type="hidden" name="folder" value="{{ $.Folder }}">
+    <div class="mv3">
+        <div><label for="name" class="b">Name:</label></div>
+        <input id="name" name="name" class="pv1 ph2 br2 ba w-100" autocomplete="on" required>
+    </div>
+    <button type="submit" class="button ba br2 pa2 mv3 w-100">Create folder</button>
+</form>
+{{- end }}

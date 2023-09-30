@@ -1,0 +1,6 @@
+.idea
+node_modules
+static/dist
+*_test.db
+*_test.db-shm
+*_test.db-wal

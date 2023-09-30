@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="/admin/static/tachyons.min.css">
+<link rel="stylesheet" href="/admin/static/styles.css">
+<script type="module" src="/admin/static/go-back.js"></script>
+<title>Delete</title>
+<body class="centered-body">
+<nav class="mv2 bg-dark-cyan white flex justify-between items-center">
+    <a href="https://notebrew.com/" class="ma2">notebrew🖋️☕</a>
+    <span class="flex-grow-1"></span>
+    <a href="" class="ma2">🔎 search</a>
+    <a href="" class="ma2">{{ if username }}@{{ username }}{{ else }}user{{ end }}</a>
+    <a href="/admin/logout/" class="ma2">logout</a>
+</nav>
+{{- if or (not $.Folder) (not $.Items) }}
+<div class="mv5 w-80 w-70-m w-60-l center">
+    {{- if referer }}
+    <div><a href="{{ referer }}" class="linktext" data-go-back>&larr; back</a></div>
+    {{- end }}
+    <div class="mv3 b tc">No items to delete</div>
+</div>
+{{- else }}
+<form method="post" class="mv5 w-80 w-70-m w-60-l center">
+    {{- if referer }}
+    <div><a href="{{ referer }}" class="linktext" data-go-back>&larr; back</a></div>
+    {{- end }}
+    <h3 class="mv3 b">Delete the following item(s)?</h3>
+    <input type="hidden" name="folder" value="{{ $.Folder }}">
+    <ul class="list-style-disc">
+        {{- range $item := $.Items }}
+        <li class="mv1">
+            <a href="/{{ join `admin` sitePrefix $.Folder $item.Name }}{{ if $item.IsDir }}/{{ end }}" class="linktext">{{ $item.Name }}{{ if $item.IsDir }}/{{ end }}</a>
+            {{- if $item.IsDir }}
+            <span class="f6 mid-gray">({{ filecount $item.NumFolders $item.NumFiles }})</span>
+            {{- end }}
+            <input type="hidden" name="name" value="{{ $item.Name }}">
+        </li>
+        {{- end }}
+    </ul>
+    <button type="submit" class="button-danger ba br2 b--dark-red pa2 mv3">Delete</button>
+</form>
+{{- end }}
