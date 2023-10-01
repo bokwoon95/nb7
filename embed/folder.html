@@ -257,13 +257,13 @@
     {{- end }}
     {{- else }}
     {{- if eq (head $.Path) "notes" }}
-    <div class="mv4">folder is empty, <a href="/{{ join `admin` sitePrefix `createnote` }}/{{ if tail $.Path }}?category={{ head (tail $.Path) }}{{ end }}" class="linktext">create a new note</a></div>
+    <div class="mv4 tc">folder is empty, <a href="/{{ join `admin` sitePrefix `createnote` }}/{{ if tail $.Path }}?category={{ head (tail $.Path) }}{{ end }}" class="linktext">create a new note</a></div>
     {{- else if eq (head $.Path) "pages" }}
-    <div class="mv4">folder is empty, <a href="/{{ join `admin` sitePrefix `createpage` }}/?parent={{ $.Path }}" class="linktext">create a new page</a></div>
+    <div class="mv4 tc">folder is empty, <a href="/{{ join `admin` sitePrefix `createpage` }}/?parent={{ $.Path }}" class="linktext">create a new page</a></div>
     {{- else if eq (head $.Path) "posts" }}
-    <div class="mv4">folder is empty, <a href="/{{ join `admin` sitePrefix `createpost` }}/{{ if tail $.Path }}?category={{ head (tail $.Path) }}{{ end }}" class="linktext">create a new post</a></div>
+    <div class="mv4 tc">folder is empty, <a href="/{{ join `admin` sitePrefix `createpost` }}/{{ if tail $.Path }}?category={{ head (tail $.Path) }}{{ end }}" class="linktext">create a new post</a></div>
     {{- else }}
-    <div class="mv4">folder is empty</div>
+    <div class="mv4 tc">folder is empty</div>
     {{- end }}
     {{- end }}
 {{- if $.Path }}
