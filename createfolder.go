@@ -119,7 +119,7 @@ func (nbrew *Notebrew) createfolder(w http.ResponseWriter, r *http.Request, user
 			if response.Status.Equal(ErrParentFolderNotProvided) || response.Status.Equal(ErrInvalidParentFolder) {
 				status = response.Status.Code() + " Couldn't create item, " + response.Status.Message()
 				redirectURL = nbrew.Scheme + nbrew.AdminDomain + "/" + path.Join("admin", sitePrefix) + "/"
-			} else if response.Status.Equal(ErrForbiddenFolderName) || response.Status.Equal(ErrFolderAlreadyExists) {
+			} else if response.Status.Equal(ErrForbiddenName) || response.Status.Equal(ErrFolderAlreadyExists) {
 				status = string(response.Status)
 				redirectURL = nbrew.Scheme + nbrew.AdminDomain + "/" + path.Join("admin", sitePrefix, response.ParentFolder) + "/"
 			} else if response.Status.Equal(CreateFolderSuccess) {
@@ -186,7 +186,7 @@ func (nbrew *Notebrew) createfolder(w http.ResponseWriter, r *http.Request, user
 		}
 		response.Name = urlSafe(request.Name)
 		if response.ParentFolder == "pages" && (response.Name == "admin" || response.Name == "images" || response.Name == "posts" || response.Name == "themes") {
-			response.Status = Error(fmt.Sprintf("%s %q", ErrForbiddenFolderName, request.Name))
+			response.Status = Error(fmt.Sprintf("%s %q", ErrForbiddenName, request.Name))
 			writeResponse(w, r, response)
 			return
 		}

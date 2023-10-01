@@ -32,6 +32,7 @@ const (
 	CreatePostSuccess           = Error("NB-00110 created post successfully")
 	CreateCategorySuccess       = Error("NB-00120 created category successfully")
 	CreateFolderSuccess         = Error("NB-00130 created folder successfully")
+	CreatePageSuccess           = Error("NB-00140 created page successfully")
 
 	// Class 03 - General
 	ErrAlreadyAuthenticated      = Error("NB-03000 already authenticated")
@@ -54,8 +55,8 @@ const (
 	ErrDeleteFailed              = Error("NB-03170 delete failed")
 	ErrInvalidCategoryType       = Error("NB-03180 invalid category type")
 	ErrCategoryAlreadyExists     = Error("NB-03190 category already exists")
-	ErrForbiddenFolderName       = Error("NB-03200 forbidden folder name")
-	ErrFolderAlreadyExists       = Error("NB-03210 folder already exists")
+	ErrFolderAlreadyExists       = Error("NB-03200 folder already exists")
+	ErrTemplateErrors            = Error("NB-03210 template errors")
 
 	// Class 04 - Validation
 	ErrValidationFailed    = Error("NB-04000 validation failed")

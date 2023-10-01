@@ -19,10 +19,11 @@ func (nbrew *Notebrew) createpage(w http.ResponseWriter, r *http.Request, userna
 		Content      string `json:"content,omitempty"`
 	}
 	type Response struct {
-		Status       Error    `json:"status"`
-		ParentFolder string   `json:"parentFolder,omitEmpty"`
-		Name         string   `json:"name,omitempty"`
-		Errors       []string `json:"errors,omitempty"`
+		Status         Error    `json:"status"`
+		ParentFolder   string   `json:"parentFolder,omitEmpty"`
+		Name           string   `json:"name,omitempty"`
+		Content        string   `json:"content,omitempty"`
+		TemplateErrors []string `json:"templateError,omitEmpty"`
 	}
 
 	isValidParentFolder := func(parentFolder string) bool {
@@ -107,7 +108,7 @@ func (nbrew *Notebrew) createpage(w http.ResponseWriter, r *http.Request, userna
 			if response.Status.Equal(ErrParentFolderNotProvided) || response.Status.Equal(ErrInvalidParentFolder) {
 				status = response.Status.Code() + " Couldn't create item, " + response.Status.Message()
 				redirectURL = nbrew.Scheme + nbrew.AdminDomain + "/" + path.Join("admin", sitePrefix) + "/"
-			} else if response.Status.Equal(ErrForbiddenFolderName) || response.Status.Equal(ErrFolderAlreadyExists) {
+			} else if response.Status.Equal(ErrForbiddenName) || response.Status.Equal(ErrFolderAlreadyExists) {
 				status = string(response.Status)
 				redirectURL = nbrew.Scheme + nbrew.AdminDomain + "/" + path.Join("admin", sitePrefix, response.ParentFolder) + "/"
 			} else if response.Status.Equal(CreateFolderSuccess) {
@@ -129,7 +130,6 @@ func (nbrew *Notebrew) createpage(w http.ResponseWriter, r *http.Request, userna
 			}
 			http.Redirect(w, r, redirectURL, http.StatusFound)
 		}
-		_ = writeResponse
 
 		var request Request
 		contentType, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type"))
@@ -162,10 +162,41 @@ func (nbrew *Notebrew) createpage(w http.ResponseWriter, r *http.Request, userna
 			return
 		}
 
-		// response := Response{
-		// 	SiteName:         request.SiteName,
-		// 	ValidationErrors: make(map[string][]Error),
-		// }
+		var response Response
+		if request.ParentFolder == "" {
+			response.Status = ErrParentFolderNotProvided
+			writeResponse(w, r, response)
+			return
+		}
+		response.ParentFolder = path.Clean(strings.Trim(request.ParentFolder, "/"))
+		if !isValidParentFolder(response.ParentFolder) {
+			response.Status = ErrInvalidParentFolder
+			writeResponse(w, r, response)
+			return
+		}
+		response.Name = urlSafe(request.Name)
+		if response.ParentFolder == "pages" && (response.Name == "admin" || response.Name == "images" || response.Name == "posts" || response.Name == "themes") {
+			response.Status = Error(fmt.Sprintf("%s %q", ErrForbiddenName, request.Name))
+			writeResponse(w, r, response)
+			return
+		}
+		tmpl, templateErrors, err := nbrew.parseTemplate(sitePrefix, "", request.Content)
+		if err != nil {
+			getLogger(r.Context()).Error(err.Error())
+			internalServerError(w, r, err)
+			return
+		}
+		if len(templateErrors) > 0 {
+			response.Content = request.Content
+			response.TemplateErrors = templateErrors
+			response.Status = ErrTemplateErrors
+			writeResponse(w, r, response)
+			return
+		}
+		_ = tmpl
+		// TODO: render tmpl into path.Join(sitePrefix, "public", strings.TrimPrefix(strings.Trim(response.ParentFolder, "/"), "pages"), response.Name, "index.html.bak")
+		// If there's any error, delete the index.html.bak file and append the error to templateError, status = ErrTemplateErrors and writeResponse
+		// If there's no error, rename the index.html.bak file into index.html, status = CreatePageSuccess and writeResponse
 	default:
 		methodNotAllowed(w, r)
 	}
