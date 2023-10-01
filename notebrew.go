@@ -24,8 +24,11 @@ import (
 	"net/http"
 	"net/netip"
 	"path"
+	"slices"
+	"sort"
 	"strings"
 	"sync"
+	"text/template/parse"
 	"time"
 	"unicode"
 	"unicode/utf8"
@@ -514,6 +517,7 @@ func executeTemplate(w http.ResponseWriter, r *http.Request, modtime time.Time, 
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Content-Encoding", "gzip")
+	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("ETag", string(*dst))
 	http.ServeContent(w, r, "", modtime, bytes.NewReader(buf.Bytes()))
 }
@@ -740,4 +744,122 @@ func fileSizeToString(size int64) string {
 		exp++
 	}
 	return fmt.Sprintf("%.1f %cB", float64(size)/float64(div), "kMGTPE"[exp])
+}
+
+func parseTemplate(fsys fs.FS, funcMap template.FuncMap, name, text string) (*template.Template, error) {
+	primaryTemplate, err := template.New("").Funcs(funcMap).Parse(text)
+	if err != nil {
+		return nil, err
+	}
+	primaryTemplates := primaryTemplate.Templates()
+	slices.SortStableFunc(primaryTemplates, func(t1, t2 *template.Template) int {
+		name1 := t1.Name()
+		name2 := t2.Name()
+		if name1 == name2 {
+			return 0
+		}
+		if name1 < name2 {
+			return -1
+		}
+		return 1
+	})
+	for _, primaryTemplate := range primaryTemplates {
+		name := primaryTemplate.Name()
+		if strings.HasSuffix(name, ".html") {
+			return nil, fmt.Errorf("define %q: defined template name cannot end in .html", name)
+		}
+	}
+	var errmsgs []string
+	var currentNode parse.Node
+	var nodeStack []parse.Node
+	var currentTemplate *template.Template
+	templateStack := primaryTemplates
+	finalTemplate := template.New("").Funcs(funcMap)
+	visited := make(map[string]struct{})
+	for len(templateStack) > 0 {
+		currentTemplate, templateStack = templateStack[len(templateStack)-1], templateStack[:len(templateStack)-1]
+		if currentTemplate.Tree == nil {
+			continue
+		}
+		if cap(nodeStack) < len(currentTemplate.Tree.Root.Nodes) {
+			nodeStack = make([]parse.Node, 0, len(currentTemplate.Tree.Root.Nodes))
+		}
+		for i := len(currentTemplate.Tree.Root.Nodes) - 1; i >= 0; i-- {
+			nodeStack = append(nodeStack, currentTemplate.Tree.Root.Nodes[i])
+		}
+		for len(nodeStack) > 0 {
+			currentNode, nodeStack = nodeStack[len(nodeStack)-1], nodeStack[:len(nodeStack)-1]
+			switch node := currentNode.(type) {
+			case *parse.ListNode:
+				if node == nil {
+					continue
+				}
+				for i := len(node.Nodes) - 1; i >= 0; i-- {
+					nodeStack = append(nodeStack, node.Nodes[i])
+				}
+			case *parse.BranchNode:
+				nodeStack = append(nodeStack, node.ElseList, node.List)
+			case *parse.RangeNode:
+				nodeStack = append(nodeStack, node.ElseList, node.List)
+			case *parse.TemplateNode:
+				if !strings.HasSuffix(node.Name, ".html") {
+					continue
+				}
+				filename := node.Name
+				if _, ok := visited[filename]; ok {
+					continue
+				}
+				visited[filename] = struct{}{}
+				file, err := fsys.Open(filename)
+				if errors.Is(err, fs.ErrNotExist) {
+					errmsgs = append(errmsgs, fmt.Sprintf("%s: %s does not exist", currentTemplate.Name(), node.String()))
+					continue
+				}
+				if err != nil {
+					return nil, err
+				}
+				fileinfo, err := file.Stat()
+				if err != nil {
+					return nil, err
+				}
+				var b strings.Builder
+				b.Grow(int(fileinfo.Size()))
+				_, err = io.Copy(&b, file)
+				if err != nil {
+					return nil, err
+				}
+				file.Close()
+				text := b.String()
+				newTemplate, err := template.New(filename).Funcs(funcMap).Parse(text)
+				if err != nil {
+					return nil, err
+				}
+				newTemplates := newTemplate.Templates()
+				sort.SliceStable(newTemplates, func(i, j int) bool {
+					return newTemplates[j].Name() < newTemplates[i].Name()
+				})
+				for _, newTemplate := range newTemplates {
+					name := newTemplate.Name()
+					if name != filename && strings.HasSuffix(name, ".html") {
+						return nil, fmt.Errorf("define %q: defined template name cannot end in .html", name)
+					}
+					_, err = finalTemplate.AddParseTree(name, newTemplate.Tree)
+					if err != nil {
+						return nil, err
+					}
+					templateStack = append(templateStack, newTemplate)
+				}
+			}
+		}
+	}
+	if len(errmsgs) > 0 {
+		return nil, fmt.Errorf("invalid template references:\n" + strings.Join(errmsgs, "\n"))
+	}
+	for _, primaryTemplate := range primaryTemplates {
+		_, err = finalTemplate.AddParseTree(primaryTemplate.Name(), primaryTemplate.Tree)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return finalTemplate, nil
 }

@@ -19,9 +19,10 @@ func (nbrew *Notebrew) createpage(w http.ResponseWriter, r *http.Request, userna
 		Content      string `json:"content,omitempty"`
 	}
 	type Response struct {
-		Status       Error  `json:"status"`
-		ParentFolder string `json:"parentFolder,omitEmpty"`
-		Name         string `json:"name,omitempty"`
+		Status       Error    `json:"status"`
+		ParentFolder string   `json:"parentFolder,omitEmpty"`
+		Name         string   `json:"name,omitempty"`
+		Errors       []string `json:"errors,omitempty"`
 	}
 
 	isValidParentFolder := func(parentFolder string) bool {
@@ -160,6 +161,11 @@ func (nbrew *Notebrew) createpage(w http.ResponseWriter, r *http.Request, userna
 			unsupportedContentType(w, r)
 			return
 		}
+
+		// response := Response{
+		// 	SiteName:         request.SiteName,
+		// 	ValidationErrors: make(map[string][]Error),
+		// }
 	default:
 		methodNotAllowed(w, r)
 	}
