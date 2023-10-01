@@ -89,13 +89,13 @@ func (nbrew *Notebrew) createfolder(w http.ResponseWriter, r *http.Request, user
 		var response Response
 		folder := r.Form.Get("folder")
 		if folder == "" {
-			response.Status = ErrMissingFolderArgument
+			response.Status = ErrParentFolderNotProvided
 			writeResponse(w, r, response)
 			return
 		}
 		folder = path.Clean(strings.Trim(folder, "/"))
 		if !isValidFolder(folder) {
-			response.Status = ErrInvalidFolderArgument
+			response.Status = ErrInvalidParentFolder
 			writeResponse(w, r, response)
 			return
 		}
@@ -116,7 +116,7 @@ func (nbrew *Notebrew) createfolder(w http.ResponseWriter, r *http.Request, user
 				return
 			}
 			var status, redirectURL string
-			if response.Status.Equal(ErrMissingFolderArgument) || response.Status.Equal(ErrInvalidFolderArgument) {
+			if response.Status.Equal(ErrParentFolderNotProvided) || response.Status.Equal(ErrInvalidParentFolder) {
 				status = response.Status.Code() + " Couldn't create item, " + response.Status.Message()
 				redirectURL = nbrew.Scheme + nbrew.AdminDomain + "/" + path.Join("admin", sitePrefix) + "/"
 			} else if response.Status.Equal(ErrForbiddenFolderName) || response.Status.Equal(ErrFolderAlreadyExists) {
@@ -174,13 +174,13 @@ func (nbrew *Notebrew) createfolder(w http.ResponseWriter, r *http.Request, user
 
 		var response Response
 		if request.Folder == "" {
-			response.Status = ErrMissingFolderArgument
+			response.Status = ErrParentFolderNotProvided
 			writeResponse(w, r, response)
 			return
 		}
 		response.Folder = path.Clean(strings.Trim(request.Folder, "/"))
 		if !isValidFolder(response.Folder) {
-			response.Status = ErrInvalidFolderArgument
+			response.Status = ErrInvalidParentFolder
 			writeResponse(w, r, response)
 			return
 		}

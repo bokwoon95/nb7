@@ -25,21 +25,21 @@ func (nbrew *Notebrew) delet(w http.ResponseWriter, r *http.Request, username, s
 		NumFiles   int       `json:"numFiles,omitEmpty"`
 	}
 	type Request struct {
-		Folder string   `json:"folder,omitempty"`
+		Parent string   `json:"parent,omitempty"` // parent folder
 		Names  []string `json:"names,omitempty"`
 	}
 	type Response struct {
 		Status Error    `json:"status"`
-		Folder string   `json:"folder,omitempty"`
+		Parent string   `json:"parent,omitempty"` // parent folder
 		Items  []Item   `json:"items,omitempty"`
 		Errors []string `json:"errors,omitempty"`
 	}
 
-	isValidFolder := func(folder string) bool {
-		segments := strings.Split(folder, "/")
+	isValidParent := func(parent string) bool {
+		segments := strings.Split(parent, "/")
 		switch segments[0] {
 		case "notes", "pages", "posts":
-			fileInfo, err := fs.Stat(nbrew.FS, path.Join(sitePrefix, folder))
+			fileInfo, err := fs.Stat(nbrew.FS, path.Join(sitePrefix, parent))
 			if err != nil {
 				return false
 			}
@@ -50,7 +50,7 @@ func (nbrew *Notebrew) delet(w http.ResponseWriter, r *http.Request, username, s
 			if len(segments) < 2 || segments[1] != "themes" {
 				return false
 			}
-			fileInfo, err := fs.Stat(nbrew.FS, path.Join(sitePrefix, folder))
+			fileInfo, err := fs.Stat(nbrew.FS, path.Join(sitePrefix, parent))
 			if err != nil {
 				return false
 			}
@@ -114,19 +114,19 @@ func (nbrew *Notebrew) delet(w http.ResponseWriter, r *http.Request, username, s
 			return
 		}
 		var response Response
-		folder := r.Form.Get("folder")
-		if folder == "" {
-			response.Status = ErrMissingFolderArgument
+		parent := r.Form.Get("parent")
+		if parent == "" {
+			response.Status = ErrParentFolderNotProvided
 			writeResponse(w, r, response)
 			return
 		}
-		folder = path.Clean(strings.Trim(folder, "/"))
-		if !isValidFolder(folder) {
-			response.Status = ErrInvalidFolderArgument
+		parent = path.Clean(strings.Trim(parent, "/"))
+		if !isValidParent(parent) {
+			response.Status = ErrInvalidParentFolder
 			writeResponse(w, r, response)
 			return
 		}
-		response.Folder = folder
+		response.Parent = parent
 		seen := make(map[string]bool)
 		for _, name := range r.Form["name"] {
 			name = filepath.ToSlash(name)
@@ -137,7 +137,7 @@ func (nbrew *Notebrew) delet(w http.ResponseWriter, r *http.Request, username, s
 				continue
 			}
 			seen[name] = true
-			fileInfo, err := fs.Stat(nbrew.FS, path.Join(sitePrefix, response.Folder, name))
+			fileInfo, err := fs.Stat(nbrew.FS, path.Join(sitePrefix, response.Parent, name))
 			if err != nil {
 				if errors.Is(err, fs.ErrNotExist) {
 					continue
@@ -148,7 +148,7 @@ func (nbrew *Notebrew) delet(w http.ResponseWriter, r *http.Request, username, s
 			}
 			var numFolders, numFiles int
 			if fileInfo.IsDir() {
-				dirEntries, err := fs.ReadDir(nbrew.FS, path.Join(sitePrefix, response.Folder, name))
+				dirEntries, err := fs.ReadDir(nbrew.FS, path.Join(sitePrefix, response.Parent, name))
 				if err != nil {
 					getLogger(r.Context()).Error(err.Error())
 					internalServerError(w, r, err)
@@ -187,12 +187,12 @@ func (nbrew *Notebrew) delet(w http.ResponseWriter, r *http.Request, username, s
 				return
 			}
 			var status, redirectURL string
-			if response.Status.Equal(ErrMissingFolderArgument) || response.Status.Equal(ErrInvalidFolderArgument) {
+			if response.Status.Equal(ErrParentFolderNotProvided) || response.Status.Equal(ErrInvalidParentFolder) {
 				status = response.Status.Code() + " Couldn't delete item(s), " + response.Status.Message()
 				redirectURL = nbrew.Scheme + nbrew.AdminDomain + "/" + path.Join("admin", sitePrefix) + "/"
 			} else {
 				status = string(response.Status)
-				redirectURL = nbrew.Scheme + nbrew.AdminDomain + "/" + path.Join("admin", sitePrefix, response.Folder) + "/"
+				redirectURL = nbrew.Scheme + nbrew.AdminDomain + "/" + path.Join("admin", sitePrefix, response.Parent) + "/"
 			}
 			err := nbrew.setSession(w, r, "flash", map[string]any{
 				"status": status,
@@ -228,7 +228,7 @@ func (nbrew *Notebrew) delet(w http.ResponseWriter, r *http.Request, username, s
 					return
 				}
 			}
-			request.Folder = r.Form.Get("folder")
+			request.Parent = r.Form.Get("parent")
 			request.Names = r.Form["name"]
 		default:
 			unsupportedContentType(w, r)
@@ -236,13 +236,13 @@ func (nbrew *Notebrew) delet(w http.ResponseWriter, r *http.Request, username, s
 		}
 
 		var response Response
-		if request.Folder == "" {
-			response.Status = ErrMissingFolderArgument
+		if request.Parent == "" {
+			response.Status = ErrParentFolderNotProvided
 			writeResponse(w, r, response)
 		}
-		response.Folder = path.Clean(strings.Trim(request.Folder, "/"))
-		if !isValidFolder(response.Folder) {
-			response.Status = ErrInvalidFolderArgument
+		response.Parent = path.Clean(strings.Trim(request.Parent, "/"))
+		if !isValidParent(response.Parent) {
+			response.Status = ErrInvalidParentFolder
 			writeResponse(w, r, response)
 			return
 		}
@@ -256,7 +256,7 @@ func (nbrew *Notebrew) delet(w http.ResponseWriter, r *http.Request, username, s
 				continue
 			}
 			seen[name] = true
-			err := RemoveAll(nbrew.FS, path.Join(sitePrefix, request.Folder, name))
+			err := RemoveAll(nbrew.FS, path.Join(sitePrefix, request.Parent, name))
 			if err != nil {
 				if errors.Is(err, fs.ErrNotExist) {
 					continue

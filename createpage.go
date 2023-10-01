@@ -4,6 +4,7 @@ import "net/http"
 
 func (nbrew *Notebrew) createpage(w http.ResponseWriter, r *http.Request, username, sitePrefix string) {
 	type Request struct {
+		Folder  string `json:"folder,omitEmpty"`
 		Name    string `json:"name,omitempty"`
 		Content string `json:"content,omitempty"`
 	}
@@ -14,6 +15,8 @@ func (nbrew *Notebrew) createpage(w http.ResponseWriter, r *http.Request, userna
 
 	r.Body = http.MaxBytesReader(w, r.Body, 2<<20 /* 2MB */)
 	switch r.Method {
-	case "":
+	case "GET":
+	case "POST":
+	default:
 	}
 }
