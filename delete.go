@@ -35,11 +35,11 @@ func (nbrew *Notebrew) delet(w http.ResponseWriter, r *http.Request, username, s
 		Errors []string `json:"errors,omitempty"`
 	}
 
-	isValidParent := func(parent string) bool {
-		segments := strings.Split(parent, "/")
+	isValidParentFolder := func(parentFolder string) bool {
+		segments := strings.Split(parentFolder, "/")
 		switch segments[0] {
 		case "notes", "pages", "posts":
-			fileInfo, err := fs.Stat(nbrew.FS, path.Join(sitePrefix, parent))
+			fileInfo, err := fs.Stat(nbrew.FS, path.Join(sitePrefix, parentFolder))
 			if err != nil {
 				return false
 			}
@@ -50,7 +50,7 @@ func (nbrew *Notebrew) delet(w http.ResponseWriter, r *http.Request, username, s
 			if len(segments) < 2 || segments[1] != "themes" {
 				return false
 			}
-			fileInfo, err := fs.Stat(nbrew.FS, path.Join(sitePrefix, parent))
+			fileInfo, err := fs.Stat(nbrew.FS, path.Join(sitePrefix, parentFolder))
 			if err != nil {
 				return false
 			}
@@ -121,7 +121,7 @@ func (nbrew *Notebrew) delet(w http.ResponseWriter, r *http.Request, username, s
 			return
 		}
 		parent = path.Clean(strings.Trim(parent, "/"))
-		if !isValidParent(parent) {
+		if !isValidParentFolder(parent) {
 			response.Status = ErrInvalidParentFolder
 			writeResponse(w, r, response)
 			return
@@ -241,7 +241,7 @@ func (nbrew *Notebrew) delet(w http.ResponseWriter, r *http.Request, username, s
 			writeResponse(w, r, response)
 		}
 		response.Parent = path.Clean(strings.Trim(request.Parent, "/"))
-		if !isValidParent(response.Parent) {
+		if !isValidParentFolder(response.Parent) {
 			response.Status = ErrInvalidParentFolder
 			writeResponse(w, r, response)
 			return

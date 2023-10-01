@@ -27,8 +27,8 @@
     {{- if referer }}
     <div><a href="{{ referer }}" class="linktext" data-go-back>&larr; back</a></div>
     {{- end }}
-    <h1 class="f3 mv3 b">Create a folder in <a href="/{{ join `admin` sitePrefix $.Folder }}/" class="linktext">{{ base $.Folder }}/</a></h1>
-    <input type="hidden" name="folder" value="{{ $.Folder }}">
+    <h1 class="f3 mv3 b">Create a folder in <a href="/{{ join `admin` sitePrefix $.Parent }}/" class="linktext">{{ base $.Parent }}/</a></h1>
+    <input type="hidden" name="parent" value="{{ $.Parent }}">
     <div class="mv3">
         <div><label for="name" class="b">Name:</label></div>
         <input id="name" name="name" class="pv1 ph2 br2 ba w-100" autocomplete="on" required>
