@@ -36,7 +36,6 @@ TODO: coalesce the following into a single "site" tab in the menu bar
 TODO: cut | copy | paste | rename (no need for link indexing and rewriting yet, that comes later)
 TODO: preview mode for posts and pages (need to figure out rendering already). Once we figure out rendering, we can implement render-on-write whenever a user creates or updates a file. That means we can also implement viewing the content page! Which means implementing the default post.html and posts.html templates!
 TODO: createpage | createfile
-TODO: menu bar says "site user" but if the site and user are the same it ARRGH we can't show both site and user as the same link because one goes to the site settings and one goes to the user settings
 
 notebrew backup ~/Downloads/2023-04-01-004455-notebrew-admin.zip
 notebrew backup ~/Downloads/2023-04-01-004455-notebrew-admin/

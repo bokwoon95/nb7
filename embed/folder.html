@@ -15,7 +15,7 @@
     <a href="https://notebrew.com/" class="ma2">notebrew🖋️☕</a>
     <span class="flex-grow-1"></span>
     {{- if $.ContentSiteURL }}
-    <a href="" class="ma2">site</a>
+    <a href="" class="ma2">{{ neatenURL $.ContentSiteURL }}</a>
     {{- end }}
     <a href="" class="ma2">{{ if username }}@{{ username }}{{ else }}user{{ end }}</a>
     <a href="/admin/logout/" class="ma2">logout</a>

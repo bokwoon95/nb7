@@ -4,7 +4,7 @@ import "net/http"
 
 func (nbrew *Notebrew) createpage(w http.ResponseWriter, r *http.Request, username, sitePrefix string) {
 	type Request struct {
-		Folder  string `json:"folder,omitEmpty"`
+		Parent  string `json:"parent,omitEmpty"`
 		Name    string `json:"name,omitempty"`
 		Content string `json:"content,omitempty"`
 	}

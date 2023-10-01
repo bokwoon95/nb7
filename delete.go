@@ -25,14 +25,14 @@ func (nbrew *Notebrew) delet(w http.ResponseWriter, r *http.Request, username, s
 		NumFiles   int       `json:"numFiles,omitEmpty"`
 	}
 	type Request struct {
-		Parent string   `json:"parent,omitempty"` // parent folder
-		Names  []string `json:"names,omitempty"`
+		ParentFolder string   `json:"parentFolder,omitempty"`
+		Names        []string `json:"names,omitempty"`
 	}
 	type Response struct {
-		Status Error    `json:"status"`
-		Parent string   `json:"parent,omitempty"` // parent folder
-		Items  []Item   `json:"items,omitempty"`
-		Errors []string `json:"errors,omitempty"`
+		Status       Error    `json:"status"`
+		ParentFolder string   `json:"parentFolder,omitempty"`
+		Items        []Item   `json:"items,omitempty"`
+		Errors       []string `json:"errors,omitempty"`
 	}
 
 	isValidParentFolder := func(parentFolder string) bool {
@@ -114,19 +114,19 @@ func (nbrew *Notebrew) delet(w http.ResponseWriter, r *http.Request, username, s
 			return
 		}
 		var response Response
-		parent := r.Form.Get("parent")
-		if parent == "" {
+		parentFolder := r.Form.Get("parent")
+		if parentFolder == "" {
 			response.Status = ErrParentFolderNotProvided
 			writeResponse(w, r, response)
 			return
 		}
-		parent = path.Clean(strings.Trim(parent, "/"))
-		if !isValidParentFolder(parent) {
+		parentFolder = path.Clean(strings.Trim(parentFolder, "/"))
+		if !isValidParentFolder(parentFolder) {
 			response.Status = ErrInvalidParentFolder
 			writeResponse(w, r, response)
 			return
 		}
-		response.Parent = parent
+		response.ParentFolder = parentFolder
 		seen := make(map[string]bool)
 		for _, name := range r.Form["name"] {
 			name = filepath.ToSlash(name)
@@ -137,7 +137,7 @@ func (nbrew *Notebrew) delet(w http.ResponseWriter, r *http.Request, username, s
 				continue
 			}
 			seen[name] = true
-			fileInfo, err := fs.Stat(nbrew.FS, path.Join(sitePrefix, response.Parent, name))
+			fileInfo, err := fs.Stat(nbrew.FS, path.Join(sitePrefix, response.ParentFolder, name))
 			if err != nil {
 				if errors.Is(err, fs.ErrNotExist) {
 					continue
@@ -148,7 +148,7 @@ func (nbrew *Notebrew) delet(w http.ResponseWriter, r *http.Request, username, s
 			}
 			var numFolders, numFiles int
 			if fileInfo.IsDir() {
-				dirEntries, err := fs.ReadDir(nbrew.FS, path.Join(sitePrefix, response.Parent, name))
+				dirEntries, err := fs.ReadDir(nbrew.FS, path.Join(sitePrefix, response.ParentFolder, name))
 				if err != nil {
 					getLogger(r.Context()).Error(err.Error())
 					internalServerError(w, r, err)
@@ -192,7 +192,7 @@ func (nbrew *Notebrew) delet(w http.ResponseWriter, r *http.Request, username, s
 				redirectURL = nbrew.Scheme + nbrew.AdminDomain + "/" + path.Join("admin", sitePrefix) + "/"
 			} else {
 				status = string(response.Status)
-				redirectURL = nbrew.Scheme + nbrew.AdminDomain + "/" + path.Join("admin", sitePrefix, response.Parent) + "/"
+				redirectURL = nbrew.Scheme + nbrew.AdminDomain + "/" + path.Join("admin", sitePrefix, response.ParentFolder) + "/"
 			}
 			err := nbrew.setSession(w, r, "flash", map[string]any{
 				"status": status,
@@ -228,7 +228,7 @@ func (nbrew *Notebrew) delet(w http.ResponseWriter, r *http.Request, username, s
 					return
 				}
 			}
-			request.Parent = r.Form.Get("parent")
+			request.ParentFolder = r.Form.Get("parentFolder")
 			request.Names = r.Form["name"]
 		default:
 			unsupportedContentType(w, r)
@@ -236,12 +236,12 @@ func (nbrew *Notebrew) delet(w http.ResponseWriter, r *http.Request, username, s
 		}
 
 		var response Response
-		if request.Parent == "" {
+		if request.ParentFolder == "" {
 			response.Status = ErrParentFolderNotProvided
 			writeResponse(w, r, response)
 		}
-		response.Parent = path.Clean(strings.Trim(request.Parent, "/"))
-		if !isValidParentFolder(response.Parent) {
+		response.ParentFolder = path.Clean(strings.Trim(request.ParentFolder, "/"))
+		if !isValidParentFolder(response.ParentFolder) {
 			response.Status = ErrInvalidParentFolder
 			writeResponse(w, r, response)
 			return
@@ -256,7 +256,7 @@ func (nbrew *Notebrew) delet(w http.ResponseWriter, r *http.Request, username, s
 				continue
 			}
 			seen[name] = true
-			err := RemoveAll(nbrew.FS, path.Join(sitePrefix, request.Parent, name))
+			err := RemoveAll(nbrew.FS, path.Join(sitePrefix, request.ParentFolder, name))
 			if err != nil {
 				if errors.Is(err, fs.ErrNotExist) {
 					continue

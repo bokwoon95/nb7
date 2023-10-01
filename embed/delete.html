@@ -15,7 +15,7 @@
     <a href="" class="ma2">{{ if username }}@{{ username }}{{ else }}user{{ end }}</a>
     <a href="/admin/logout/" class="ma2">logout</a>
 </nav>
-{{- if or (not $.Parent) (not $.Items) }}
+{{- if or (not $.ParentFolder) (not $.Items) }}
 <div class="mv5 w-80 w-70-m w-60-l center">
     {{- if referer }}
     <div><a href="{{ referer }}" class="linktext" data-go-back>&larr; back</a></div>
@@ -28,11 +28,11 @@
     <div><a href="{{ referer }}" class="linktext" data-go-back>&larr; back</a></div>
     {{- end }}
     <h3 class="mv3 b">Delete the following item(s)?</h3>
-    <input type="hidden" name="parent" value="{{ $.Parent }}">
+    <input type="hidden" name="parentFolder" value="{{ $.ParentFolder }}">
     <ul class="list-style-disc">
         {{- range $item := $.Items }}
         <li class="mv1">
-            <a href="/{{ join `admin` sitePrefix $.Parent $item.Name }}{{ if $item.IsDir }}/{{ end }}" class="linktext">{{ $item.Name }}{{ if $item.IsDir }}/{{ end }}</a>
+            <a href="/{{ join `admin` sitePrefix $.ParentFolder $item.Name }}{{ if $item.IsDir }}/{{ end }}" class="linktext">{{ $item.Name }}{{ if $item.IsDir }}/{{ end }}</a>
             {{- if $item.IsDir }}
             <span class="f6 mid-gray">({{ filecount $item.NumFolders $item.NumFiles }})</span>
             {{- end }}
