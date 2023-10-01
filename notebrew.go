@@ -25,7 +25,6 @@ import (
 	"net/netip"
 	"path"
 	"slices"
-	"sort"
 	"strings"
 	"sync"
 	"text/template/parse"
@@ -609,6 +608,7 @@ func serveFile(w http.ResponseWriter, r *http.Request, fsys fs.FS, name string, 
 	if !isGzippable {
 		fileSeeker, ok := file.(io.ReadSeeker)
 		if ok {
+			w.Header().Set("Cache-Control", "no-cache")
 			http.ServeContent(w, r, name, fileInfo.ModTime(), fileSeeker)
 			return
 		}
@@ -621,6 +621,7 @@ func serveFile(w http.ResponseWriter, r *http.Request, fsys fs.FS, name string, 
 			internalServerError(w, r, err)
 			return
 		}
+		w.Header().Set("Cache-Control", "no-cache")
 		http.ServeContent(w, r, name, fileInfo.ModTime(), bytes.NewReader(buf.Bytes()))
 		return
 	}
@@ -675,6 +676,7 @@ func serveFile(w http.ResponseWriter, r *http.Request, fsys fs.FS, name string, 
 	*dst = (*dst)[:encodedLen]
 	hex.Encode(*dst, *src)
 
+	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Content-Encoding", "gzip")
 	w.Header().Set("ETag", string(*dst))
 	http.ServeContent(w, r, name, fileInfo.ModTime(), bytes.NewReader(buf.Bytes()))
@@ -746,35 +748,32 @@ func fileSizeToString(size int64) string {
 	return fmt.Sprintf("%.1f %cB", float64(size)/float64(div), "kMGTPE"[exp])
 }
 
-func parseTemplate(fsys fs.FS, funcMap template.FuncMap, name, text string) (*template.Template, error) {
-	primaryTemplate, err := template.New("").Funcs(funcMap).Parse(text)
+var userTemplateFuncs = map[string]any{}
+
+func (nbrew *Notebrew) parseTemplate(ctx context.Context, sitePrefix, templateName, templateText string) (tmpl *template.Template, err error) {
+	var prefix string
+	if templateName != "" {
+		prefix = templateName + ": "
+	}
+	primaryTemplate, err := template.New(templateName).Funcs(userTemplateFuncs).Parse(templateText)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf(prefix+"%w", err)
 	}
 	primaryTemplates := primaryTemplate.Templates()
 	slices.SortStableFunc(primaryTemplates, func(t1, t2 *template.Template) int {
-		name1 := t1.Name()
-		name2 := t2.Name()
-		if name1 == name2 {
-			return 0
-		}
-		if name1 < name2 {
-			return -1
-		}
-		return 1
+		return strings.Compare(t1.Name(), t2.Name())
 	})
 	for _, primaryTemplate := range primaryTemplates {
 		name := primaryTemplate.Name()
 		if strings.HasSuffix(name, ".html") {
-			return nil, fmt.Errorf("define %q: defined template name cannot end in .html", name)
+			return nil, fmt.Errorf(prefix+"define %q: defined template's name cannot end in .html", name)
 		}
 	}
-	var errmsgs []string
 	var currentNode parse.Node
 	var nodeStack []parse.Node
 	var currentTemplate *template.Template
-	templateStack := primaryTemplates
-	finalTemplate := template.New("").Funcs(funcMap)
+	templateStack := slices.Clone(primaryTemplates)
+	finalTemplate := template.New(templateName).Funcs(userTemplateFuncs)
 	visited := make(map[string]struct{})
 	for len(templateStack) > 0 {
 		currentTemplate, templateStack = templateStack[len(templateStack)-1], templateStack[:len(templateStack)-1]
@@ -810,41 +809,57 @@ func parseTemplate(fsys fs.FS, funcMap template.FuncMap, name, text string) (*te
 					continue
 				}
 				visited[filename] = struct{}{}
-				file, err := fsys.Open(filename)
+				var prefix string
+				if currentTemplate.Name() != "" {
+					prefix = currentTemplate.Name() + ": "
+				}
+				file, err := nbrew.FS.Open(path.Join(sitePrefix, "public/themes", filename))
 				if errors.Is(err, fs.ErrNotExist) {
-					errmsgs = append(errmsgs, fmt.Sprintf("%s: %s does not exist", currentTemplate.Name(), node.String()))
-					continue
+					return nil, fmt.Errorf(prefix+"template %s does not exist", currentTemplate.Name(), filename)
 				}
 				if err != nil {
+					err = fmt.Errorf(prefix+"open %s: %w", filename, err)
+					getLogger(ctx).Error(err.Error())
 					return nil, err
 				}
 				fileinfo, err := file.Stat()
 				if err != nil {
+					err = fmt.Errorf(prefix+"stat %s: %w", filename, err)
+					getLogger(ctx).Error(err.Error())
 					return nil, err
 				}
 				var b strings.Builder
 				b.Grow(int(fileinfo.Size()))
 				_, err = io.Copy(&b, file)
 				if err != nil {
+					err = fmt.Errorf(prefix+"copy %s: %w", filename, err)
+					getLogger(ctx).Error(err.Error())
 					return nil, err
 				}
-				file.Close()
-				text := b.String()
-				newTemplate, err := template.New(filename).Funcs(funcMap).Parse(text)
+				err = file.Close()
 				if err != nil {
+					err = fmt.Errorf(prefix+"close %s: %w", filename, err)
+					getLogger(ctx).Error(err.Error())
 					return nil, err
+				}
+				text := b.String()
+				newTemplate, err := template.New(filename).Funcs(userTemplateFuncs).Parse(text)
+				if err != nil {
+					return nil, fmt.Errorf("%s: %w", filename, err)
 				}
 				newTemplates := newTemplate.Templates()
-				sort.SliceStable(newTemplates, func(i, j int) bool {
-					return newTemplates[j].Name() < newTemplates[i].Name()
+				slices.SortStableFunc(newTemplates, func(t1, t2 *template.Template) int {
+					return strings.Compare(t1.Name(), t2.Name())
 				})
 				for _, newTemplate := range newTemplates {
 					name := newTemplate.Name()
 					if name != filename && strings.HasSuffix(name, ".html") {
-						return nil, fmt.Errorf("define %q: defined template name cannot end in .html", name)
+						return nil, fmt.Errorf("%s: define %q: defined template name cannot end in .html", filename, name)
 					}
 					_, err = finalTemplate.AddParseTree(name, newTemplate.Tree)
 					if err != nil {
+						err = fmt.Errorf(prefix+"add %s: %w", filename, err)
+						getLogger(ctx).Error(err.Error())
 						return nil, err
 					}
 					templateStack = append(templateStack, newTemplate)
@@ -852,12 +867,11 @@ func parseTemplate(fsys fs.FS, funcMap template.FuncMap, name, text string) (*te
 			}
 		}
 	}
-	if len(errmsgs) > 0 {
-		return nil, fmt.Errorf("invalid template references:\n" + strings.Join(errmsgs, "\n"))
-	}
 	for _, primaryTemplate := range primaryTemplates {
 		_, err = finalTemplate.AddParseTree(primaryTemplate.Name(), primaryTemplate.Tree)
 		if err != nil {
+			err = fmt.Errorf(prefix+"add %s: %w", primaryTemplate.Name(), err)
+			getLogger(ctx).Error(err.Error())
 			return nil, err
 		}
 	}
