@@ -15,9 +15,8 @@
     <a href="https://notebrew.com/" class="ma2">notebrew🖋️☕</a>
     <span class="flex-grow-1"></span>
     {{- if $.ContentSiteURL }}
-    <a href="{{ $.ContentSiteURL }}" class="ma2">{{ neatenURL $.ContentSiteURL }}</a>
+    <a href="" class="ma2">site</a>
     {{- end }}
-    <a href="" class="ma2">🔎 search</a>
     <a href="" class="ma2">{{ if username }}@{{ username }}{{ else }}user{{ end }}</a>
     <a href="/admin/logout/" class="ma2">logout</a>
 </nav>
@@ -94,11 +93,11 @@
                 {{- else if eq (head $.Path) "posts" }}
                 <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createpost` }}/{{ if tail $.Path }}?category={{ head (tail $.Path) }}{{ end }}" class="linktext tr nowrap dib w-100 h-100">create post</a></div>
                 {{- else if eq (head $.Path) "pages" }}
-                <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createpage` }}/?folder={{ $.Path }}" class="linktext tr nowrap dib w-100 h-100">create page</a></div>
-                <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createfolder` }}?folder={{ $.Path }}" class="linktext tr nowrap dib w-100 h-100">create folder</a></div>
+                <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createpage` }}/?parent={{ $.Path }}" class="linktext tr nowrap dib w-100 h-100">create page</a></div>
+                <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createfolder` }}?parent={{ $.Path }}" class="linktext tr nowrap dib w-100 h-100">create folder</a></div>
                 {{- else if and (eq (head $.Path) "public") (eq (head (tail $.Path)) "themes") }}
-                <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createfile` }}/?folder={{ $.Path }}" class="linktext tr nowrap dib w-100 h-100">create file</a></div>
-                <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createfolder` }}?folder={{ $.Path }}" class="linktext tr nowrap dib w-100 h-100">create folder</a></div>
+                <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createfile` }}/?parent={{ $.Path }}" class="linktext tr nowrap dib w-100 h-100">create file</a></div>
+                <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createfolder` }}?parent={{ $.Path }}" class="linktext tr nowrap dib w-100 h-100">create folder</a></div>
                 {{- else }}
                 <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createnote` }}/" class="linktext tr nowrap dib w-100 h-100">create note</a></div>
                 <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createpost` }}/" class="linktext tr nowrap dib w-100 h-100">create post</a></div>
@@ -112,7 +111,7 @@
 <form>
 {{- end }}
     {{- if and $.Path $.IsDir }}
-    <input type="hidden" name="folder" value="{{ $.Path }}">
+    <input type="hidden" name="parent" value="{{ $.Path }}">
     {{- end }}
     {{- range $i, $entry := $.Entries }}
     {{- if eq $.Path "" }}
