@@ -20,7 +20,7 @@
     {{- if referer }}
     <div><a href="{{ referer }}" class="linktext" data-go-back>&larr; back</a></div>
     {{- end }}
-    <div class="mv3 b tc">Can't create folder here.</div>
+    <div class="mv3 b tc">Can't create a folder here.</div>
 </div>
 {{- else }}
 <form method="post" action="/{{ join `admin` sitePrefix `createfolder` }}/" class="mv5 w-80 w-70-m w-60-l center">

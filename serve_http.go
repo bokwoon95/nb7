@@ -315,6 +315,7 @@ func (nbrew *Notebrew) admin(w http.ResponseWriter, r *http.Request, ip string) 
 	case "createfolder":
 		nbrew.createfolder(w, r, username, sitePrefix)
 	case "createpage":
+		nbrew.createpage(w, r, username, sitePrefix)
 	case "createfile":
 	case "cut":
 	case "copy":

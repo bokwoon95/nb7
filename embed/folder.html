@@ -15,7 +15,7 @@
     <a href="https://notebrew.com/" class="ma2">notebrew🖋️☕</a>
     <span class="flex-grow-1"></span>
     {{- if $.ContentSiteURL }}
-    <a href="" class="ma2">{{ neatenURL $.ContentSiteURL }}</a>
+    <a href="" class="ma2">site</a>
     {{- end }}
     <a href="" class="ma2">{{ if username }}@{{ username }}{{ else }}user{{ end }}</a>
     <a href="/admin/logout/" class="ma2">logout</a>
@@ -259,7 +259,7 @@
     {{- if eq (head $.Path) "notes" }}
     <div class="mv4">folder is empty, <a href="/{{ join `admin` sitePrefix `createnote` }}/{{ if tail $.Path }}?category={{ head (tail $.Path) }}{{ end }}" class="linktext">create a new note</a></div>
     {{- else if eq (head $.Path) "pages" }}
-    <div class="mv4">folder is empty, <a href="" class="linktext">create a new page</a></div>
+    <div class="mv4">folder is empty, <a href="/{{ join `admin` sitePrefix `createpage` }}/?parent={{ $.Path }}" class="linktext">create a new page</a></div>
     {{- else if eq (head $.Path) "posts" }}
     <div class="mv4">folder is empty, <a href="/{{ join `admin` sitePrefix `createpost` }}/{{ if tail $.Path }}?category={{ head (tail $.Path) }}{{ end }}" class="linktext">create a new post</a></div>
     {{- else }}
