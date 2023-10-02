@@ -55,7 +55,9 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 		writeResponse := func(w http.ResponseWriter, r *http.Request, response Response) {
 			response.ContentSiteURL = contentSiteURL(nbrew, sitePrefix)
 
-			// TODO: need to harden up the source <=> output logic a bit.
+			// pages/index.html <=> output/index.html
+			// pages/abc/def.html <=> output/abc/def/index.html
+			// posts/one.md <=> output/posts/one/index.html
 			segments := strings.Split(strings.TrimSuffix(response.Path, path.Ext(response.Path)), "/")
 			if segments[0] == "pages" {
 				if response.Path == "pages/index.html" {
@@ -67,7 +69,18 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 				response.OutputURL = nbrew.Scheme + nbrew.AdminDomain + "/" + path.Join("admin", sitePrefix, "output", path.Join(segments...), "index.html")
 			} else if segments[0] == "output" {
 				if segments[1] == "posts" {
-					// TODO: a post can either come from an .md file or a .txt file :/ need to do fs.Stat to find out?
+					sourcePath := path.Join(sitePrefix, path.Join(segments[:len(segments)-1]...)) + ".md"
+					_, err := fs.Stat(nbrew.FS, sourcePath)
+					if err != nil {
+						sourcePath = path.Join(sitePrefix, path.Join(segments[:len(segments)-1]...)) + ".txt"
+						_, err = fs.Stat(nbrew.FS, sourcePath)
+						if err != nil {
+							sourcePath = ""
+						}
+					}
+					if sourcePath != "" {
+						response.SourceURL = nbrew.Scheme + nbrew.AdminDomain + "/" + sourcePath
+					}
 				} else {
 					if response.Path == "output/index.html" {
 						response.SourceURL = nbrew.Scheme + nbrew.AdminDomain + "/" + path.Join("admin", sitePrefix, "pages/index.html")
@@ -76,9 +89,6 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 					}
 				}
 			}
-			// pages/index.html <=> output/index.html
-			// pages/abc/def.html <=> output/abc/def/index.html
-			// posts/one.md <=> output/posts/one/index.html
 
 			accept, _, _ := mime.ParseMediaType(r.Header.Get("Accept"))
 			if accept == "application/json" {
