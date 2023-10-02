@@ -37,6 +37,7 @@ TODO: cut | copy | paste | rename (no need for link indexing and rewriting yet, 
 TODO: preview mode for posts and pages (need to figure out rendering already). Once we figure out rendering, we can implement render-on-write whenever a user creates or updates a file. That means we can also implement viewing the content page! Which means implementing the default post.html and posts.html templates!
 TODO: createpage | createfile
 TODO: createpage works... but why is the index.html file hidden in the public folder?
+TODO: remove the hiding of any files... we don't want to go through convoluted rules to determine how many files or folders there are so if it's in the folder, display it.
 
 notebrew backup ~/Downloads/2023-04-01-004455-notebrew-admin.zip
 notebrew backup ~/Downloads/2023-04-01-004455-notebrew-admin/
