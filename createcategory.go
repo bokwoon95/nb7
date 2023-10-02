@@ -71,10 +71,10 @@ func (nbrew *Notebrew) createcategory(w http.ResponseWriter, r *http.Request, us
 			writeResponse(w, r, response)
 			return
 		}
-		typ := r.Form.Get("type")
-		switch typ {
+		response.Type = r.Form.Get("type")
+		switch response.Type {
 		case "note", "post":
-			response.Type = typ
+			break
 		default:
 			response.Status = ErrInvalidType
 			writeResponse(w, r, response)

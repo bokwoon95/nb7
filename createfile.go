@@ -17,13 +17,14 @@ import (
 func (nbrew *Notebrew) createfile(w http.ResponseWriter, r *http.Request, username, sitePrefix string) {
 	type Request struct {
 		ParentFolder string `json:"parentFolder,omitempty"`
-		Type string `json:"type,omitempty"`
+		Type         string `json:"type,omitempty"`
 		Name         string `json:"name,omitempty"`
 		Content      string `json:"content,omitempty"`
 	}
 	type Response struct {
 		Status         Error    `json:"status"`
 		ParentFolder   string   `json:"parentFolder,omitempty"`
+		Type           string   `json:"type,omitempty"`
 		Name           string   `json:"name,omitempty"`
 		Content        string   `json:"content,omitempty"`
 		TemplateErrors []string `json:"templateError,omitempty"`
@@ -64,7 +65,7 @@ func (nbrew *Notebrew) createfile(w http.ResponseWriter, r *http.Request, userna
 				"sitePrefix": func() string { return sitePrefix },
 				"safeHTML":   func(s string) template.HTML { return template.HTML(s) },
 			}
-			tmpl, err := template.New("createpage.html").Funcs(funcMap).ParseFS(rootFS, "embed/createpage.html")
+			tmpl, err := template.New("createfile.html").Funcs(funcMap).ParseFS(rootFS, "embed/createfile.html")
 			if err != nil {
 				getLogger(r.Context()).Error(err.Error())
 				internalServerError(w, r, err)
@@ -101,6 +102,15 @@ func (nbrew *Notebrew) createfile(w http.ResponseWriter, r *http.Request, userna
 			return
 		}
 		response.ParentFolder = parentFolder
+		response.Type = r.Form.Get("type")
+		switch response.Type {
+		case "html", "css", "js":
+			break
+		default:
+			response.Status = ErrInvalidType
+			writeResponse(w, r, response)
+			return
+		}
 		response.Status = Success
 		writeResponse(w, r, response)
 	case "POST":
@@ -179,7 +189,7 @@ func (nbrew *Notebrew) createfile(w http.ResponseWriter, r *http.Request, userna
 			}
 		case "application/x-www-form-urlencoded", "multipart/form-data":
 			if contentType == "multipart/form-data" {
-				err := r.ParseMultipartForm(2 << 20 /* 2MB */)
+				err := r.ParseMultipartForm(15 << 20 /* 15MB */)
 				if err != nil {
 					badRequest(w, r, err)
 					return
@@ -192,6 +202,7 @@ func (nbrew *Notebrew) createfile(w http.ResponseWriter, r *http.Request, userna
 				}
 			}
 			request.ParentFolder = r.Form.Get("parentFolder")
+			request.Type = r.Form.Get("type")
 			request.Name = r.Form.Get("name")
 			request.Content = r.Form.Get("content")
 		default:

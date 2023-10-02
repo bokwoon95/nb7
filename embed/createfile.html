@@ -23,6 +23,15 @@
     {{- end }}
     <div class="mv3 b tc">Can't create a file here.</div>
 </div>
+{{- else if eq $.Status.Code "NB-03180" }}
+<ul class="mv5 w-80 w-70-m w-60-l center">
+    {{- if referer }}
+    <div><a href="{{ referer }}" class="linktext" data-go-back>&larr; back</a></div>
+    {{- end }}
+    <div class="b">Create file</div>
+    <li class="mv2 list-style-disc"><a href="/{{ join `admin` sitePrefix `createfile` }}/?parent={{ $.ParentFolder}}&type=html" class="linktext">Create html file</a></li>
+    <li class="mv2 list-style-disc"><a href="/{{ join `admin` sitePrefix `createfile` }}/?parent={{ $.ParentFolder}}&type=css" class="linktext">Create css file</a></li>
+    <li class="mv2 list-style-disc"><a href="/{{ join `admin` sitePrefix `createfile` }}/?parent={{ $.ParentFolder}}&type=js" class="linktext">Create js file</a></li>
 {{- else }}
 {{- if and $.Status (ne $.Status.Code "NB-00000") }}
 {{- if $.Status.Success }}
@@ -65,7 +74,7 @@
         <div><label for="name" class="b">Name:</label></div>
         <div class="flex items-center">
             <input id="name" name="name" value="{{ $.Name }}" class="pv1 ph2 br2 ba flex-grow-1">
-            <span class="mh1">.html</span>
+            <span class="mh1">.{{ $.Type }}</span>
         </div>
     </div>
     <div class="mv2">
