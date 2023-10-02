@@ -253,11 +253,11 @@ func (nbrew *Notebrew) createsite(w http.ResponseWriter, r *http.Request, userna
 		}
 		dirs := []string{
 			"notes",
+			"output",
+			"output/images",
+			"output/themes",
 			"pages",
 			"posts",
-			"public",
-			"public/images",
-			"public/themes",
 			"system",
 		}
 		for _, dir := range dirs {

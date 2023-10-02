@@ -289,9 +289,9 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 
 		// If it's a note, just write it into admin/notes/*
 
-		// If it's a post, render post to public/posts/*/tmp.html then if it passes rename the tmp.html into index.html and write the content into admin/posts/*
+		// If it's a post, render post to output/posts/*/tmp.html then if it passes rename the tmp.html into index.html and write the content into admin/posts/*
 
-		// If it's a page, render page to public/*/tmp.html then if it passes rename tmp.html into index.html and write the content into admin/pages/*
+		// If it's a page, render page to output/*/tmp.html then if it passes rename tmp.html into index.html and write the content into admin/pages/*
 		if head == "pages" {
 			tmpl, tmplErrs, err := nbrew.parseTemplate(sitePrefix, "", request.Content)
 			if err != nil {
@@ -319,13 +319,13 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 			if response.Path != "pages/index.html" {
 				name = strings.TrimSuffix(tail, path.Ext(tail))
 			}
-			err = MkdirAll(nbrew.FS, path.Join(sitePrefix, "public", name), 0755)
+			err = MkdirAll(nbrew.FS, path.Join(sitePrefix, "output", name), 0755)
 			if err != nil {
 				getLogger(r.Context()).Error(err.Error())
 				internalServerError(w, r, err)
 				return
 			}
-			readerFrom, err := nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, "public", name, "index.html"), 0644)
+			readerFrom, err := nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, "output", name, "index.html"), 0644)
 			if err != nil {
 				getLogger(r.Context()).Error(err.Error())
 				internalServerError(w, r, err)
@@ -339,11 +339,11 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 			}
 		}
 
-		// If it's an image, just write the image into public/images/*
+		// If it's an image, just write the image into output/images/*
 
-		// If it's a theme file that is not html, just write it into public/theme/*
+		// If it's a theme file that is not html, just write it into output/theme/*
 
-		// If it's a theme file that is html, find all other pages that depend on this template and render them into public/posts/*/tmp.html and public/*/tmp.html and if all succeed then start renaming all those tmp.html into index.html and write the content into public/theme/*
+		// If it's a theme file that is html, find all other pages that depend on this template and render them into output/posts/*/tmp.html and output/*/tmp.html and if all succeed then start renaming all those tmp.html into index.html and write the content into output/theme/*
 
 		readerFrom, err := nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, filePath), 0644)
 		if err != nil {

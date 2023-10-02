@@ -62,11 +62,11 @@
     <a href="{{ referer }}" class="linktext" data-go-back>&larr; back</a>
     <span>&boxv;</span>
     {{- end }}
-    {{- if ne $.ParentFolder "public/themes" }}
+    {{- if ne $.ParentFolder "output/themes" }}
     <a href="/{{ join `admin` sitePrefix $.ParentFolder }}/" class="linktext">{{ base $.ParentFolder }}</a>
     <span>&boxv;</span>
     {{- end }}
-    <a href="/{{ join `admin` sitePrefix `public/themes` }}/" class="linktext">themes</a>
+    <a href="/{{ join `admin` sitePrefix `output/themes` }}/" class="linktext">themes</a>
     <span>&boxv;</span>
     <a href="/{{ join `admin` sitePrefix }}/" class="linktext">admin</a>
 </div>

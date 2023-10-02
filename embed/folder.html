@@ -55,7 +55,7 @@
             </div>
         </details>
     </div>
-    {{- if and $.Path (ne (head $.Path) "public") }}
+    {{- if and $.Path (ne (head $.Path) "output") }}
     <div class="flex items-center">
         <details class="relative pointer mh1" data-disable-click-selection>
             <summary role="button" class="flex items-center button ba br2 b--black ph2 h2 hide-marker">
@@ -96,7 +96,7 @@
                 {{- else if eq (head $.Path) "pages" }}
                 <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createfolder` }}?parent={{ $.Path }}" class="linktext tr nowrap dib w-100 h-100">create folder</a></div>
                 <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createpage` }}/?parent={{ $.Path }}" class="linktext tr nowrap dib w-100 h-100">create page</a></div>
-                {{- else if and (eq (head $.Path) "public") (eq (head (tail $.Path)) "themes") }}
+                {{- else if and (eq (head $.Path) "output") (eq (head (tail $.Path)) "themes") }}
                 <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createfolder` }}?parent={{ $.Path }}" class="linktext tr nowrap dib w-100 h-100">create folder</a></div>
                 <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createfile` }}/?parent={{ $.Path }}&type=html" class="linktext tr nowrap dib w-100 h-100">create html file</a></div>
                 <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createfile` }}/?parent={{ $.Path }}&type=css" class="linktext tr nowrap dib w-100 h-100">create css file</a></div>
@@ -134,6 +134,38 @@
                 Notes are private and can only be accessed by the owner(s) of a site.
             </div>
         </details>
+        {{- else if eq $entry.Name "output" }}
+        <details data-dont-autoclose-details>
+            <summary class="pointer hide-marker flex flex-wrap items-center" data-disable-click-selection>
+                {{ template "heroicons-dir" }}
+                <a href="/{{ join `admin` sitePrefix `output` }}/" class="linktext ma1 dib">output/</a>
+                <span class="f6 mid-gray">({{ filecount $entry.NumFolders $entry.NumFiles}})</span>
+                <span class="flex-grow-1"></span>
+                <span class="flex items-center ph1">
+                    {{ template "octicon-triangle-down" }}
+                </span>
+            </summary>
+            <div class="ph2 mid-gray f6">
+                Contains the site's generated static files (read-only).
+            </div>
+        </details>
+        {{- else if eq $entry.Name "output/themes" }}
+        <details data-dont-autoclose-details>
+            <summary class="pointer hide-marker flex flex-wrap items-center" data-disable-click-selection>
+                {{ template "heroicons-dir" }}
+                <a href="/{{ join `admin` sitePrefix `output/themes` }}/" class="linktext ma1 dib">themes/</a>
+                <span class="f6 mid-gray">({{ filecount $entry.NumFolders $entry.NumFiles}})</span>
+                <span class="flex-grow-1"></span>
+                <span class="flex items-center mh1">
+                    {{ template "octicon-triangle-down" }}
+                </span>
+            </summary>
+            <div class="ph2 mid-gray f6">
+                Contain HTML templates as well as site assets (CSS stylesheets, JavaScript scripts, images).
+                <br><br>
+                More info: <a href="" class="linktext">The Definitive Guide to Writing HTML Pages in Notebrew</a>.
+            </div>
+        </details>
         {{- else if eq $entry.Name "pages" }}
         <details data-dont-autoclose-details>
             <summary class="pointer hide-marker flex flex-wrap items-center" data-disable-click-selection>
@@ -146,7 +178,7 @@
                 </span>
             </summary>
             <div class="ph2 mid-gray f6">
-                Pages are public and can be viewed at <a href="{{ $.ContentSiteURL }}" class="linktext">{{ neatenURL $.ContentSiteURL }}</a>. Pages may invoke other HTML templates defined in the <a href="public/themes/" class="linktext">themes</a> folder
+                Pages are public and can be viewed at <a href="{{ $.ContentSiteURL }}" class="linktext">{{ neatenURL $.ContentSiteURL }}</a>. Pages may invoke other HTML templates defined in the <a href="output/themes/" class="linktext">themes</a> folder
                 <br><br>
                 More info: <a href="" class="linktext">The Definitive Guide to Writing HTML Pages in Notebrew</a>.
             </div>
@@ -164,38 +196,6 @@
             </summary>
             <div class="ph2 mid-gray f6">
                 Posts are public and can be viewed at <a href="{{ $.ContentSiteURL }}posts/" class="linktext">{{ neatenURL $.ContentSiteURL }}/posts</a>.
-            </div>
-        </details>
-        {{- else if eq $entry.Name "public" }}
-        <details data-dont-autoclose-details>
-            <summary class="pointer hide-marker flex flex-wrap items-center" data-disable-click-selection>
-                {{ template "heroicons-dir" }}
-                <a href="/{{ join `admin` sitePrefix `public` }}/" class="linktext ma1 dib">public/</a>
-                <span class="f6 mid-gray">({{ filecount $entry.NumFolders $entry.NumFiles}})</span>
-                <span class="flex-grow-1"></span>
-                <span class="flex items-center ph1">
-                    {{ template "octicon-triangle-down" }}
-                </span>
-            </summary>
-            <div class="ph2 mid-gray f6">
-                Contains the site's generated static files (read-only).
-            </div>
-        </details>
-        {{- else if eq $entry.Name "public/themes" }}
-        <details data-dont-autoclose-details>
-            <summary class="pointer hide-marker flex flex-wrap items-center" data-disable-click-selection>
-                {{ template "heroicons-dir" }}
-                <a href="/{{ join `admin` sitePrefix `public/themes` }}/" class="linktext ma1 dib">themes/</a>
-                <span class="f6 mid-gray">({{ filecount $entry.NumFolders $entry.NumFiles}})</span>
-                <span class="flex-grow-1"></span>
-                <span class="flex items-center mh1">
-                    {{ template "octicon-triangle-down" }}
-                </span>
-            </summary>
-            <div class="ph2 mid-gray f6">
-                Contain HTML templates as well as site assets (CSS stylesheets, JavaScript scripts, images).
-                <br><br>
-                More info: <a href="" class="linktext">The Definitive Guide to Writing HTML Pages in Notebrew</a>.
             </div>
         </details>
         {{- else if $entry.IsSite }}
@@ -222,7 +222,7 @@
     {{- else }}
     <div class="min-h2 mv1{{ if isEven $i }} bg-lighter-gray{{ else }} bg-mostly-white{{ end }}">
         <label for="{{ $entry.Name }}" class="flex items-center pointer" data-disable-click-selection>
-            {{ $readOnly := and (eq (head $.Path) "public") (ne (head (tail $.Path)) "themes") (ne (head (tail $.Path)) "images") }}
+            {{ $readOnly := and (eq (head $.Path) "output") (ne (head (tail $.Path)) "themes") (ne (head (tail $.Path)) "images") }}
             {{- if not $readOnly }}
             <div>
                 <input type="checkbox" id="{{ $entry.Name }}" name="name" value="{{ $entry.Name }}" class="ma1 pointer">

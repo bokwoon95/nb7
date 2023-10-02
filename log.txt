@@ -37,15 +37,14 @@ TODO: cut | copy | paste | rename (no need for link indexing and rewriting yet, 
 TODO: Once we figure out rendering, we can implement render-on-write whenever a user creates or updates a file. That means we can also implement viewing the content page! Which means implementing the default post.html and posts.html templates!
 TODO: all the creates need to check if category/name/whatever is not an empty string, otherwise we return an error
 TODO: when editing the post source, provide the output link ("view output"). When viewing a post output, provide the source link ("view source").
-TODO: rename public to output
 
-public folder trails pages and posts
-on page creation => generate public page
-on page update => update public page
-on page deletion => delete public page
-on post creation => generate public post
-on post update => update public post
-on post deletion => delete public post
+output folder trails pages and posts
+on page creation => generate output page
+on page update => update output output
+on page deletion => delete output page
+on post creation => generate output post
+on post update => update output post
+on post deletion => delete output post
 
 on theme template update => update *all* pages, update *all* posts
 

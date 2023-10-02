@@ -207,7 +207,7 @@ func (nbrew *Notebrew) admin(w http.ResponseWriter, r *http.Request, ip string) 
 	}
 
 	if head == "themes" || head == "images" {
-		serveFile(w, r, nbrew.FS, path.Join(sitePrefix, "public", urlPath), true)
+		serveFile(w, r, nbrew.FS, path.Join(sitePrefix, "output", urlPath), true)
 		return
 	}
 
@@ -281,7 +281,7 @@ func (nbrew *Notebrew) admin(w http.ResponseWriter, r *http.Request, ip string) 
 		}
 	}
 
-	if head == "" || head == "notes" || head == "pages" || head == "posts" || head == "public" {
+	if head == "" || head == "notes" || head == "output" || head == "pages" || head == "posts" {
 		fileInfo, err := fs.Stat(nbrew.FS, path.Join(sitePrefix, urlPath))
 		if err != nil {
 			if errors.Is(err, fs.ErrNotExist) {

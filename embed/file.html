@@ -66,7 +66,7 @@
     {{- end }}
     {{ $parentDir := dir $.Path }}
     {{ $head := head $.Path }}
-    {{ $readOnly := and (eq (head $.Path) "public") (ne (head (tail $.Path)) "themes") (ne (head (tail $.Path)) "images") }}
+    {{ $readOnly := and (eq (head $.Path) "output") (ne (head (tail $.Path)) "themes") (ne (head (tail $.Path)) "images") }}
     {{- if ne $parentDir $head }}
     <a href="/{{ join `admin` sitePrefix $parentDir }}/" class="linktext">{{ base $parentDir }}</a>
     <span>&boxv;</span>

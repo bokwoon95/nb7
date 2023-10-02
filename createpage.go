@@ -248,13 +248,13 @@ func (nbrew *Notebrew) createpage(w http.ResponseWriter, r *http.Request, userna
 		if response.ParentFolder != "pages" || response.Name != "index.html" {
 			name = strings.TrimSuffix(response.Name, path.Ext(response.Name))
 		}
-		err = MkdirAll(nbrew.FS, path.Join(sitePrefix, "public", strings.TrimPrefix(strings.Trim(response.ParentFolder, "/"), "pages"), name), 0755)
+		err = MkdirAll(nbrew.FS, path.Join(sitePrefix, "output", strings.TrimPrefix(strings.Trim(response.ParentFolder, "/"), "pages"), name), 0755)
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
 			internalServerError(w, r, err)
 			return
 		}
-		readerFrom, err := nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, "public", strings.TrimPrefix(strings.Trim(response.ParentFolder, "/"), "pages"), name, "index.html"), 0644)
+		readerFrom, err := nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, "output", strings.TrimPrefix(strings.Trim(response.ParentFolder, "/"), "pages"), name, "index.html"), 0644)
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
 			internalServerError(w, r, err)

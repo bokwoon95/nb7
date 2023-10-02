@@ -814,7 +814,7 @@ func (nbrew *Notebrew) parseTemplate(sitePrefix, templateName, templateText stri
 				if currentTemplate.Name() != "" {
 					prefix = currentTemplate.Name() + ": "
 				}
-				file, err := nbrew.FS.Open(path.Join(sitePrefix, "public/themes", filename))
+				file, err := nbrew.FS.Open(path.Join(sitePrefix, "output/themes", filename))
 				if errors.Is(err, fs.ErrNotExist) {
 					templateErrors = append(templateErrors, fmt.Sprintf(prefix+"template %q does not exist", filename))
 					return nil, templateErrors, nil

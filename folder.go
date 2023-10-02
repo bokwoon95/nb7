@@ -113,7 +113,7 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 	var fileEntries []Entry
 
 	if folderPath == "" {
-		// If folderPath empty, show notes/, pages/, posts/, public/ folders.
+		// If folderPath empty, show notes/, pages/, posts/, output/ folders.
 		if nbrew.DB != nil && sitePrefix == "" {
 			// If database is present and sitePrefix is empty, show site
 			// folders the user is authorized for.
@@ -154,10 +154,10 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 				}
 				rootFolders = append(rootFolders,
 					RootFolder{Name: "notes"},
+					RootFolder{Name: "output"},
+					RootFolder{Name: "output/themes"},
 					RootFolder{Name: "pages"},
 					RootFolder{Name: "posts"},
-					RootFolder{Name: "public"},
-					RootFolder{Name: "public/themes"},
 				)
 				break
 			}
@@ -207,9 +207,9 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 				switch entry.Name {
 				case "notes", "pages", "posts":
 					folderEntries = append(folderEntries, entry)
-				case "public":
+				case "output":
 					folderEntries = append(folderEntries, entry)
-					fileInfo, err := fs.Stat(nbrew.FS, path.Join(sitePrefix, "public/themes"))
+					fileInfo, err := fs.Stat(nbrew.FS, path.Join(sitePrefix, "output/themes"))
 					if err != nil && !errors.Is(err, fs.ErrNotExist) {
 						getLogger(r.Context()).Error(err.Error())
 						internalServerError(w, r, err)
@@ -217,7 +217,7 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 					}
 					if fileInfo != nil && fileInfo.IsDir() {
 						folderEntries = append(folderEntries, Entry{
-							Name:  "public/themes",
+							Name:  "output/themes",
 							IsDir: true,
 						})
 					}

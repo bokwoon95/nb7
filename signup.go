@@ -573,11 +573,11 @@ func (nbrew *Notebrew) signup(w http.ResponseWriter, r *http.Request, ip string)
 		}
 		dirs := []string{
 			"notes",
+			"output",
+			"output/images",
+			"output/themes",
 			"pages",
 			"posts",
-			"public",
-			"public/images",
-			"public/themes",
 			"system",
 		}
 		for _, dir := range dirs {

@@ -47,7 +47,7 @@ func (nbrew *Notebrew) delet(w http.ResponseWriter, r *http.Request, username, s
 			if fileInfo.IsDir() {
 				return true
 			}
-		case "public":
+		case "output":
 			if len(segments) < 2 || segments[1] != "themes" {
 				return false
 			}
@@ -261,17 +261,17 @@ func (nbrew *Notebrew) delet(w http.ResponseWriter, r *http.Request, username, s
 			seen[name] = true
 			head, tail, _ := strings.Cut(response.ParentFolder, "/")
 			if response.ParentFolder == "pages" && name == "index.html" {
-				err := RemoveAll(nbrew.FS, path.Join(sitePrefix, "public/index.html"))
+				err := RemoveAll(nbrew.FS, path.Join(sitePrefix, "output/index.html"))
 				if err != nil {
 					getLogger(r.Context()).Error(err.Error())
 				}
 			} else if head == "pages" {
-				err := RemoveAll(nbrew.FS, path.Join(sitePrefix, "public", tail, strings.TrimSuffix(name, path.Ext(name))))
+				err := RemoveAll(nbrew.FS, path.Join(sitePrefix, "output", tail, strings.TrimSuffix(name, path.Ext(name))))
 				if err != nil {
 					getLogger(r.Context()).Error(err.Error())
 				}
 			} else if head == "posts" {
-				err := RemoveAll(nbrew.FS, path.Join(sitePrefix, "public/posts", tail, strings.TrimSuffix(name, path.Ext(name))))
+				err := RemoveAll(nbrew.FS, path.Join(sitePrefix, "output/posts", tail, strings.TrimSuffix(name, path.Ext(name))))
 				if err != nil {
 					getLogger(r.Context()).Error(err.Error())
 				}
