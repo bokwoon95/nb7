@@ -21,15 +21,17 @@ func (nbrew *Notebrew) createnote(w http.ResponseWriter, r *http.Request, userna
 		Content  string `json:"content,omitempty"`
 	}
 	type Response struct {
-		Status   Error  `json:"status"`
-		Name     string `json:"name,omitempty"`
-		Category string `json:"category,omitempty"`
+		Status         Error  `json:"status"`
+		ContentSiteURL string `json:"contentSiteURL,omitempty"`
+		Name           string `json:"name,omitempty"`
+		Category       string `json:"category,omitempty"`
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 2<<20 /* 2MB */)
 	switch r.Method {
 	case "GET":
 		writeResponse := func(w http.ResponseWriter, r *http.Request, response Response) {
+			response.ContentSiteURL = contentSiteURL(nbrew, sitePrefix)
 			dirEntries, err := nbrew.FS.ReadDir(path.Join(sitePrefix, "notes"))
 			if err != nil {
 				getLogger(r.Context()).Error(err.Error())
@@ -69,6 +71,7 @@ func (nbrew *Notebrew) createnote(w http.ResponseWriter, r *http.Request, userna
 				"sitePrefix": func() string { return sitePrefix },
 				"categories": func() []string { return categories },
 				"safeHTML":   func(s string) template.HTML { return template.HTML(s) },
+				"neatenURL":  neatenURL,
 			}
 			tmpl, err := template.New("createnote.html").Funcs(funcMap).ParseFS(rootFS, "embed/createnote.html")
 			if err != nil {

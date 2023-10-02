@@ -19,9 +19,10 @@ func (nbrew *Notebrew) createfolder(w http.ResponseWriter, r *http.Request, user
 		Name         string `json:"name,omitempty"`
 	}
 	type Response struct {
-		Status       Error  `json:"status"`
-		ParentFolder string `json:"parentFolder,omitempty"`
-		Name         string `json:"name,omitempty"`
+		Status         Error  `json:"status"`
+		ContentSiteURL string `json:"contentSiteURL,omitempty"`
+		ParentFolder   string `json:"parentFolder,omitempty"`
+		Name           string `json:"name,omitempty"`
 	}
 
 	isValidParentFolder := func(parentFolder string) bool {
@@ -54,6 +55,7 @@ func (nbrew *Notebrew) createfolder(w http.ResponseWriter, r *http.Request, user
 	switch r.Method {
 	case "GET":
 		writeResponse := func(w http.ResponseWriter, r *http.Request, response Response) {
+			response.ContentSiteURL = contentSiteURL(nbrew, sitePrefix)
 			accept, _, _ := mime.ParseMediaType(r.Header.Get("Accept"))
 			if accept == "application/json" {
 				w.Header().Set("Content-Type", "application/json")
@@ -71,6 +73,7 @@ func (nbrew *Notebrew) createfolder(w http.ResponseWriter, r *http.Request, user
 				"referer":    func() string { return r.Referer() },
 				"username":   func() string { return username },
 				"sitePrefix": func() string { return sitePrefix },
+				"neatenURL":  neatenURL,
 			}
 			tmpl, err := template.New("createfolder.html").Funcs(funcMap).ParseFS(rootFS, "embed/createfolder.html")
 			if err != nil {

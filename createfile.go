@@ -24,6 +24,7 @@ func (nbrew *Notebrew) createfile(w http.ResponseWriter, r *http.Request, userna
 	}
 	type Response struct {
 		Status         Error    `json:"status"`
+		ContentSiteURL string   `json:"contentSiteURL,omitempty"`
 		ParentFolder   string   `json:"parentFolder,omitempty"`
 		Type           string   `json:"type,omitempty"`
 		Name           string   `json:"name,omitempty"`
@@ -47,6 +48,7 @@ func (nbrew *Notebrew) createfile(w http.ResponseWriter, r *http.Request, userna
 	switch r.Method {
 	case "GET":
 		writeResponse := func(w http.ResponseWriter, r *http.Request, response Response) {
+			response.ContentSiteURL = contentSiteURL(nbrew, sitePrefix)
 			accept, _, _ := mime.ParseMediaType(r.Header.Get("Accept"))
 			if accept == "application/json" {
 				w.Header().Set("Content-Type", "application/json")
@@ -65,6 +67,7 @@ func (nbrew *Notebrew) createfile(w http.ResponseWriter, r *http.Request, userna
 				"username":   func() string { return username },
 				"sitePrefix": func() string { return sitePrefix },
 				"safeHTML":   func(s string) template.HTML { return template.HTML(s) },
+				"neatenURL":  neatenURL,
 			}
 			tmpl, err := template.New("createfile.html").Funcs(funcMap).ParseFS(rootFS, "embed/createfile.html")
 			if err != nil {
@@ -197,7 +200,10 @@ func (nbrew *Notebrew) createfile(w http.ResponseWriter, r *http.Request, userna
 			return
 		}
 
-		var response Response
+		response := Response{
+			Type:    request.Type,
+			Content: request.Content,
+		}
 		if request.ParentFolder == "" {
 			response.Status = ErrParentFolderNotProvided
 			writeResponse(w, r, response)

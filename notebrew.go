@@ -872,3 +872,25 @@ func (nbrew *Notebrew) parseTemplate(sitePrefix, templateName, templateText stri
 	}
 	return finalTemplate, nil, nil
 }
+
+func contentSiteURL(nbrew *Notebrew, sitePrefix string) string {
+	if strings.Contains(sitePrefix, ".") {
+		return "https://" + sitePrefix + "/"
+	}
+	if sitePrefix != "" {
+		if nbrew.MultisiteMode == "subdomain" {
+			return nbrew.Scheme + strings.TrimPrefix(sitePrefix, "@") + "." + nbrew.ContentDomain + "/"
+		}
+		if nbrew.MultisiteMode == "subdirectory" {
+			return nbrew.Scheme + nbrew.ContentDomain + "/" + sitePrefix + "/"
+		}
+	}
+	return nbrew.Scheme + nbrew.ContentDomain + "/"
+}
+
+func neatenURL(s string) string {
+	if strings.HasPrefix(s, "https://") {
+		return strings.TrimSuffix(strings.TrimPrefix(s, "https://"), "/")
+	}
+	return strings.TrimSuffix(strings.TrimPrefix(s, "http://"), "/")
+}

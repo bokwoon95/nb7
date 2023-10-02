@@ -22,6 +22,7 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 	}
 	type Response struct {
 		Status         Error      `json:"status"`
+		ContentSiteURL string     `json:"contentSiteURL,omitempty"`
 		Path           string     `json:"path"`
 		IsDir          bool       `json:"isDir,omitempty"`
 		ModTime        *time.Time `json:"modTime,omitempty"`
@@ -50,6 +51,7 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 	switch r.Method {
 	case "GET":
 		writeResponse := func(w http.ResponseWriter, r *http.Request, response Response) {
+			response.ContentSiteURL = contentSiteURL(nbrew, sitePrefix)
 			accept, _, _ := mime.ParseMediaType(r.Header.Get("Accept"))
 			if accept == "application/json" {
 				w.Header().Set("Content-Type", "application/json")
@@ -81,6 +83,7 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 				"join":             path.Join,
 				"dir":              path.Dir,
 				"base":             path.Base,
+				"neatenURL":        neatenURL,
 				"fileSizeToString": fileSizeToString,
 				"referer":          func() string { return r.Referer() },
 				"username":         func() string { return username },

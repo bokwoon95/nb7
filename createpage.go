@@ -23,6 +23,7 @@ func (nbrew *Notebrew) createpage(w http.ResponseWriter, r *http.Request, userna
 	}
 	type Response struct {
 		Status         Error    `json:"status"`
+		ContentSiteURL string   `json:"contentSiteURL,omitempty"`
 		ParentFolder   string   `json:"parentFolder,omitempty"`
 		Name           string   `json:"name,omitempty"`
 		Content        string   `json:"content,omitempty"`
@@ -45,6 +46,7 @@ func (nbrew *Notebrew) createpage(w http.ResponseWriter, r *http.Request, userna
 	switch r.Method {
 	case "GET":
 		writeResponse := func(w http.ResponseWriter, r *http.Request, response Response) {
+			response.ContentSiteURL = contentSiteURL(nbrew, sitePrefix)
 			accept, _, _ := mime.ParseMediaType(r.Header.Get("Accept"))
 			if accept == "application/json" {
 				w.Header().Set("Content-Type", "application/json")
@@ -63,6 +65,7 @@ func (nbrew *Notebrew) createpage(w http.ResponseWriter, r *http.Request, userna
 				"username":   func() string { return username },
 				"sitePrefix": func() string { return sitePrefix },
 				"safeHTML":   func(s string) template.HTML { return template.HTML(s) },
+				"neatenURL":  neatenURL,
 			}
 			tmpl, err := template.New("createpage.html").Funcs(funcMap).ParseFS(rootFS, "embed/createpage.html")
 			if err != nil {

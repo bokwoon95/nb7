@@ -19,15 +19,17 @@ func (nbrew *Notebrew) createcategory(w http.ResponseWriter, r *http.Request, us
 		Category string `json:"category,omitempty"`
 	}
 	type Response struct {
-		Status   Error  `json:"status"`
-		Type     string `json:"type,omitempty"`
-		Category string `json:"category,omitempty"`
+		Status         Error  `json:"status"`
+		ContentSiteURL string `json:"contentSiteURL,omitempty"`
+		Type           string `json:"type,omitempty"`
+		Category       string `json:"category,omitempty"`
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 2<<20 /* 2MB */)
 	switch r.Method {
 	case "GET":
 		writeResponse := func(w http.ResponseWriter, r *http.Request, response Response) {
+			response.ContentSiteURL = contentSiteURL(nbrew, sitePrefix)
 			accept, _, _ := mime.ParseMediaType(r.Header.Get("Accept"))
 			if accept == "application/json" {
 				w.Header().Set("Content-Type", "application/json")
@@ -44,6 +46,7 @@ func (nbrew *Notebrew) createcategory(w http.ResponseWriter, r *http.Request, us
 				"referer":    func() string { return r.Referer() },
 				"username":   func() string { return username },
 				"sitePrefix": func() string { return sitePrefix },
+				"neatenURL":  neatenURL,
 			}
 			tmpl, err := template.New("createcategory.html").Funcs(funcMap).ParseFS(rootFS, "embed/createcategory.html")
 			if err != nil {

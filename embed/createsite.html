@@ -9,9 +9,12 @@
 <title>Create site</title>
 <body class="centered-body">
 <nav class="mv2 bg-dark-cyan white flex justify-between items-center">
+    {{- if $.ContentSiteURL }}
+    <a href="{{ $.ContentSiteURL }}" class="ma2">{{ neatenURL $.ContentSiteURL }}</a>
+    {{- else }}
     <a href="https://notebrew.com/" class="ma2">notebrew🖋️☕</a>
+    {{- end }}
     <span class="flex-grow-1"></span>
-    <a href="" class="ma2">site</a>
     <a href="" class="ma2">{{ if username }}@{{ username }}{{ else }}user{{ end }}</a>
     <a href="/admin/logout/" class="ma2">logout</a>
 </nav>

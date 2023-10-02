@@ -29,10 +29,11 @@ func (nbrew *Notebrew) delet(w http.ResponseWriter, r *http.Request, username, s
 		Names        []string `json:"names,omitempty"`
 	}
 	type Response struct {
-		Status       Error    `json:"status"`
-		ParentFolder string   `json:"parentFolder,omitempty"`
-		Items        []Item   `json:"items,omitempty"`
-		Errors       []string `json:"errors,omitempty"`
+		Status         Error    `json:"status"`
+		ContentSiteURL string   `json:"contentSiteURL,omitempty"`
+		ParentFolder   string   `json:"parentFolder,omitempty"`
+		Items          []Item   `json:"items,omitempty"`
+		Errors         []string `json:"errors,omitempty"`
 	}
 
 	isValidParentFolder := func(parentFolder string) bool {
@@ -65,6 +66,7 @@ func (nbrew *Notebrew) delet(w http.ResponseWriter, r *http.Request, username, s
 	switch r.Method {
 	case "GET":
 		writeResponse := func(w http.ResponseWriter, r *http.Request, response Response) {
+			response.ContentSiteURL = contentSiteURL(nbrew, sitePrefix)
 			accept, _, _ := mime.ParseMediaType(r.Header.Get("Accept"))
 			if accept == "application/json" {
 				w.Header().Set("Content-Type", "application/json")
@@ -81,6 +83,7 @@ func (nbrew *Notebrew) delet(w http.ResponseWriter, r *http.Request, username, s
 				"referer":    func() string { return r.Referer() },
 				"username":   func() string { return username },
 				"sitePrefix": func() string { return sitePrefix },
+				"neatenURL":  neatenURL,
 				"filecount": func(numFolders, numFiles int) string {
 					if numFolders == 0 && numFiles == 0 {
 						return "no files"

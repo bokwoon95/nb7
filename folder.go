@@ -34,10 +34,10 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 	}
 	type Response struct {
 		Status         Error      `json:"status"`
+		ContentSiteURL string     `json:"contentSiteURL,omitempty"`
 		Path           string     `json:"path"`
 		IsDir          bool       `json:"isDir,omitempty"`
 		ModTime        *time.Time `json:"modTime,omitempty"`
-		ContentSiteURL string     `json:"contentSiteURL,omitempty"`
 		Entries        []Entry    `json:"entries,omitempty"`
 		Sort           string     `json:"sort,omitempty"`
 		Order          string     `json:"order,omitempty"`
@@ -70,19 +70,6 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 	response.IsDir = fileInfo.IsDir()
 	if response.Status == "" {
 		response.Status = Success
-	}
-
-	if strings.Contains(sitePrefix, ".") {
-		response.ContentSiteURL = "https://" + sitePrefix + "/"
-	} else if sitePrefix != "" {
-		if nbrew.MultisiteMode == "subdomain" {
-			response.ContentSiteURL = nbrew.Scheme + strings.TrimPrefix(sitePrefix, "@") + "." + nbrew.ContentDomain + "/"
-		} else if nbrew.MultisiteMode == "subdirectory" {
-			response.ContentSiteURL = nbrew.Scheme + nbrew.ContentDomain + "/" + sitePrefix + "/"
-		}
-	}
-	if response.ContentSiteURL == "" {
-		response.ContentSiteURL = nbrew.Scheme + nbrew.ContentDomain + "/"
 	}
 
 	head, _, _ := strings.Cut(folderPath, "/")
@@ -418,6 +405,7 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 	response.Entries = append(response.Entries, folderEntries...)
 	response.Entries = append(response.Entries, fileEntries...)
 
+	response.ContentSiteURL = contentSiteURL(nbrew, sitePrefix)
 	accept, _, _ := mime.ParseMediaType(r.Header.Get("Accept"))
 	if accept == "application/json" {
 		w.Header().Set("Content-Type", "application/json")
@@ -434,6 +422,7 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 		"join":             path.Join,
 		"base":             path.Base,
 		"trimPrefix":       strings.TrimPrefix,
+		"neatenURL":        neatenURL,
 		"fileSizeToString": fileSizeToString,
 		"isEven":           func(i int) bool { return i%2 == 0 },
 		"username":         func() string { return username },
@@ -447,12 +436,6 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 		"tail": func(s string) string {
 			_, tail, _ := strings.Cut(s, "/")
 			return tail
-		},
-		"neatenURL": func(s string) string {
-			if strings.HasPrefix(s, "https://") {
-				return strings.TrimSuffix(strings.TrimPrefix(s, "https://"), "/")
-			}
-			return strings.TrimSuffix(strings.TrimPrefix(s, "http://"), "/")
 		},
 		"filecount": func(numFolders, numFiles int) string {
 			if numFolders == 0 && numFiles == 0 {
