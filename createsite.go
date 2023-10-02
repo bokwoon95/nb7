@@ -127,21 +127,26 @@ func (nbrew *Notebrew) createsite(w http.ResponseWriter, r *http.Request, userna
 				http.Redirect(w, r, nbrew.Scheme+nbrew.AdminDomain+"/admin/createsite/", http.StatusFound)
 				return
 			}
-			err := nbrew.setSession(w, r, "flash", map[string]any{
-				"status": Error(fmt.Sprintf(`%s Site created`, response.Status.Code())),
-			})
-			if err != nil {
-				getLogger(r.Context()).Error(err.Error())
-				internalServerError(w, r, err)
-				return
-			}
 			var sitePrefix string
 			if strings.Contains(response.SiteName, ".") {
 				sitePrefix = response.SiteName
 			} else if response.SiteName != "" {
 				sitePrefix = "@" + response.SiteName
 			}
-			http.Redirect(w, r, nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix)+"/", http.StatusFound)
+			err := nbrew.setSession(w, r, "flash", map[string]any{
+				"status": Error(fmt.Sprintf(
+					`%s Site created: <a href="%s" class="linktext">%s</a>`,
+					response.Status.Code(),
+					nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix)+"/",
+					response.SiteName,
+				)),
+			})
+			if err != nil {
+				getLogger(r.Context()).Error(err.Error())
+				internalServerError(w, r, err)
+				return
+			}
+			http.Redirect(w, r, nbrew.Scheme+nbrew.AdminDomain+"/admin/", http.StatusFound)
 		}
 
 		var request Request

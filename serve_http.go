@@ -269,10 +269,15 @@ func (nbrew *Notebrew) admin(w http.ResponseWriter, r *http.Request, ip string) 
 		username = result.Username
 		logger := getLogger(r.Context()).With(slog.String("username", username))
 		r = r.WithContext(context.WithValue(r.Context(), loggerKey, logger))
-		isRootPage := sitePrefix == "" && head == "" // everyone is allowed to access the root page
-		if !result.IsAuthorized && !isRootPage {
-			notAuthorized(w, r)
-			return
+		if !result.IsAuthorized {
+			if sitePrefix == "" && head == "" {
+				// ok
+			} else if head == "createsite" || head == "deletesite" {
+				// ok
+			} else {
+				notAuthorized(w, r)
+				return
+			}
 		}
 	}
 
