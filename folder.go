@@ -29,8 +29,8 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 		Preview    string     `json:"preview,omitempty"`
 		Size       int64      `json:"size,omitempty"`
 		ModTime    *time.Time `json:"modTime,omitempty"`
-		NumFolders int        `json:"numFolders,omitEmpty"`
-		NumFiles   int        `json:"numFiles,omitEmpty"`
+		NumFolders int        `json:"numFolders,omitempty"`
+		NumFiles   int        `json:"numFiles,omitempty"`
 	}
 	type Response struct {
 		Status         Error      `json:"status"`

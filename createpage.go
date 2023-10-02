@@ -16,16 +16,16 @@ import (
 
 func (nbrew *Notebrew) createpage(w http.ResponseWriter, r *http.Request, username, sitePrefix string) {
 	type Request struct {
-		ParentFolder string `json:"parentFolder,omitEmpty"`
+		ParentFolder string `json:"parentFolder,omitempty"`
 		Name         string `json:"name,omitempty"`
 		Content      string `json:"content,omitempty"`
 	}
 	type Response struct {
 		Status         Error    `json:"status"`
-		ParentFolder   string   `json:"parentFolder,omitEmpty"`
+		ParentFolder   string   `json:"parentFolder,omitempty"`
 		Name           string   `json:"name,omitempty"`
 		Content        string   `json:"content,omitempty"`
-		TemplateErrors []string `json:"templateError,omitEmpty"`
+		TemplateErrors []string `json:"templateError,omitempty"`
 	}
 
 	isValidParentFolder := func(parentFolder string) bool {

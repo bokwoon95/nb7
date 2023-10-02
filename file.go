@@ -29,7 +29,7 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 		Content        string     `json:"content,omitempty"`
 		Location       string     `json:"location,omitempty"`
 		TemplateErrors []string   `json:"templateErrors,omitempty"`
-		StorageUsed    int64      `json:"storageUsed,omitEmpty"`
+		StorageUsed    int64      `json:"storageUsed,omitempty"`
 		StorageLimit   int64      `json:"storageLimit,omitempty"`
 	}
 

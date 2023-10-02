@@ -34,7 +34,7 @@ func (nbrew *Notebrew) login(w http.ResponseWriter, r *http.Request, ip string) 
 	type Response struct {
 		Status              Error              `json:"status"`
 		Username            string             `json:"username,omitempty"` // could be username -or- email, check sitePrefix for username instead
-		RequireCaptcha      bool               `json:"requireCaptcha,omitEmpty"`
+		RequireCaptcha      bool               `json:"requireCaptcha,omitempty"`
 		CaptchaSiteKey      string             `json:"captchaSiteKey,omitempty"`
 		ValidationErrors    map[string][]Error `json:"validationErrors,omitempty"`
 		AuthenticationToken string             `json:"authenticationToken,omitempty"`

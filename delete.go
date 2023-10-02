@@ -21,8 +21,8 @@ func (nbrew *Notebrew) delet(w http.ResponseWriter, r *http.Request, username, s
 		IsDir      bool      `json:"isDir,omitempty"`
 		Size       int64     `json:"size,omitempty"`
 		ModTime    time.Time `json:"modTime,omitempty"`
-		NumFolders int       `json:"numFolders,omitEmpty"`
-		NumFiles   int       `json:"numFiles,omitEmpty"`
+		NumFolders int       `json:"numFolders,omitempty"`
+		NumFiles   int       `json:"numFiles,omitempty"`
 	}
 	type Request struct {
 		ParentFolder string   `json:"parentFolder,omitempty"`

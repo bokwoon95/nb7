@@ -60,6 +60,7 @@
 </ul>
 <form method="post" action="/{{ join `admin` sitePrefix `createfile` }}/">
     <input type="hidden" name="parentFolder" value="{{ $.ParentFolder }}">
+    <input type="hidden" name="type" value="{{ $.Type }}">
     <div class="mv2">
         <div><label for="name" class="b">Name:</label></div>
         <div class="flex items-center">
