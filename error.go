@@ -56,7 +56,7 @@ const (
 	ErrInvalidCategoryType       = Error("NB-03180 invalid category type")
 	ErrCategoryAlreadyExists     = Error("NB-03190 category already exists")
 	ErrFolderAlreadyExists       = Error("NB-03200 folder already exists")
-	ErrTemplateErrors            = Error("NB-03210 template errors")
+	ErrTemplateError             = Error("NB-03210 template error")
 
 	// Class 04 - Validation
 	ErrValidationFailed    = Error("NB-04000 validation failed")

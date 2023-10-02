@@ -190,7 +190,7 @@ func (nbrew *Notebrew) createpage(w http.ResponseWriter, r *http.Request, userna
 		if len(tmplErrs) > 0 {
 			response.Content = request.Content
 			response.TemplateErrors = tmplErrs
-			response.Status = ErrTemplateErrors
+			response.Status = ErrTemplateError
 			writeResponse(w, r, response)
 			return
 		}
