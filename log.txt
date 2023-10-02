@@ -35,6 +35,7 @@ TODO: coalesce the following into a single "site" tab in the menu bar
 - site-wide search
 TODO: cut | copy | paste | rename (no need for link indexing and rewriting yet, that comes later)
 TODO: Once we figure out rendering, we can implement render-on-write whenever a user creates or updates a file. That means we can also implement viewing the content page! Which means implementing the default post.html and posts.html templates!
+TODO: all the creates need to check if category/name/whatever is not an empty string, otherwise we return an error
 
 public folder trails pages and posts
 on page creation => generate public page

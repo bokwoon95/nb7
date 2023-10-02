@@ -259,11 +259,25 @@ func (nbrew *Notebrew) delet(w http.ResponseWriter, r *http.Request, username, s
 				continue
 			}
 			seen[name] = true
-			err := RemoveAll(nbrew.FS, path.Join(sitePrefix, request.ParentFolder, name))
-			if err != nil {
-				if errors.Is(err, fs.ErrNotExist) {
-					continue
+			head, tail, _ := strings.Cut(response.ParentFolder, "/")
+			if response.ParentFolder == "pages" && name == "index.html" {
+				err := RemoveAll(nbrew.FS, path.Join(sitePrefix, "public/index.html"))
+				if err != nil {
+					getLogger(r.Context()).Error(err.Error())
 				}
+			} else if head == "pages" {
+				err := RemoveAll(nbrew.FS, path.Join(sitePrefix, "public", tail, strings.TrimSuffix(name, path.Ext(name))))
+				if err != nil {
+					getLogger(r.Context()).Error(err.Error())
+				}
+			} else if head == "posts" {
+				err := RemoveAll(nbrew.FS, path.Join(sitePrefix, "public/posts", tail, strings.TrimSuffix(name, path.Ext(name))))
+				if err != nil {
+					getLogger(r.Context()).Error(err.Error())
+				}
+			}
+			err := RemoveAll(nbrew.FS, path.Join(sitePrefix, response.ParentFolder, name))
+			if err != nil {
 				response.Errors = append(response.Errors, fmt.Sprintf("%s: %v", name, err))
 			} else {
 				response.Items = append(response.Items, Item{Name: name})

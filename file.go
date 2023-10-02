@@ -315,13 +315,17 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 				writeResponse(w, r, response)
 				return
 			}
-			err = MkdirAll(nbrew.FS, path.Join(sitePrefix, "public", tail), 0755)
+			var name string
+			if response.Path != "pages/index.html" {
+				name = strings.TrimSuffix(tail, path.Ext(tail))
+			}
+			err = MkdirAll(nbrew.FS, path.Join(sitePrefix, "public", name), 0755)
 			if err != nil {
 				getLogger(r.Context()).Error(err.Error())
 				internalServerError(w, r, err)
 				return
 			}
-			readerFrom, err := nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, "public", tail, "index.html"), 0644)
+			readerFrom, err := nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, "public", name, "index.html"), 0644)
 			if err != nil {
 				getLogger(r.Context()).Error(err.Error())
 				internalServerError(w, r, err)

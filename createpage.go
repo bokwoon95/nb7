@@ -202,11 +202,14 @@ func (nbrew *Notebrew) createpage(w http.ResponseWriter, r *http.Request, userna
 			writeResponse(w, r, response)
 			return
 		}
-		response.Name = urlSafe(request.Name)
-		if response.ParentFolder == "pages" && (response.Name == "admin" || response.Name == "images" || response.Name == "posts" || response.Name == "themes") {
-			response.Status = ErrForbiddenName
-			writeResponse(w, r, response)
-			return
+		response.Name = urlSafe(request.Name) + ".html"
+		if response.ParentFolder == "pages" {
+			switch response.Name {
+			case "admin.html", "images.html", "posts.html", "themes.html":
+				response.Status = ErrForbiddenName
+				writeResponse(w, r, response)
+				return
+			}
 		}
 		fileInfo, err := fs.Stat(nbrew.FS, path.Join(sitePrefix, response.ParentFolder, response.Name))
 		if err != nil && !errors.Is(err, fs.ErrNotExist) {
@@ -241,13 +244,17 @@ func (nbrew *Notebrew) createpage(w http.ResponseWriter, r *http.Request, userna
 			writeResponse(w, r, response)
 			return
 		}
-		err = MkdirAll(nbrew.FS, path.Join(sitePrefix, "public", strings.TrimPrefix(strings.Trim(response.ParentFolder, "/"), "pages"), response.Name), 0755)
+		var name string
+		if response.ParentFolder != "pages" || response.Name != "index.html" {
+			name = strings.TrimSuffix(response.Name, path.Ext(response.Name))
+		}
+		err = MkdirAll(nbrew.FS, path.Join(sitePrefix, "public", strings.TrimPrefix(strings.Trim(response.ParentFolder, "/"), "pages"), name), 0755)
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
 			internalServerError(w, r, err)
 			return
 		}
-		readerFrom, err := nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, "public", strings.TrimPrefix(strings.Trim(response.ParentFolder, "/"), "pages"), response.Name, "index.html"), 0644)
+		readerFrom, err := nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, "public", strings.TrimPrefix(strings.Trim(response.ParentFolder, "/"), "pages"), name, "index.html"), 0644)
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
 			internalServerError(w, r, err)
@@ -259,7 +266,7 @@ func (nbrew *Notebrew) createpage(w http.ResponseWriter, r *http.Request, userna
 			internalServerError(w, r, err)
 			return
 		}
-		readerFrom, err = nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, response.ParentFolder, response.Name+".html"), 0644)
+		readerFrom, err = nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, response.ParentFolder, response.Name), 0644)
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
 			internalServerError(w, r, err)
