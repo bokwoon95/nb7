@@ -97,7 +97,7 @@ func (nbrew *Notebrew) createcategory(w http.ResponseWriter, r *http.Request, us
 			}
 			var status string
 			switch response.Status{
-			case ErrCategoryAlreadyExists:
+			case ErrItemAlreadyExists:
 				status = fmt.Sprintf("%s Category %s already exists", response.Status.Code(), response.Category)
 			case CreateCategorySuccess:
 				status = fmt.Sprintf("%s Created category %s", response.Status.Code(), response.Category)
@@ -172,7 +172,7 @@ func (nbrew *Notebrew) createcategory(w http.ResponseWriter, r *http.Request, us
 		err := nbrew.FS.Mkdir(path.Join(sitePrefix, resource, response.Category), 0755)
 		if err != nil {
 			if errors.Is(err, fs.ErrExist) {
-				response.Status = ErrCategoryAlreadyExists
+				response.Status = ErrItemAlreadyExists
 				writeResponse(w, r, response)
 				return
 			}

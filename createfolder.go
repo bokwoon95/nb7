@@ -138,7 +138,7 @@ func (nbrew *Notebrew) createfolder(w http.ResponseWriter, r *http.Request, user
 						return
 					}
 					http.Redirect(w, r, nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix)+"/", http.StatusFound)
-				case ErrForbiddenName, ErrFolderAlreadyExists:
+				case ErrForbiddenName, ErrItemAlreadyExists:
 					err := nbrew.setSession(w, r, "flash", map[string]any{
 						"status": fmt.Sprintf("%s: %s", response.Status, response.Name),
 					})
@@ -235,14 +235,14 @@ func (nbrew *Notebrew) createfolder(w http.ResponseWriter, r *http.Request, user
 			return
 		}
 		if fileInfo != nil {
-			response.Status = Error(fmt.Sprintf("%s folder %q already exists", ErrFolderAlreadyExists.Code(), request.Name))
+			response.Status = Error(fmt.Sprintf("%s folder %q already exists", ErrItemAlreadyExists.Code(), request.Name))
 			writeResponse(w, r, response)
 			return
 		}
 		err = nbrew.FS.Mkdir(name, 0755)
 		if err != nil {
 			if errors.Is(err, fs.ErrExist) {
-				response.Status = Error(fmt.Sprintf("%s folder %q already exists", ErrFolderAlreadyExists.Code(), request.Name))
+				response.Status = Error(fmt.Sprintf("%s folder %q already exists", ErrItemAlreadyExists.Code(), request.Name))
 				writeResponse(w, r, response)
 				return
 			}

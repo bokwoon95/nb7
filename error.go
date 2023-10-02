@@ -45,7 +45,7 @@ const (
 	ErrMailerNotEnabled          = Error("NB-03070 mailer not enabled")
 	ErrMailerMisconfigured       = Error("NB-03080 mailer misconfigured")
 	ErrMailSendingFailed         = Error("NB-03090 mail sending failed")
-	ErrDataTooBig                = Error("NB-03100 data too big")
+	ErrDataTooBig                = Error("NB-03100 data too big") // TODO: remove this (not needed)
 	ErrStorageLimitExceeded      = Error("NB-03110 storage limit exceeded")
 	ErrUpdateFailed              = Error("NB-03120 update failed")
 	ErrMaxSitesReached           = Error("NB-03130 max sites reached")
@@ -54,9 +54,8 @@ const (
 	ErrNothingToDelete           = Error("NB-03160 nothing to delete")
 	ErrDeleteFailed              = Error("NB-03170 delete failed")
 	ErrInvalidCategoryType       = Error("NB-03180 invalid category type")
-	ErrCategoryAlreadyExists     = Error("NB-03190 category already exists")
-	ErrFolderAlreadyExists       = Error("NB-03200 folder already exists")
-	ErrTemplateError             = Error("NB-03210 template error")
+	ErrItemAlreadyExists         = Error("NB-03190 item already exists")
+	ErrTemplateError             = Error("NB-03200 template error")
 
 	// Class 04 - Validation
 	ErrValidationFailed    = Error("NB-04000 validation failed")
