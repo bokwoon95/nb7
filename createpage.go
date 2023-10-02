@@ -177,19 +177,19 @@ func (nbrew *Notebrew) createpage(w http.ResponseWriter, r *http.Request, userna
 		}
 		response.Name = urlSafe(request.Name)
 		if response.ParentFolder == "pages" && (response.Name == "admin" || response.Name == "images" || response.Name == "posts" || response.Name == "themes") {
-			response.Status = Error(fmt.Sprintf("%s %q", ErrForbiddenName, request.Name))
+			response.Status = ErrForbiddenName
 			writeResponse(w, r, response)
 			return
 		}
-		tmpl, templateErrors, err := nbrew.parseTemplate(sitePrefix, "", request.Content)
+		tmpl, tmplErrs, err := nbrew.parseTemplate(sitePrefix, "", request.Content)
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
 			internalServerError(w, r, err)
 			return
 		}
-		if len(templateErrors) > 0 {
+		if len(tmplErrs) > 0 {
 			response.Content = request.Content
-			response.TemplateErrors = templateErrors
+			response.TemplateErrors = tmplErrs
 			response.Status = ErrTemplateErrors
 			writeResponse(w, r, response)
 			return
