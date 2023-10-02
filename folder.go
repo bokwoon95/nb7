@@ -85,18 +85,7 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 		response.ContentSiteURL = nbrew.Scheme + nbrew.ContentDomain + "/"
 	}
 
-	head, tail, _ := strings.Cut(folderPath, "/")
-	if (head == "notes" || head == "posts") && strings.Count(response.Path, "/") > 1 {
-		// Return 404 for folders that are more than 1 folder deep inside
-		// notes or posts.
-		//
-		// (ok)     notes
-		// (ok)     notes/foo
-		// (not ok) notes/foo/bar
-		notFound(w, r)
-		return
-	}
-
+	head, _, _ := strings.Cut(folderPath, "/")
 	response.Sort = strings.ToLower(strings.TrimSpace(r.Form.Get("sort")))
 	if response.Sort == "" {
 		cookie, _ := r.Cookie("sort")
@@ -280,31 +269,15 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 			if !modTime.IsZero() {
 				entry.ModTime = &modTime
 			}
-			if entry.IsDir {
-				dirEntries, err := fs.ReadDir(nbrew.FS, path.Join(sitePrefix, folderPath, entry.Name))
-				if err != nil {
-					getLogger(r.Context()).Error(err.Error())
-					internalServerError(w, r, err)
-					return
-				}
-				for _, dirEntry := range dirEntries {
-					if dirEntry.IsDir() {
-						entry.NumFolders++
-					} else {
-						entry.NumFiles++
-					}
-				}
-			}
 			ext := path.Ext(entry.Name)
 			switch head {
 			case "notes", "posts":
 				if entry.IsDir {
-					if !strings.Contains(folderPath, "/") {
-						folderEntries = append(folderEntries, entry)
-					}
+					folderEntries = append(folderEntries, entry)
 					continue
 				}
 				if ext != ".md" && ext != ".txt" {
+					fileEntries = append(fileEntries, entry)
 					continue
 				}
 				file, err := nbrew.FS.Open(path.Join(sitePrefix, response.Path, entry.Name))
@@ -348,31 +321,9 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 					internalServerError(w, r, err)
 					return
 				}
-			case "pages":
+			default:
 				if entry.IsDir {
 					folderEntries = append(folderEntries, entry)
-					continue
-				}
-				if ext != ".html" {
-					continue
-				}
-				fileEntries = append(fileEntries, entry)
-			case "public":
-				next, _, _ := strings.Cut(tail, "/")
-				if next != "" && next != "images" && next != "themes" {
-					continue
-				}
-				if entry.IsDir {
-					folderEntries = append(folderEntries, entry)
-					continue
-				}
-				switch ext {
-				case ".html", ".css", ".js", ".md", ".txt",
-					".csv", ".tsv", ".json", ".xml", ".toml", ".yaml", ".yml", ".svg",
-					".ico", ".jpeg", ".jpg", ".png", ".gif",
-					".eot", ".otf", ".ttf", ".woff", ".woff2", ".gz":
-					break
-				default:
 					continue
 				}
 				fileEntries = append(fileEntries, entry)

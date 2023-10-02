@@ -49,7 +49,7 @@
     <h3 class="f3 mv2 tc b">cannot display this file</h3>
     <div class="mv2 tc">choose to <a href="" class="linktext">download</a> it instead.</div>
 </div>
-{{- else }}
+{{- else if eq $.Type "text" }}
 <ul>
     {{- range $templateError := $.TemplateErrors }}
     <li class="invalid-red list-style-disc">{{ safeHTML $templateError }}</li>
@@ -62,6 +62,7 @@
     {{- end }}
     {{ $parentDir := dir $.Path }}
     {{ $head := head $.Path }}
+    {{ $readOnly := and (eq (head $.Path) "public") (ne (head (tail $.Path)) "themes") (ne (head (tail $.Path)) "images") }}
     {{- if ne $parentDir $head }}
     <a href="/{{ join `admin` sitePrefix $parentDir }}/" class="linktext">{{ base $parentDir }}</a>
     <span>&boxv;</span>
@@ -70,9 +71,28 @@
     <span>&boxv;</span>
     <a href="/{{ join `admin` sitePrefix }}/" class="linktext">admin</a>
 </div>
-<div class="mv2"><span class="b">{{ base $.Path }}</span> <a href="" class="f6 mh1 linktext">rename</a></div>
+<div class="mv2">
+    <span class="b">{{ base $.Path }}</span>
+    {{- if not $readOnly }}
+    <a href="" class="f6 mh1 linktext">rename</a>
+    {{- end }}
+</div>
+{{- if $readOnly }}
+<div class="mv1 ba br2">
+    <pre class="w-100 pa2 pa3-m min-h5 h6 resize-vertical">{{ $.Content }}</pre>
+</div>
+{{- else }}
 <form method="post" enctype="multipart/form-data" class="mv1">
     <textarea name="content" dir="auto" class="w-100 pa2 pa3-m min-h5 h6 resize-vertical">{{ $.Content }}</textarea>
     <button type="submit" class="button ba br2 pa2 mv3 w-100">Save</button>
 </form>
+{{- end }}
+{{- else }}
+<div class="mv5 w-70 w-60-m w-50-l center">
+    {{- if referer }}
+    <div><a href="{{ referer }}" class="linktext" data-go-back>&larr; back</a></div>
+    {{- end }}
+    <h3 class="f3 mv2 tc b">cannot display this file</h3>
+    <div class="mv2 tc">unknown file type</div>
+</div>
 {{- end }}

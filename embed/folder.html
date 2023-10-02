@@ -221,7 +221,8 @@
     {{- else }}
     <div class="min-h2 mv1{{ if isEven $i }} bg-lighter-gray{{ else }} bg-mostly-white{{ end }}">
         <label for="{{ $entry.Name }}" class="flex items-center pointer" data-disable-click-selection>
-            {{- if ne $.Path "public" }}
+            {{ $readOnly := and (eq (head $.Path) "public") (ne (head (tail $.Path)) "themes") (ne (head (tail $.Path)) "images") }}
+            {{- if not $readOnly }}
             <div>
                 <input type="checkbox" id="{{ $entry.Name }}" name="name" value="{{ $entry.Name }}" class="ma1 pointer">
             </div>
@@ -244,6 +245,7 @@
                 {{- end }}
             </div>
             <div class="flex-grow-1"></div>
+            {{- if not $readOnly }}
             <details class="relative" data-disable-click-selection>
                 <summary role="button" title="More actions" class="flex items-center button ba br2 b--black h2 hide-marker ph1">
                     {{ template "octicon-triangle-down" }}
@@ -254,6 +256,7 @@
                     <div class="tr ma2"><button type="submit" formaction="/{{ join `admin` sitePrefix `delete` }}/" name="name" value="{{ $entry.Name }}" class="link dark-red tr nowrap dib w-100 h-100">delete</button></div>
                 </div>
             </details>
+            {{- end }}
         </label>
     </div>
     {{- end }}

@@ -33,53 +33,16 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 	}
 
 	var typ string
-	head, tail, _ := strings.Cut(filePath, "/")
 	ext := path.Ext(filePath)
-	switch head {
-	case "notes", "posts":
-		if strings.Count(filePath, "/") > 2 {
-			// Return 404 for files that are more than 1 folder deep inside
-			// notes or posts.
-			//
-			// (ok)     notes/file.md
-			// (ok)     notes/foo/file.md
-			// (not ok) notes/foo/bar/file.md
-			notFound(w, r)
-			return
-		}
-		if ext != ".md" && ext != ".txt" {
-			notFound(w, r)
-			return
-		}
+	switch ext {
+	case ".html", ".css", ".js", ".md", ".txt", ".csv", ".tsv", ".json", ".xml", ".toml", ".yaml", ".yml", ".svg":
 		typ = "text"
-	case "pages":
-		if ext != ".html" {
-			notFound(w, r)
-			return
-		}
-		typ = "text"
-	case "public":
-		next, _, _ := strings.Cut(tail, "/")
-		if next != "images" && next != "themes" {
-			notFound(w, r)
-			return
-		}
-		switch ext {
-		case ".html", ".css", ".js", ".md", ".txt", ".csv", ".tsv", ".json", ".xml", ".toml", ".yaml", ".yml", ".svg":
-			typ = "text"
-		case ".ico", ".jpeg", ".jpg", ".png", ".gif":
-			typ = "image"
-		case ".eot", ".otf", ".ttf", ".woff", ".woff2":
-			typ = "font"
-		case ".gz":
-			typ = "gzip"
-		default:
-			notFound(w, r)
-			return
-		}
-	default:
-		notFound(w, r)
-		return
+	case ".ico", ".jpeg", ".jpg", ".png", ".gif":
+		typ = "image"
+	case ".eot", ".otf", ".ttf", ".woff", ".woff2":
+		typ = "font"
+	case ".gz":
+		typ = "gzip"
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 15<<20 /* 15MB */)
@@ -126,6 +89,10 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 					head, _, _ := strings.Cut(s, "/")
 					return head
 				},
+				"tail": func(s string) string {
+					_, tail, _ := strings.Cut(s, "/")
+					return tail
+				},
 			}
 			tmpl, err := template.New("file.html").Funcs(funcMap).ParseFS(rootFS, "embed/file.html")
 			if err != nil {
@@ -148,6 +115,8 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 				return
 			}
 		}
+
+		_, tail, _ := strings.Cut(filePath, "/")
 
 		var response Response
 		_, err = nbrew.getSession(r, "flash", &response)
@@ -308,6 +277,8 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 				}
 			}()
 		}
+
+		head, tail, _ := strings.Cut(filePath, "/")
 
 		// If it's a note, just write it into admin/notes/*
 
