@@ -187,7 +187,7 @@ func (nbrew *Notebrew) delet(w http.ResponseWriter, r *http.Request, username, s
 				return
 			}
 			var status, redirectURL string
-			if response.Status.Equal(ErrParentFolderNotProvided) || response.Status.Equal(ErrInvalidParentFolder) {
+			if response.Status == ErrParentFolderNotProvided || response.Status == ErrInvalidParentFolder {
 				status = response.Status.Code() + " Couldn't delete item(s), " + response.Status.Message()
 				redirectURL = nbrew.Scheme + nbrew.AdminDomain + "/" + path.Join("admin", sitePrefix) + "/"
 			} else {

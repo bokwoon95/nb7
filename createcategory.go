@@ -96,10 +96,11 @@ func (nbrew *Notebrew) createcategory(w http.ResponseWriter, r *http.Request, us
 				return
 			}
 			var status string
-			if response.Status.Equal(CreateCategorySuccess) {
-				status = fmt.Sprintf("%s Created category %s", response.Status.Code(), response.Category)
-			} else if response.Status.Equal(ErrCategoryAlreadyExists) {
+			switch response.Status{
+			case ErrCategoryAlreadyExists:
 				status = fmt.Sprintf("%s Category %s already exists", response.Status.Code(), response.Category)
+			case CreateCategorySuccess:
+				status = fmt.Sprintf("%s Created category %s", response.Status.Code(), response.Category)
 			}
 			err := nbrew.setSession(w, r, "flash", map[string]any{
 				"status": status,

@@ -246,7 +246,7 @@ func (nbrew *Notebrew) resetpassword(w http.ResponseWriter, r *http.Request, ip 
 				}
 				return
 			}
-			if !response.Status.Success() || response.Status.Equal(SentPaswordResetLinkSuccess) {
+			if !response.Status.Success() || response.Status == SentPaswordResetLinkSuccess {
 				err := nbrew.setSession(w, r, "flash", &response)
 				if err != nil {
 					getLogger(r.Context()).Error(err.Error())

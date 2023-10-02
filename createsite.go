@@ -127,7 +127,7 @@ func (nbrew *Notebrew) createsite(w http.ResponseWriter, r *http.Request, userna
 				http.Redirect(w, r, nbrew.Scheme+nbrew.AdminDomain+"/admin/createsite/", http.StatusFound)
 				return
 			}
-			if response.Status.Equal(CreateSiteSuccess) {
+			if response.Status == CreateSiteSuccess {
 				err := nbrew.setSession(w, r, "flash", map[string]any{
 					"status": Error(fmt.Sprintf(`%s Site created`, CreateSiteSuccess.Code())),
 				})

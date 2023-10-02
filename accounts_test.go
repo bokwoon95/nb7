@@ -195,7 +195,7 @@ func Test_login(t *testing.T) {
 					if err != nil {
 						return fmt.Errorf("[%s] %s %v\nResponse Body: %s", nbrew.Dialect, testutil.Callers(), err, w.Body.String())
 					}
-					if gotResponse.Status.Equal("") {
+					if gotResponse.Status == "" {
 						return fmt.Errorf("[%s] %s status is empty", nbrew.Dialect, testutil.Callers())
 					}
 					if tt.wantResponse.AuthenticationToken == "" && gotResponse.AuthenticationToken != "" {
@@ -274,7 +274,7 @@ func Test_logout(t *testing.T) {
 			w = httptest.NewRecorder()
 			r, _ = http.NewRequest("POST", "/admin/logout/", nil)
 			r.Header.Set("Authorization", "Notebrew "+authenticationToken)
-			nbrew.logout(w, r.WithContext(ctx))
+			nbrew.logout(w, r.WithContext(ctx), "")
 			if ctx.Err() != nil {
 				return nil
 			}
@@ -363,7 +363,7 @@ func Test_resetpassword_invalidTokenBadRequest(t *testing.T) {
 					w := httptest.NewRecorder()
 					r := tt.request(t, nbrew)
 					r.Header.Set("Accept", "application/json")
-					nbrew.resetpassword(w, r.WithContext(ctx))
+					nbrew.resetpassword(w, r.WithContext(ctx), "")
 					if ctx.Err() != nil {
 						return nil
 					}
@@ -460,7 +460,7 @@ func Test_resetpassword(t *testing.T) {
 					w := httptest.NewRecorder()
 					r := tt.request(t, nbrew)
 					r.Header.Set("Accept", "application/json")
-					nbrew.resetpassword(w, r.WithContext(ctx))
+					nbrew.resetpassword(w, r.WithContext(ctx), "")
 					if ctx.Err() != nil {
 						return nil
 					}

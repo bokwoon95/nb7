@@ -105,13 +105,14 @@ func (nbrew *Notebrew) createpage(w http.ResponseWriter, r *http.Request, userna
 				return
 			}
 			var status, redirectURL string
-			if response.Status.Equal(ErrParentFolderNotProvided) || response.Status.Equal(ErrInvalidParentFolder) {
+			switch response.Status {
+			case ErrParentFolderNotProvided, ErrInvalidParentFolder:
 				status = response.Status.Code() + " Couldn't create item, " + response.Status.Message()
 				redirectURL = nbrew.Scheme + nbrew.AdminDomain + "/" + path.Join("admin", sitePrefix) + "/"
-			} else if response.Status.Equal(ErrForbiddenName) || response.Status.Equal(ErrFolderAlreadyExists) {
-				status = string(response.Status)
+			case ErrForbiddenName:
+				status = fmt.Sprintf("%s: %s", ErrForbiddenName, response.Name)
 				redirectURL = nbrew.Scheme + nbrew.AdminDomain + "/" + path.Join("admin", sitePrefix, response.ParentFolder) + "/"
-			} else if response.Status.Equal(CreateFolderSuccess) {
+			case CreateFolderSuccess:
 				status = fmt.Sprintf(
 					`%s Created page <a href="%s" class="linktext">%s</a>`,
 					response.Status.Code(),

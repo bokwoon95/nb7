@@ -154,7 +154,7 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 			getLogger(r.Context()).Error(err.Error())
 		}
 		nbrew.clearSession(w, r, "flash")
-		if response.Status.Equal("") {
+		if response.Status == "" {
 			response.Status = Success
 		}
 		response.Path = filePath

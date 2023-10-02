@@ -87,6 +87,17 @@ func (nbrew *Notebrew) createfolder(w http.ResponseWriter, r *http.Request, user
 			return
 		}
 		var response Response
+		_, err = nbrew.getSession(r, "flash", &response)
+		if err != nil {
+			getLogger(r.Context()).Error(err.Error())
+			internalServerError(w, r, err)
+			return
+		}
+		nbrew.clearSession(w, r, "flash")
+		if response.Status != "" {
+			writeResponse(w, r, response)
+			return
+		}
 		parentFolder := r.Form.Get("parent")
 		if parentFolder == "" {
 			response.Status = ErrParentFolderNotProvided
@@ -115,31 +126,57 @@ func (nbrew *Notebrew) createfolder(w http.ResponseWriter, r *http.Request, user
 				}
 				return
 			}
-			var status, redirectURL string
-			if response.Status.Equal(ErrParentFolderNotProvided) || response.Status.Equal(ErrInvalidParentFolder) {
-				status = response.Status.Code() + " Couldn't create item, " + response.Status.Message()
-				redirectURL = nbrew.Scheme + nbrew.AdminDomain + "/" + path.Join("admin", sitePrefix) + "/"
-			} else if response.Status.Equal(ErrForbiddenName) || response.Status.Equal(ErrFolderAlreadyExists) {
-				status = string(response.Status)
-				redirectURL = nbrew.Scheme + nbrew.AdminDomain + "/" + path.Join("admin", sitePrefix, response.ParentFolder) + "/"
-			} else if response.Status.Equal(CreateFolderSuccess) {
-				status = fmt.Sprintf(
-					`%s Created folder <a href="%s" class="linktext">%s</a>`,
-					response.Status.Code(),
-					"/"+path.Join("admin", sitePrefix, response.ParentFolder, response.Name)+"/",
-					response.Name,
-				)
-				redirectURL = nbrew.Scheme + nbrew.AdminDomain + "/" + path.Join("admin", sitePrefix, response.ParentFolder) + "/"
-			}
-			err := nbrew.setSession(w, r, "flash", map[string]any{
-				"status": status,
-			})
-			if err != nil {
-				getLogger(r.Context()).Error(err.Error())
-				internalServerError(w, r, err)
+			if !response.Status.Success() {
+				switch response.Status {
+				case ErrParentFolderNotProvided, ErrInvalidParentFolder:
+					err := nbrew.setSession(w, r, "flash", map[string]any{
+						"status": response.Status.Code() + " Couldn't create item, " + response.Status.Message(),
+					})
+					if err != nil {
+						getLogger(r.Context()).Error(err.Error())
+						internalServerError(w, r, err)
+						return
+					}
+					http.Redirect(w, r, nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix)+"/", http.StatusFound)
+				case ErrForbiddenName, ErrFolderAlreadyExists:
+					err := nbrew.setSession(w, r, "flash", map[string]any{
+						"status": fmt.Sprintf("%s: %s", response.Status, response.Name),
+					})
+					if err != nil {
+						getLogger(r.Context()).Error(err.Error())
+						internalServerError(w, r, err)
+						return
+					}
+					http.Redirect(w, r, nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix, response.ParentFolder)+"/", http.StatusFound)
+				default:
+					err := nbrew.setSession(w, r, "flash", map[string]any{
+						"status": response.Status,
+					})
+					if err != nil {
+						getLogger(r.Context()).Error(err.Error())
+						internalServerError(w, r, err)
+						return
+					}
+					http.Redirect(w, r, nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix, response.ParentFolder)+"/", http.StatusFound)
+				}
 				return
 			}
-			http.Redirect(w, r, redirectURL, http.StatusFound)
+			if response.Status == CreateFolderSuccess {
+				err := nbrew.setSession(w, r, "flash", map[string]any{
+					"status": fmt.Sprintf(
+						`%s Created folder <a href="%s" class="linktext">%s</a>`,
+						response.Status.Code(),
+						"/"+path.Join("admin", sitePrefix, response.ParentFolder, response.Name)+"/",
+						response.Name,
+					),
+				})
+				if err != nil {
+					getLogger(r.Context()).Error(err.Error())
+					internalServerError(w, r, err)
+					return
+				}
+			}
+			http.Redirect(w, r, nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix, response.ParentFolder)+"/", http.StatusFound)
 		}
 
 		var request Request

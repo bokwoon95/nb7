@@ -68,7 +68,7 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 	nbrew.clearSession(w, r, "flash")
 	response.Path = folderPath
 	response.IsDir = fileInfo.IsDir()
-	if response.Status.Equal("") {
+	if response.Status == "" {
 		response.Status = Success
 	}
 

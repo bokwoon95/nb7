@@ -125,7 +125,7 @@ func (nbrew *Notebrew) createnote(w http.ResponseWriter, r *http.Request, userna
 				http.Redirect(w, r, nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix, "createnote")+"/"+query, http.StatusFound)
 				return
 			}
-			if response.Status.Equal(CreateNoteSuccess) {
+			if response.Status == CreateNoteSuccess {
 				err := nbrew.setSession(w, r, "flash", map[string]any{
 					"status": Error(fmt.Sprintf(
 						`%s Note created: <a href="%s" class="linktext">%s</a>`,

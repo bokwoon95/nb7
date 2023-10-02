@@ -196,7 +196,7 @@ func (nbrew *Notebrew) deletesite(w http.ResponseWriter, r *http.Request, userna
 				http.Redirect(w, r, nbrew.Scheme+nbrew.AdminDomain+"/admin/deletesite/", http.StatusFound)
 				return
 			}
-			if response.Status.Equal(DeleteSiteSuccess) {
+			if response.Status == DeleteSiteSuccess {
 				err := nbrew.setSession(w, r, "flash", map[string]any{
 					"status": Error(fmt.Sprintf(`%s Site deleted`, DeleteSiteSuccess.Code())),
 				})

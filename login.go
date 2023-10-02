@@ -221,7 +221,7 @@ func (nbrew *Notebrew) login(w http.ResponseWriter, r *http.Request, ip string) 
 		writeResponse(w, r, response)
 	case "POST":
 		writeResponse := func(w http.ResponseWriter, r *http.Request, response Response) {
-			if response.Status.Equal(ErrIncorrectLoginCredentials) || response.Status.Equal(ErrUserNotFound) {
+			if response.Status == ErrIncorrectLoginCredentials || response.Status == ErrUserNotFound {
 				if nbrew.Dialect == sq.DialectMySQL {
 					_, err := sq.ExecContext(r.Context(), nbrew.DB, sq.CustomQuery{
 						Dialect: nbrew.Dialect,
