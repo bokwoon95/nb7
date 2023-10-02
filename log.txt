@@ -37,7 +37,7 @@ TODO: coalesce the following into a single "site" tab in the menu bar
 TODO: cut | copy | paste | rename (no need for link indexing and rewriting yet, that comes later)
 TODO: Once we figure out rendering, we can implement render-on-write whenever a user creates or updates a file. That means we can also implement viewing the content page! Which means implementing the default post.html and posts.html templates!
 TODO: all the creates need to check if category/name/whatever is not an empty string, otherwise we return an error
-TODO: when editing the post source, provide the output link ("view output"). When viewing a post output, provide the source link ("view source").
+TODO: folder.html: when on the root page, if the user doesn't have access to the root side hide the "create note" and "create post" dropdown option.
 
 output folder trails pages and posts
 on page creation => generate output page
