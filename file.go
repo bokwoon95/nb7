@@ -1,6 +1,7 @@
 package nb7
 
 import (
+	"bytes"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -21,14 +22,14 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 		Content string `json:"content"`
 	}
 	type Response struct {
-		Status   Error      `json:"status"`
-		Path     string     `json:"path"`
-		IsDir    bool       `json:"isDir,omitempty"`
-		ModTime  *time.Time `json:"modTime,omitempty"`
-		Type     string     `json:"type,omitempty"`
-		Content  string     `json:"content,omitempty"`
-		Location string     `json:"location,omitempty"`
-		Errors   []string   `json:"errors,omitempty"`
+		Status         Error      `json:"status"`
+		Path           string     `json:"path"`
+		IsDir          bool       `json:"isDir,omitempty"`
+		ModTime        *time.Time `json:"modTime,omitempty"`
+		Type           string     `json:"type,omitempty"`
+		Content        string     `json:"content,omitempty"`
+		Location       string     `json:"location,omitempty"`
+		TemplateErrors []string   `json:"templateErrors,omitempty"`
 	}
 
 	var typ string
@@ -311,6 +312,50 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 		// If it's a post, render post to public/posts/*/tmp.html then if it passes rename the tmp.html into index.html and write the content into admin/posts/*
 
 		// If it's a page, render page to public/*/tmp.html then if it passes rename tmp.html into index.html and write the content into admin/pages/*
+		if head == "pages" {
+			tmpl, tmplErrs, err := nbrew.parseTemplate(sitePrefix, "", request.Content)
+			if err != nil {
+				getLogger(r.Context()).Error(err.Error())
+				internalServerError(w, r, err)
+				return
+			}
+			if len(tmplErrs) > 0 {
+				response.Content = request.Content
+				response.TemplateErrors = tmplErrs
+				response.Status = ErrTemplateError
+				writeResponse(w, r, response)
+				return
+			}
+			buf := bufPool.Get().(*bytes.Buffer)
+			buf.Reset()
+			defer bufPool.Put(buf)
+			err = tmpl.ExecuteTemplate(buf, "", nil)
+			if err != nil {
+				response.Content = request.Content
+				response.TemplateErrors = tmplErrs
+				response.Status = ErrTemplateError
+				writeResponse(w, r, response)
+				return
+			}
+			err = MkdirAll(nbrew.FS, path.Join(sitePrefix, "public", tail), 0755)
+			if err != nil {
+				getLogger(r.Context()).Error(err.Error())
+				internalServerError(w, r, err)
+				return
+			}
+			readerFrom, err := nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, "public", tail, "index.html"), 0644)
+			if err != nil {
+				getLogger(r.Context()).Error(err.Error())
+				internalServerError(w, r, err)
+				return
+			}
+			_, err = readerFrom.ReadFrom(buf)
+			if err != nil {
+				getLogger(r.Context()).Error(err.Error())
+				internalServerError(w, r, err)
+				return
+			}
+		}
 
 		// If it's an image, just write the image into public/images/*
 

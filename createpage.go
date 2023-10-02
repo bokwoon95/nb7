@@ -1,6 +1,7 @@
 package nb7
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -220,10 +221,49 @@ func (nbrew *Notebrew) createpage(w http.ResponseWriter, r *http.Request, userna
 			writeResponse(w, r, response)
 			return
 		}
-		_ = tmpl
-		// TODO: render tmpl into path.Join(sitePrefix, "public", strings.TrimPrefix(strings.Trim(response.ParentFolder, "/"), "pages"), response.Name, "index.html.bak")
-		// If there's any error, delete the index.html.bak file and append the error to templateError, status = ErrTemplateErrors and writeResponse
-		// If there's no error, rename the index.html.bak file into index.html, status = CreatePageSuccess and writeResponse
+		buf := bufPool.Get().(*bytes.Buffer)
+		buf.Reset()
+		defer bufPool.Put(buf)
+		err = tmpl.ExecuteTemplate(buf, "", nil)
+		if err != nil {
+			response.Content = request.Content
+			response.TemplateErrors = tmplErrs
+			response.Status = ErrTemplateError
+			writeResponse(w, r, response)
+			return
+		}
+		err = MkdirAll(nbrew.FS, path.Join(sitePrefix, "public", strings.TrimPrefix(strings.Trim(response.ParentFolder, "/"), "pages"), response.Name), 0755)
+		if err != nil {
+			getLogger(r.Context()).Error(err.Error())
+			internalServerError(w, r, err)
+			return
+		}
+		readerFrom, err := nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, "public", strings.TrimPrefix(strings.Trim(response.ParentFolder, "/"), "pages"), response.Name, "index.html"), 0644)
+		if err != nil {
+			getLogger(r.Context()).Error(err.Error())
+			internalServerError(w, r, err)
+			return
+		}
+		_, err = readerFrom.ReadFrom(buf)
+		if err != nil {
+			getLogger(r.Context()).Error(err.Error())
+			internalServerError(w, r, err)
+			return
+		}
+		readerFrom, err = nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, response.ParentFolder, response.Name+".html"), 0644)
+		if err != nil {
+			getLogger(r.Context()).Error(err.Error())
+			internalServerError(w, r, err)
+			return
+		}
+		_, err = readerFrom.ReadFrom(strings.NewReader(request.Content))
+		if err != nil {
+			getLogger(r.Context()).Error(err.Error())
+			internalServerError(w, r, err)
+			return
+		}
+		response.Status = CreatePageSuccess
+		writeResponse(w, r, response)
 	default:
 		methodNotAllowed(w, r)
 	}

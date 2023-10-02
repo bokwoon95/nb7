@@ -227,8 +227,16 @@ func (nbrew *Notebrew) createfolder(w http.ResponseWriter, r *http.Request, user
 			writeResponse(w, r, response)
 			return
 		}
-		name := path.Join(sitePrefix, response.ParentFolder, response.Name)
-		fileInfo, err := fs.Stat(nbrew.FS, name)
+		head, tail, _ := strings.Cut(response.ParentFolder, "/")
+		if head == "pages" {
+			err := nbrew.FS.Mkdir(path.Join(sitePrefix, "public", tail, response.Name), 0755)
+			if err != nil && !errors.Is(err, fs.ErrExist) {
+				getLogger(r.Context()).Error(err.Error())
+				internalServerError(w, r, err)
+				return
+			}
+		}
+		fileInfo, err := fs.Stat(nbrew.FS, path.Join(sitePrefix, response.ParentFolder, response.Name))
 		if err != nil && !errors.Is(err, fs.ErrNotExist) {
 			getLogger(r.Context()).Error(err.Error())
 			internalServerError(w, r, err)
@@ -239,7 +247,7 @@ func (nbrew *Notebrew) createfolder(w http.ResponseWriter, r *http.Request, user
 			writeResponse(w, r, response)
 			return
 		}
-		err = nbrew.FS.Mkdir(name, 0755)
+		err = nbrew.FS.Mkdir(path.Join(sitePrefix, response.ParentFolder, response.Name), 0755)
 		if err != nil {
 			if errors.Is(err, fs.ErrExist) {
 				response.Status = Error(fmt.Sprintf("%s folder %q already exists", ErrItemAlreadyExists.Code(), request.Name))

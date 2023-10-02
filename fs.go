@@ -7,6 +7,8 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
+	"syscall"
 )
 
 type FS interface {
@@ -192,6 +194,60 @@ func RemoveAll(fsys FS, root string) error {
 				IsFile: !dirEntry.IsDir(),
 			})
 		}
+	}
+	return nil
+}
+
+func MkdirAll(fsys FS, dir string, perm fs.FileMode) error {
+	fileInfo, err := fs.Stat(fsys, dir)
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return nil
+	}
+	if fileInfo != nil {
+		if fileInfo.IsDir() {
+			return nil
+		}
+		return &fs.PathError{Op: "mkdir", Path: dir, Err: syscall.ENOTDIR}
+	}
+
+	isPathSeparator := func(char byte) bool {
+		return char == '/' || char == '\\'
+	}
+
+	fixRootDirectory := func(p string) string {
+		if runtime.GOOS != "windows" {
+			return p
+		}
+		if len(p) == len(`\\?\c:`) {
+			if isPathSeparator(p[0]) && isPathSeparator(p[1]) && p[2] == '?' && isPathSeparator(p[3]) && p[5] == ':' {
+				return p + `\`
+			}
+		}
+		return p
+	}
+
+	// Slow path: make sure parent exists and then call Mkdir for path.
+	i := len(dir)
+	for i > 0 && isPathSeparator(dir[i-1]) { // Skip trailing path separator.
+		i--
+	}
+	j := i
+	for j > 0 && !isPathSeparator(dir[j-1]) { // Scan backward over element.
+		j--
+	}
+
+	if j > 1 {
+		// Create parent.
+		err = MkdirAll(fsys, fixRootDirectory(dir[:j-1]), perm)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Parent now exists; invoke Mkdir and use its result.
+	err = fsys.Mkdir(dir, perm)
+	if err != nil {
+		return err
 	}
 	return nil
 }
