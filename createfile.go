@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-func (nbrew *Notebrew) createpage(w http.ResponseWriter, r *http.Request, username, sitePrefix string) {
+func (nbrew *Notebrew) createfile(w http.ResponseWriter, r *http.Request, username, sitePrefix string) {
 	type Request struct {
 		ParentFolder string `json:"parentFolder,omitEmpty"`
 		Name         string `json:"name,omitempty"`
@@ -30,7 +30,7 @@ func (nbrew *Notebrew) createpage(w http.ResponseWriter, r *http.Request, userna
 
 	isValidParentFolder := func(parentFolder string) bool {
 		head, _, _ := strings.Cut(parentFolder, "/")
-		if head != "pages" {
+		if head != "public" {
 			return false
 		}
 		fileInfo, err := fs.Stat(nbrew.FS, path.Join(sitePrefix, parentFolder))

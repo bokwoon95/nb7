@@ -76,7 +76,7 @@ func (nbrew *Notebrew) createcategory(w http.ResponseWriter, r *http.Request, us
 		case "note", "post":
 			response.Type = typ
 		default:
-			response.Status = ErrInvalidCategoryType
+			response.Status = ErrInvalidType
 			writeResponse(w, r, response)
 			return
 		}
@@ -96,7 +96,7 @@ func (nbrew *Notebrew) createcategory(w http.ResponseWriter, r *http.Request, us
 				return
 			}
 			var status string
-			switch response.Status{
+			switch response.Status {
 			case ErrItemAlreadyExists:
 				status = fmt.Sprintf("%s Category %s already exists", response.Status.Code(), response.Category)
 			case CreateCategorySuccess:
@@ -164,7 +164,7 @@ func (nbrew *Notebrew) createcategory(w http.ResponseWriter, r *http.Request, us
 		case "post":
 			resource = "posts"
 		default:
-			response.Status = ErrInvalidCategoryType
+			response.Status = ErrInvalidType
 			writeResponse(w, r, response)
 			return
 		}

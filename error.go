@@ -52,7 +52,7 @@ const (
 	ErrInvalidParentFolder       = Error("NB-03150 invalid parent folder")
 	ErrNothingToDelete           = Error("NB-03160 nothing to delete")
 	ErrDeleteFailed              = Error("NB-03170 delete failed")
-	ErrInvalidCategoryType       = Error("NB-03180 invalid category type")
+	ErrInvalidType               = Error("NB-03180 invalid type")
 	ErrItemAlreadyExists         = Error("NB-03190 item already exists")
 	ErrTemplateError             = Error("NB-03200 template error")
 

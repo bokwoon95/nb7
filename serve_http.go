@@ -207,7 +207,7 @@ func (nbrew *Notebrew) admin(w http.ResponseWriter, r *http.Request, ip string) 
 	}
 
 	if head == "themes" || head == "images" {
-		serveFile(w, r, nbrew.FS, path.Join(sitePrefix, "site", urlPath), true)
+		serveFile(w, r, nbrew.FS, path.Join(sitePrefix, "public", urlPath), true)
 		return
 	}
 
@@ -317,6 +317,7 @@ func (nbrew *Notebrew) admin(w http.ResponseWriter, r *http.Request, ip string) 
 	case "createpage":
 		nbrew.createpage(w, r, username, sitePrefix)
 	case "createfile":
+		nbrew.createfile(w, r, username, sitePrefix)
 	case "cut":
 	case "copy":
 	case "paste":
