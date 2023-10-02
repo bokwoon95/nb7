@@ -3,6 +3,7 @@ package nb7
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html/template"
 	"io/fs"
@@ -40,7 +41,7 @@ func (nbrew *Notebrew) createpage(w http.ResponseWriter, r *http.Request, userna
 		return fileInfo.IsDir()
 	}
 
-	r.Body = http.MaxBytesReader(w, r.Body, 15<<20 /* 15MB */)
+	r.Body = http.MaxBytesReader(w, r.Body, 2<<20 /* 2MB */)
 	switch r.Method {
 	case "GET":
 		writeResponse := func(w http.ResponseWriter, r *http.Request, response Response) {
@@ -116,8 +117,7 @@ func (nbrew *Notebrew) createpage(w http.ResponseWriter, r *http.Request, userna
 				return
 			}
 			if !response.Status.Success() {
-				switch response.Status {
-				case ErrParentFolderNotProvided, ErrInvalidParentFolder:
+				if response.Status == ErrParentFolderNotProvided || response.Status == ErrInvalidParentFolder {
 					err := nbrew.setSession(w, r, "flash", map[string]any{
 						"status": response.Status.Code() + " Couldn't create item, " + response.Status.Message(),
 					})
@@ -127,17 +127,6 @@ func (nbrew *Notebrew) createpage(w http.ResponseWriter, r *http.Request, userna
 						return
 					}
 					http.Redirect(w, r, nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix)+"/", http.StatusFound)
-					return
-				case ErrForbiddenName, ErrItemAlreadyExists:
-					err := nbrew.setSession(w, r, "flash", map[string]any{
-						"status": fmt.Sprintf("%s: %s", response.Status, response.Name),
-					})
-					if err != nil {
-						getLogger(r.Context()).Error(err.Error())
-						internalServerError(w, r, err)
-						return
-					}
-					http.Redirect(w, r, nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix, response.ParentFolder)+"/", http.StatusFound)
 					return
 				}
 				err := nbrew.setSession(w, r, "flash", &response)
@@ -149,20 +138,18 @@ func (nbrew *Notebrew) createpage(w http.ResponseWriter, r *http.Request, userna
 				http.Redirect(w, r, nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix, "createpage")+"/?parent="+url.QueryEscape(response.ParentFolder), http.StatusFound)
 				return
 			}
-			if response.Status == CreatePageSuccess {
-				err := nbrew.setSession(w, r, "flash", map[string]any{
-					"status": fmt.Sprintf(
-						`%s Created page <a href="%s" class="linktext">%s</a>`,
-						response.Status.Code(),
-						"/"+path.Join("admin", sitePrefix, response.ParentFolder, response.Name)+"/",
-						response.Name,
-					),
-				})
-				if err != nil {
-					getLogger(r.Context()).Error(err.Error())
-					internalServerError(w, r, err)
-					return
-				}
+			err := nbrew.setSession(w, r, "flash", map[string]any{
+				"status": fmt.Sprintf(
+					`%s Created page <a href="%s" class="linktext">%s</a>`,
+					response.Status.Code(),
+					"/"+path.Join("admin", sitePrefix, response.ParentFolder, response.Name),
+					response.Name,
+				),
+			})
+			if err != nil {
+				getLogger(r.Context()).Error(err.Error())
+				internalServerError(w, r, err)
+				return
 			}
 			http.Redirect(w, r, nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix, response.ParentFolder)+"/", http.StatusFound)
 		}
@@ -198,7 +185,9 @@ func (nbrew *Notebrew) createpage(w http.ResponseWriter, r *http.Request, userna
 			return
 		}
 
-		var response Response
+		response := Response{
+			Content: request.Content,
+		}
 		if request.ParentFolder == "" {
 			response.Status = ErrParentFolderNotProvided
 			writeResponse(w, r, response)
@@ -216,6 +205,17 @@ func (nbrew *Notebrew) createpage(w http.ResponseWriter, r *http.Request, userna
 			writeResponse(w, r, response)
 			return
 		}
+		fileInfo, err := fs.Stat(nbrew.FS, path.Join(sitePrefix, response.ParentFolder, response.Name))
+		if err != nil && !errors.Is(err, fs.ErrNotExist) {
+			getLogger(r.Context()).Error(err.Error())
+			internalServerError(w, r, err)
+			return
+		}
+		if fileInfo != nil {
+			response.Status = ErrItemAlreadyExists
+			writeResponse(w, r, response)
+			return
+		}
 		tmpl, tmplErrs, err := nbrew.parseTemplate(sitePrefix, "", request.Content)
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
@@ -223,7 +223,6 @@ func (nbrew *Notebrew) createpage(w http.ResponseWriter, r *http.Request, userna
 			return
 		}
 		if len(tmplErrs) > 0 {
-			response.Content = request.Content
 			response.TemplateErrors = tmplErrs
 			response.Status = ErrTemplateError
 			writeResponse(w, r, response)
@@ -234,7 +233,6 @@ func (nbrew *Notebrew) createpage(w http.ResponseWriter, r *http.Request, userna
 		defer bufPool.Put(buf)
 		err = tmpl.ExecuteTemplate(buf, "", nil)
 		if err != nil {
-			response.Content = request.Content
 			response.TemplateErrors = []string{err.Error()}
 			response.Status = ErrTemplateError
 			writeResponse(w, r, response)

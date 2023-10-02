@@ -3,6 +3,7 @@ package nb7
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html/template"
 	"io/fs"
@@ -127,8 +128,7 @@ func (nbrew *Notebrew) createfile(w http.ResponseWriter, r *http.Request, userna
 				return
 			}
 			if !response.Status.Success() {
-				switch response.Status {
-				case ErrParentFolderNotProvided, ErrInvalidParentFolder:
+				if response.Status == ErrParentFolderNotProvided || response.Status == ErrInvalidParentFolder {
 					err := nbrew.setSession(w, r, "flash", map[string]any{
 						"status": response.Status.Code() + " Couldn't create item, " + response.Status.Message(),
 					})
@@ -139,17 +139,6 @@ func (nbrew *Notebrew) createfile(w http.ResponseWriter, r *http.Request, userna
 					}
 					http.Redirect(w, r, nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix)+"/", http.StatusFound)
 					return
-				case ErrForbiddenName, ErrItemAlreadyExists:
-					err := nbrew.setSession(w, r, "flash", map[string]any{
-						"status": fmt.Sprintf("%s: %s", response.Status, response.Name),
-					})
-					if err != nil {
-						getLogger(r.Context()).Error(err.Error())
-						internalServerError(w, r, err)
-						return
-					}
-					http.Redirect(w, r, nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix, response.ParentFolder)+"/", http.StatusFound)
-					return
 				}
 				err := nbrew.setSession(w, r, "flash", &response)
 				if err != nil {
@@ -157,23 +146,21 @@ func (nbrew *Notebrew) createfile(w http.ResponseWriter, r *http.Request, userna
 					internalServerError(w, r, err)
 					return
 				}
-				http.Redirect(w, r, nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix, "createpage")+"/?parent="+url.QueryEscape(response.ParentFolder), http.StatusFound)
+				http.Redirect(w, r, nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix, "createfile")+"/?parent="+url.QueryEscape(response.ParentFolder)+"&type="+url.QueryEscape(response.Type), http.StatusFound)
 				return
 			}
-			if response.Status == CreatePageSuccess {
-				err := nbrew.setSession(w, r, "flash", map[string]any{
-					"status": fmt.Sprintf(
-						`%s Created page <a href="%s" class="linktext">%s</a>`,
-						response.Status.Code(),
-						"/"+path.Join("admin", sitePrefix, response.ParentFolder, response.Name)+"/",
-						response.Name,
-					),
-				})
-				if err != nil {
-					getLogger(r.Context()).Error(err.Error())
-					internalServerError(w, r, err)
-					return
-				}
+			err := nbrew.setSession(w, r, "flash", map[string]any{
+				"status": fmt.Sprintf(
+					`%s Created file <a href="%s" class="linktext">%s</a>`,
+					response.Status.Code(),
+					"/"+path.Join("admin", sitePrefix, response.ParentFolder, response.Name),
+					response.Name,
+				),
+			})
+			if err != nil {
+				getLogger(r.Context()).Error(err.Error())
+				internalServerError(w, r, err)
+				return
 			}
 			http.Redirect(w, r, nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix, response.ParentFolder)+"/", http.StatusFound)
 		}
@@ -222,9 +209,23 @@ func (nbrew *Notebrew) createfile(w http.ResponseWriter, r *http.Request, userna
 			writeResponse(w, r, response)
 			return
 		}
+		switch response.Type {
+		case "html", "css", "js":
+			break
+		default:
+			response.Status = ErrInvalidType
+			writeResponse(w, r, response)
+			return
+		}
 		response.Name = urlSafe(request.Name)
-		if response.ParentFolder == "pages" && (response.Name == "admin" || response.Name == "images" || response.Name == "posts" || response.Name == "themes") {
-			response.Status = ErrForbiddenName
+		fileInfo, err := fs.Stat(nbrew.FS, path.Join(sitePrefix, response.ParentFolder, response.Name))
+		if err != nil && !errors.Is(err, fs.ErrNotExist) {
+			getLogger(r.Context()).Error(err.Error())
+			internalServerError(w, r, err)
+			return
+		}
+		if fileInfo != nil {
+			response.Status = ErrItemAlreadyExists
 			writeResponse(w, r, response)
 			return
 		}

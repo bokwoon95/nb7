@@ -153,20 +153,18 @@ func (nbrew *Notebrew) createfolder(w http.ResponseWriter, r *http.Request, user
 				http.Redirect(w, r, nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix, response.ParentFolder)+"/", http.StatusFound)
 				return
 			}
-			if response.Status == CreateFolderSuccess {
-				err := nbrew.setSession(w, r, "flash", map[string]any{
-					"status": fmt.Sprintf(
-						`%s Created folder <a href="%s" class="linktext">%s</a>`,
-						response.Status.Code(),
-						"/"+path.Join("admin", sitePrefix, response.ParentFolder, response.Name)+"/",
-						response.Name,
-					),
-				})
-				if err != nil {
-					getLogger(r.Context()).Error(err.Error())
-					internalServerError(w, r, err)
-					return
-				}
+			err := nbrew.setSession(w, r, "flash", map[string]any{
+				"status": fmt.Sprintf(
+					`%s Created folder <a href="%s" class="linktext">%s</a>`,
+					response.Status.Code(),
+					"/"+path.Join("admin", sitePrefix, response.ParentFolder, response.Name)+"/",
+					response.Name,
+				),
+			})
+			if err != nil {
+				getLogger(r.Context()).Error(err.Error())
+				internalServerError(w, r, err)
+				return
 			}
 			http.Redirect(w, r, nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix, response.ParentFolder)+"/", http.StatusFound)
 		}

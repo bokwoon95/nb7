@@ -125,20 +125,18 @@ func (nbrew *Notebrew) createnote(w http.ResponseWriter, r *http.Request, userna
 				http.Redirect(w, r, nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix, "createnote")+"/"+query, http.StatusFound)
 				return
 			}
-			if response.Status == CreateNoteSuccess {
-				err := nbrew.setSession(w, r, "flash", map[string]any{
-					"status": Error(fmt.Sprintf(
-						`%s Note created: <a href="%s" class="linktext">%s</a>`,
-						CreateNoteSuccess.Code(),
-						nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix, "notes", response.Category, response.Name),
-						response.Name,
-					)),
-				})
-				if err != nil {
-					getLogger(r.Context()).Error(err.Error())
-					internalServerError(w, r, err)
-					return
-				}
+			err := nbrew.setSession(w, r, "flash", map[string]any{
+				"status": Error(fmt.Sprintf(
+					`%s Note created: <a href="%s" class="linktext">%s</a>`,
+					response.Status.Code(),
+					nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix, "notes", response.Category, response.Name),
+					response.Name,
+				)),
+			})
+			if err != nil {
+				getLogger(r.Context()).Error(err.Error())
+				internalServerError(w, r, err)
+				return
 			}
 			http.Redirect(w, r, nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix, "notes", response.Category)+"/", http.StatusFound)
 		}

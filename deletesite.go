@@ -196,15 +196,13 @@ func (nbrew *Notebrew) deletesite(w http.ResponseWriter, r *http.Request, userna
 				http.Redirect(w, r, nbrew.Scheme+nbrew.AdminDomain+"/admin/deletesite/", http.StatusFound)
 				return
 			}
-			if response.Status == DeleteSiteSuccess {
-				err := nbrew.setSession(w, r, "flash", map[string]any{
-					"status": Error(fmt.Sprintf(`%s Site deleted`, DeleteSiteSuccess.Code())),
-				})
-				if err != nil {
-					getLogger(r.Context()).Error(err.Error())
-					internalServerError(w, r, err)
-					return
-				}
+			err := nbrew.setSession(w, r, "flash", map[string]any{
+				"status": Error(fmt.Sprintf(`%s Site deleted`, response.Status.Code())),
+			})
+			if err != nil {
+				getLogger(r.Context()).Error(err.Error())
+				internalServerError(w, r, err)
+				return
 			}
 			http.Redirect(w, r, nbrew.Scheme+nbrew.AdminDomain+"/admin/", http.StatusFound)
 		}

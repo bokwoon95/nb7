@@ -31,6 +31,18 @@
     <div class="flex-grow-1"></div>
     <button class="f3 bg-transparent bn color-success o-70 hover-black" data-dismiss-alert>&times;</button>
 </div>
+{{- else if eq $.Status.Code "NB-04030" }}
+<div role="alert" class="alert-danger mv2 pa2 br2 flex items-center">
+    <div>forbidden name: {{ $.Name }}</div>
+    <div class="flex-grow-1"></div>
+    <button class="f3 bg-transparent bn color-success o-70 hover-black" data-dismiss-alert>&times;</button>
+</div>
+{{- else if eq $.Status.Code "NB-03190" }}
+<div role="alert" class="alert-danger mv2 pa2 br2 flex items-center">
+    <div><a href="/{{ join `admin` sitePrefix $.ParentFolder $.Name }}/" class="linktext">{{ $.Name }}</a> already exists</div>
+    <div class="flex-grow-1"></div>
+    <button class="f3 bg-transparent bn color-success o-70 hover-black" data-dismiss-alert>&times;</button>
+</div>
 {{- else }}
 <div role="alert" class="alert-danger mv2 pa2 br2 flex items-center">
     <div>{{ safeHTML $.Status.Message }}</div>

@@ -125,20 +125,18 @@ func (nbrew *Notebrew) createpost(w http.ResponseWriter, r *http.Request, userna
 				http.Redirect(w, r, nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix, "createpost")+"/"+query, http.StatusFound)
 				return
 			}
-			if response.Status == CreatePostSuccess {
-				err := nbrew.setSession(w, r, "flash", map[string]any{
-					"status": Error(fmt.Sprintf(
-						`%s Post created: <a href="%s" class="linktext">%s</a>`,
-						CreatePostSuccess.Code(),
-						nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix, "posts", response.Category, response.Name),
-						response.Name,
-					)),
-				})
-				if err != nil {
-					getLogger(r.Context()).Error(err.Error())
-					internalServerError(w, r, err)
-					return
-				}
+			err := nbrew.setSession(w, r, "flash", map[string]any{
+				"status": Error(fmt.Sprintf(
+					`%s Post created: <a href="%s" class="linktext">%s</a>`,
+					response.Status.Code(),
+					nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix, "posts", response.Category, response.Name),
+					response.Name,
+				)),
+			})
+			if err != nil {
+				getLogger(r.Context()).Error(err.Error())
+				internalServerError(w, r, err)
+				return
 			}
 			http.Redirect(w, r, nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix, "posts", response.Category)+"/", http.StatusFound)
 		}
