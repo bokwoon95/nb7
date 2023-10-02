@@ -63,13 +63,13 @@
     <div class="mv2">
         <div><label for="name" class="b">Name:</label></div>
         <div class="flex items-center">
-            <input id="name" name="name" value="" class="pv1 ph2 br2 ba flex-grow-1">
+            <input id="name" name="name" value="{{ $.Name }}" class="pv1 ph2 br2 ba flex-grow-1">
             <span class="mh1">.html</span>
         </div>
     </div>
     <div class="mv2">
         <div><label for="content" class="b">Content:</label></div>
-        <textarea id="content" name="content" dir="auto" class="w-100 pa2 min-h5 h6 resize-vertical" data-codemirror></textarea>
+        <textarea id="content" name="content" dir="auto" class="w-100 pa2 min-h5 h6 resize-vertical" data-codemirror>{{ $.Content }}</textarea>
     </div>
     <button type="submit" class="button ba br2 pa2 mv3 w-100">Create page</button>
 </form>

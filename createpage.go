@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"mime"
 	"net/http"
+	"net/url"
 	"path"
 	"strings"
 	"time"
@@ -77,6 +78,15 @@ func (nbrew *Notebrew) createpage(w http.ResponseWriter, r *http.Request, userna
 			return
 		}
 		var response Response
+		_, err = nbrew.getSession(r, "flash", &response)
+		if err != nil {
+			getLogger(r.Context()).Error(err.Error())
+		}
+		nbrew.clearSession(w, r, "flash")
+		if response.Status != "" {
+			writeResponse(w, r, response)
+			return
+		}
 		parentFolder := r.Form.Get("parent")
 		if parentFolder == "" {
 			response.Status = ErrParentFolderNotProvided
@@ -130,18 +140,16 @@ func (nbrew *Notebrew) createpage(w http.ResponseWriter, r *http.Request, userna
 					http.Redirect(w, r, nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix, response.ParentFolder)+"/", http.StatusFound)
 					return
 				}
-				err := nbrew.setSession(w, r, "flash", map[string]any{
-					"status": response.Status,
-				})
+				err := nbrew.setSession(w, r, "flash", &response)
 				if err != nil {
 					getLogger(r.Context()).Error(err.Error())
 					internalServerError(w, r, err)
 					return
 				}
-				http.Redirect(w, r, nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix, response.ParentFolder)+"/", http.StatusFound)
+				http.Redirect(w, r, nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix, "createpage")+"/?parent="+url.QueryEscape(response.ParentFolder), http.StatusFound)
 				return
 			}
-			if response.Status == CreateFolderSuccess {
+			if response.Status == CreatePageSuccess {
 				err := nbrew.setSession(w, r, "flash", map[string]any{
 					"status": fmt.Sprintf(
 						`%s Created page <a href="%s" class="linktext">%s</a>`,
