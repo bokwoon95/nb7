@@ -36,7 +36,7 @@ TODO: coalesce the following into a single "site" tab in the menu bar
 TODO: cut | copy | paste | rename (no need for link indexing and rewriting yet, that comes later)
 TODO: preview mode for posts and pages (need to figure out rendering already). Once we figure out rendering, we can implement render-on-write whenever a user creates or updates a file. That means we can also implement viewing the content page! Which means implementing the default post.html and posts.html templates!
 TODO: createpage | createfile
-TODO: replace public/* Mkdir with helper mkdirAll function that recursively creates parent folders as needed (in case stuff in the public directory got deleted).
+TODO: createpage works... but why is the index.html file hidden in the public folder?
 
 notebrew backup ~/Downloads/2023-04-01-004455-notebrew-admin.zip
 notebrew backup ~/Downloads/2023-04-01-004455-notebrew-admin/

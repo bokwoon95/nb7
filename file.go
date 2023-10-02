@@ -155,8 +155,9 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 			getLogger(r.Context()).Error(err.Error())
 		}
 		nbrew.clearSession(w, r, "flash")
-		if response.Status == "" {
-			response.Status = Success
+		if response.Status != "" {
+			writeResponse(w, r, response)
+			return
 		}
 		response.Path = filePath
 		response.Type = typ
@@ -189,6 +190,7 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 			notFound(w, r)
 			return
 		}
+		response.Status = Success
 		writeResponse(w, r, response)
 	case "POST":
 		writeResponse := func(w http.ResponseWriter, r *http.Request, response Response) {
@@ -332,7 +334,7 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 			err = tmpl.ExecuteTemplate(buf, "", nil)
 			if err != nil {
 				response.Content = request.Content
-				response.TemplateErrors = tmplErrs
+				response.TemplateErrors = []string{err.Error()}
 				response.Status = ErrTemplateError
 				writeResponse(w, r, response)
 				return

@@ -50,6 +50,11 @@
     <div class="mv2 tc">choose to <a href="" class="linktext">download</a> it instead.</div>
 </div>
 {{- else }}
+<ul>
+    {{- range $templateError := $.TemplateErrors }}
+    <li class="invalid-red list-style-disc">{{ safeHTML $templateError }}</li>
+    {{- end }}
+</ul>
 <div>
     {{- if and referer (ne $.Status.Code "NB-00060") }}
     <a href="{{ referer }}" class="linktext" data-go-back>&larr; back</a>
@@ -65,11 +70,6 @@
     <span>&boxv;</span>
     <a href="/{{ join `admin` sitePrefix }}/" class="linktext">admin</a>
 </div>
-<ul>
-    {{- range $templateError := $.TemplateErrors }}
-    <li class="invalid-red list-style-disc">{{ safeHTML $templateError }}</li>
-    {{- end }}
-</ul>
 <div class="mv2"><span class="b">{{ base $.Path }}</span> <a href="" class="f6 mh1 linktext">rename</a></div>
 <form method="post" enctype="multipart/form-data" class="mv1">
     <textarea name="content" dir="auto" class="w-100 pa2 pa3-m min-h5 h6 resize-vertical">{{ $.Content }}</textarea>

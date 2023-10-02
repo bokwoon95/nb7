@@ -227,7 +227,7 @@ func (nbrew *Notebrew) createpage(w http.ResponseWriter, r *http.Request, userna
 		err = tmpl.ExecuteTemplate(buf, "", nil)
 		if err != nil {
 			response.Content = request.Content
-			response.TemplateErrors = tmplErrs
+			response.TemplateErrors = []string{err.Error()}
 			response.Status = ErrTemplateError
 			writeResponse(w, r, response)
 			return
