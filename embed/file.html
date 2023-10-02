@@ -6,6 +6,7 @@
 <link rel="stylesheet" href="/admin/static/tachyons.min.css">
 <link rel="stylesheet" href="/admin/static/styles.css">
 <script type="module" src="/admin/static/autoclose-details.js"></script>
+<script type="module" src="/admin/static/disable-after-submit.js"></script>
 <script type="module" src="/admin/static/disable-click-selection.js"></script>
 <script type="module" src="/admin/static/dismiss-alert.js"></script>
 <script type="module" src="/admin/static/go-back.js"></script>
@@ -25,9 +26,9 @@
     <div class="flex-grow-1"></div>
     <button class="f3 bg-transparent bn color-success o-70 hover-black" data-dismiss-alert>&times;</button>
 </div>
-{{- else }}
+{{- else if eq $.Status.Code "NB-03110" }}
 <div role="alert" class="alert-danger mv2 pa2 br2 flex items-center">
-    <div>{{ safeHTML $.Status.Message }}</div>
+    <div>Cannot save item, storage limit of {{ fileSizeToString $.StorageLimit }} exceeded</div>
     <div class="flex-grow-1"></div>
     <button class="f3 bg-transparent bn color-success o-70 hover-black" data-dismiss-alert>&times;</button>
 </div>
@@ -82,9 +83,10 @@
     <pre class="w-100 pa2 pa3-m min-h5 h6 resize-vertical">{{ $.Content }}</pre>
 </div>
 {{- else }}
-<form method="post" enctype="multipart/form-data" class="mv1">
+<form method="post" enctype="multipart/form-data" class="mv1" data-disable-after-submit>
     <textarea name="content" dir="auto" class="w-100 pa2 pa3-m min-h5 h6 resize-vertical">{{ $.Content }}</textarea>
     <button type="submit" class="button ba br2 pa2 mv3 w-100">Save</button>
+    <div class="flex items-center justify-center" data-loading-spinner></div>
 </form>
 {{- end }}
 {{- else }}

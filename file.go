@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"html/template"
 	"io"
 	"io/fs"
@@ -30,6 +29,8 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 		Content        string     `json:"content,omitempty"`
 		Location       string     `json:"location,omitempty"`
 		TemplateErrors []string   `json:"templateErrors,omitempty"`
+		StorageUsed    int64      `json:"storageUsed,omitEmpty"`
+		StorageLimit   int64      `json:"storageLimit,omitempty"`
 	}
 
 	var typ string
@@ -77,14 +78,15 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 				break
 			}
 			funcMap := map[string]any{
-				"join":       path.Join,
-				"dir":        path.Dir,
-				"base":       path.Base,
-				"referer":    func() string { return r.Referer() },
-				"username":   func() string { return username },
-				"sitePrefix": func() string { return sitePrefix },
-				"title":      func() string { return title },
-				"safeHTML":   func(s string) template.HTML { return template.HTML(s) },
+				"join":             path.Join,
+				"dir":              path.Dir,
+				"base":             path.Base,
+				"fileSizeToString": fileSizeToString,
+				"referer":          func() string { return r.Referer() },
+				"username":         func() string { return username },
+				"sitePrefix":       func() string { return sitePrefix },
+				"title":            func() string { return title },
+				"safeHTML":         func(s string) template.HTML { return template.HTML(s) },
 				"head": func(s string) string {
 					head, _, _ := strings.Cut(s, "/")
 					return head
@@ -181,7 +183,6 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 				return
 			}
 			http.Redirect(w, r, nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix, filePath), http.StatusFound)
-			return
 		}
 
 		var request Request
@@ -222,9 +223,10 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 		}
 
 		response := Response{
-			Path:  filePath,
-			IsDir: fileInfo.IsDir(),
-			Type:  typ,
+			Path:    filePath,
+			IsDir:   fileInfo.IsDir(),
+			Type:    typ,
+			Content: request.Content,
 		}
 		modTime := fileInfo.ModTime()
 		if !modTime.IsZero() {
@@ -252,7 +254,9 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 				return
 			}
 			if result.StorageLimit.Valid && result.StorageUsed+int64(len(request.Content)) > result.StorageLimit.Int64 {
-				response.Status = Error(fmt.Sprintf("%s Cannot save note, storage limit of %s exceeded", ErrStorageLimitExceeded.Code(), fileSizeToString(result.StorageLimit.Int64)))
+				response.StorageUsed = result.StorageUsed
+				response.StorageLimit = result.StorageLimit.Int64
+				response.Status = ErrStorageLimitExceeded
 				writeResponse(w, r, response)
 				return
 			}
@@ -293,7 +297,6 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 				return
 			}
 			if len(tmplErrs) > 0 {
-				response.Content = request.Content
 				response.TemplateErrors = tmplErrs
 				response.Status = ErrTemplateError
 				writeResponse(w, r, response)
@@ -304,7 +307,6 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 			defer bufPool.Put(buf)
 			err = tmpl.ExecuteTemplate(buf, "", nil)
 			if err != nil {
-				response.Content = request.Content
 				response.TemplateErrors = []string{err.Error()}
 				response.Status = ErrTemplateError
 				writeResponse(w, r, response)

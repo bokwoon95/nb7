@@ -133,7 +133,7 @@ func (nbrew *Notebrew) deletesite(w http.ResponseWriter, r *http.Request, userna
 
 		response.SiteName = r.Form.Get("name")
 		if response.SiteName == "" {
-			response.Status = Error(fmt.Sprintf("%s site name required", ErrRequired.Code()))
+			response.Status = ErrSiteNameNotProvided
 			writeResponse(w, r, response)
 			return
 		}
@@ -242,7 +242,7 @@ func (nbrew *Notebrew) deletesite(w http.ResponseWriter, r *http.Request, userna
 			SiteName: request.SiteName,
 		}
 		if response.SiteName == "" {
-			response.Status = Error(fmt.Sprintf("%s site name required", ErrRequired.Code()))
+			response.Status = ErrSiteNameNotProvided
 			writeResponse(w, r, response)
 			return
 		}

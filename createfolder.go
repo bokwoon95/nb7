@@ -127,38 +127,30 @@ func (nbrew *Notebrew) createfolder(w http.ResponseWriter, r *http.Request, user
 				return
 			}
 			if !response.Status.Success() {
+				var status string
 				switch response.Status {
 				case ErrParentFolderNotProvided, ErrInvalidParentFolder:
-					err := nbrew.setSession(w, r, "flash", map[string]any{
-						"status": response.Status.Code() + " Couldn't create item, " + response.Status.Message(),
-					})
-					if err != nil {
-						getLogger(r.Context()).Error(err.Error())
-						internalServerError(w, r, err)
-						return
-					}
-					http.Redirect(w, r, nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix)+"/", http.StatusFound)
-				case ErrForbiddenName, ErrItemAlreadyExists:
-					err := nbrew.setSession(w, r, "flash", map[string]any{
-						"status": fmt.Sprintf("%s: %s", response.Status, response.Name),
-					})
-					if err != nil {
-						getLogger(r.Context()).Error(err.Error())
-						internalServerError(w, r, err)
-						return
-					}
-					http.Redirect(w, r, nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix, response.ParentFolder)+"/", http.StatusFound)
+					status = response.Status.Code() + " Couldn't create item, " + response.Status.Message()
+				case ErrForbiddenName:
+					status = fmt.Sprintf("%s: %q", response.Status, response.Name)
+				case ErrItemAlreadyExists:
+					status = fmt.Sprintf("%s folder %q already exists", response.Status.Code(), response.Name)
 				default:
-					err := nbrew.setSession(w, r, "flash", map[string]any{
-						"status": response.Status,
-					})
-					if err != nil {
-						getLogger(r.Context()).Error(err.Error())
-						internalServerError(w, r, err)
-						return
-					}
-					http.Redirect(w, r, nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix, response.ParentFolder)+"/", http.StatusFound)
+					status = string(response.Status)
 				}
+				err := nbrew.setSession(w, r, "flash", map[string]any{
+					"status": status,
+				})
+				if err != nil {
+					getLogger(r.Context()).Error(err.Error())
+					internalServerError(w, r, err)
+					return
+				}
+				if response.Status == ErrParentFolderNotProvided || response.Status == ErrInvalidParentFolder {
+					http.Redirect(w, r, nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix)+"/", http.StatusFound)
+					return
+				}
+				http.Redirect(w, r, nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix, response.ParentFolder)+"/", http.StatusFound)
 				return
 			}
 			if response.Status == CreateFolderSuccess {
@@ -223,7 +215,7 @@ func (nbrew *Notebrew) createfolder(w http.ResponseWriter, r *http.Request, user
 		}
 		response.Name = urlSafe(request.Name)
 		if response.ParentFolder == "pages" && (response.Name == "admin" || response.Name == "images" || response.Name == "posts" || response.Name == "themes") {
-			response.Status = Error(fmt.Sprintf("%s %q", ErrForbiddenName, request.Name))
+			response.Status = ErrForbiddenName
 			writeResponse(w, r, response)
 			return
 		}
@@ -243,14 +235,14 @@ func (nbrew *Notebrew) createfolder(w http.ResponseWriter, r *http.Request, user
 			return
 		}
 		if fileInfo != nil {
-			response.Status = Error(fmt.Sprintf("%s folder %q already exists", ErrItemAlreadyExists.Code(), request.Name))
+			response.Status = ErrItemAlreadyExists
 			writeResponse(w, r, response)
 			return
 		}
 		err = nbrew.FS.Mkdir(path.Join(sitePrefix, response.ParentFolder, response.Name), 0755)
 		if err != nil {
 			if errors.Is(err, fs.ErrExist) {
-				response.Status = Error(fmt.Sprintf("%s folder %q already exists", ErrItemAlreadyExists.Code(), request.Name))
+				response.Status = ErrItemAlreadyExists
 				writeResponse(w, r, response)
 				return
 			}

@@ -38,6 +38,7 @@ func (nbrew *Notebrew) resetpassword(w http.ResponseWriter, r *http.Request, ip 
 		Email            string             `json:"email,omitempty"`
 		ResetToken       string             `json:"resetToken,omitempty"`
 		ValidationErrors map[string][]Error `json:"validationErrors,omitempty"`
+		MailSendingError string             `json:"mailSendingError,omitempty"`
 	}
 	type SmtpSettings struct {
 		Username string
@@ -260,8 +261,14 @@ func (nbrew *Notebrew) resetpassword(w http.ResponseWriter, r *http.Request, ip 
 				http.Redirect(w, r, nbrew.Scheme+nbrew.AdminDomain+"/admin/resetpassword/"+query, http.StatusFound)
 				return
 			}
+			var status string
+			if response.Status == ErrMailSendingFailed {
+				status = string(response.Status) + ": " + response.MailSendingError
+			} else {
+				status = string(response.Status)
+			}
 			err := nbrew.setSession(w, r, "flash", map[string]any{
-				"status": response.Status,
+				"status": status,
 			})
 			if err != nil {
 				getLogger(r.Context()).Error(err.Error())
@@ -446,7 +453,8 @@ func (nbrew *Notebrew) resetpassword(w http.ResponseWriter, r *http.Request, ip 
 			err = smtp.SendMail(smtpSettings.Host+":"+smtpSettings.Port, auth, from, []string{to}, []byte(msg))
 			if err != nil {
 				getLogger(r.Context()).Error(err.Error())
-				response.Status = Error(string(ErrMailSendingFailed) + ": " + err.Error())
+				response.MailSendingError = err.Error()
+				response.Status = ErrMailSendingFailed
 				writeResponse(w, r, response)
 				return
 			}

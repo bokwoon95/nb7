@@ -36,29 +36,7 @@ TODO: coalesce the following into a single "site" tab in the menu bar
 TODO: cut | copy | paste | rename (no need for link indexing and rewriting yet, that comes later)
 TODO: preview mode for posts and pages (need to figure out rendering already). Once we figure out rendering, we can implement render-on-write whenever a user creates or updates a file. That means we can also implement viewing the content page! Which means implementing the default post.html and posts.html templates!
 TODO: createpage | createfile
-TODO: createpage works... but why is the index.html file hidden in the public folder?
-TODO: remove the hiding of any files... we don't want to go through convoluted rules to determine how many files or folders there are so if it's in the folder, display it.
-
-notebrew backup ~/Downloads/2023-04-01-004455-notebrew-admin.zip
-notebrew backup ~/Downloads/2023-04-01-004455-notebrew-admin/
-notebrew backup s3://...
-notebrew restore ~/Downloads/2023-04-01-004455-notebrew-admin.zip
-notebrew restore ~/Downloads/2023-04-01-004455-notebrew-admin/
-notebrew restore ~/Downloads/2023-04-01-004455-notebrew-admin/
-notebrew restore s3://...
-backup.txt, backup-cron.txt, admin-mailer.txt, mailto-admin.txt
-- how to give users the option of single backup vs timestamped backups? should we even offer that option?
-- no, if a user wants timestamped backups they can always roll their own backup strategy on the admin directory. notebrew's native backup is meant for small scale self hosters who don't have the storage luxury of repeatedly backing up the same directory multiple times. meaning it always overwrite to one location and that's it. it's basically there to guard against the main server going down and its data becoming unrecoverable. If people are interested, then can always pass in their custom FS implementation which creates a new timestamped backup everytime OpenReaderFrom is called.
-
--db/-database -addr/-address -backup s3:// -backup-cron <cron expr>
-
-notebrew restore s3://
-
-2023-04-01-004455-notebrew-admin.zip
-
-if a backup job fails, it uses the mailer to send a warning email to the email of the root user in the database
-- uses admin-mailer.txt so that you can probably use the more durable and free gmail than a high volume but expensive mailgun/mailchimp for important emails that you really need to receive.
-- how to record failures? no record needed, if a job fails it just sends the email and moves on until 24hrs later when it attempts to run the job again. If there's an error, it's up to the recipient of the email to check within the time period until the next job or else he will keep getting pinged by the failure emails over and over again.
+TODO: don't redirect use to parent folder on file save, makes compulsive saving very annoying.
 
 TODO: we need cross-handler tests to check for nil DB == 404, Content-Type headers are all set appropriately, etc.
 
