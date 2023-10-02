@@ -140,6 +140,9 @@ func RemoveAll(fsys FS, root string) error {
 	}
 	fileInfo, err := fs.Stat(fsys, root)
 	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil
+		}
 		return err
 	}
 	// If root is a file, we can remove it immediately and return.
