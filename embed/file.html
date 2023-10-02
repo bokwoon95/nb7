@@ -79,6 +79,8 @@
     <span class="b">{{ base $.Path }}</span>
     {{- if not $readOnly }}
     <a href="" class="f6 mh2 linktext">rename</a>
+    {{- else }}
+    <a href="" class="f6 mh2 linktext">preview</a>
     {{- end }}
     <span class="flex-grow-1"></span>
     {{- if $.SourceURL }}
