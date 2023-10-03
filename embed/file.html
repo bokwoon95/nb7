@@ -75,12 +75,6 @@
     {{- if not $readOnly }}
     <a href="" class="f6 mh2 linktext">rename</a>
     {{- end }}
-    <span class="flex-grow-1"></span>
-    {{- if $.SourceURL }}
-    <a href="{{ $.SourceURL }}" class="f6 mh2 linktext">view source</a>
-    {{- else if $.OutputURL }}
-    <a href="{{ $.OutputURL }}" class="f6 mh2 linktext">view output</a>
-    {{- end }}
 </div>
 {{- if $readOnly }}
 <div class="mv1 ba br2">

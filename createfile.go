@@ -262,25 +262,6 @@ func (nbrew *Notebrew) createfile(w http.ResponseWriter, r *http.Request, userna
 				writeResponse(w, r, response)
 				return
 			}
-
-			err = MkdirAll(nbrew.FS, path.Join(sitePrefix, "output", strings.TrimPrefix(strings.Trim(response.ParentFolder, "/"), "pages"), response.Name), 0755)
-			if err != nil {
-				getLogger(r.Context()).Error(err.Error())
-				internalServerError(w, r, err)
-				return
-			}
-			readerFrom, err := nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, "output", strings.TrimPrefix(strings.Trim(response.ParentFolder, "/"), "pages"), response.Name, "index.html"), 0644)
-			if err != nil {
-				getLogger(r.Context()).Error(err.Error())
-				internalServerError(w, r, err)
-				return
-			}
-			_, err = readerFrom.ReadFrom(buf)
-			if err != nil {
-				getLogger(r.Context()).Error(err.Error())
-				internalServerError(w, r, err)
-				return
-			}
 		}
 
 		readerFrom, err := nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, response.ParentFolder, response.Name+"."+response.Ext), 0644)

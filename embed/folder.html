@@ -100,7 +100,7 @@
                 <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createpage` }}/?parent={{ $.Path }}" class="linktext tr nowrap dib w-100 h-100">create page</a></div>
                 {{- else if and (eq (head $.Path) "output") (eq (head (tail $.Path)) "themes") }}
                 <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createfolder` }}?parent={{ $.Path }}" class="linktext tr nowrap dib w-100 h-100">create folder</a></div>
-                <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createfile` }}/?parent={{ $.Path }}&ext=html" class="linktext tr nowrap dib w-100 h-100">create html file</a></div>
+                <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createfile` }}/?parent={{ $.Path }}&ext=html" class="linktext tr nowrap dib w-100 h-100">create html template</a></div>
                 <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createfile` }}/?parent={{ $.Path }}&ext=css" class="linktext tr nowrap dib w-100 h-100">create css file</a></div>
                 <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createfile` }}/?parent={{ $.Path }}&ext=js" class="linktext tr nowrap dib w-100 h-100">create js file</a></div>
                 {{- else }}
@@ -148,7 +148,7 @@
                 </span>
             </summary>
             <div class="ph2 mid-gray f6">
-                Contains the site's generated static files (read-only).
+                Output folder for the static site.
             </div>
         </details>
         {{- else if eq $entry.Name "output/themes" }}

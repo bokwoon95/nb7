@@ -32,8 +32,6 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 		TemplateErrors []Error    `json:"templateErrors,omitempty"`
 		StorageUsed    int64      `json:"storageUsed,omitempty"`
 		StorageLimit   int64      `json:"storageLimit,omitempty"`
-		SourceURL      string     `json:"sourceURL,omitempty"`
-		OutputURL      string     `json:"outputURL,omitempty"`
 	}
 
 	var typ string
@@ -54,41 +52,6 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 	case "GET":
 		writeResponse := func(w http.ResponseWriter, r *http.Request, response Response) {
 			response.ContentSiteURL = contentSiteURL(nbrew, sitePrefix)
-
-			// pages/index.html <=> output/index.html
-			// pages/abc/def.html <=> output/abc/def/index.html
-			// posts/one.md <=> output/posts/one/index.html
-			segments := strings.Split(strings.TrimSuffix(response.Path, path.Ext(response.Path)), "/")
-			if segments[0] == "pages" {
-				if response.Path == "pages/index.html" {
-					response.OutputURL = nbrew.Scheme + nbrew.AdminDomain + "/" + path.Join("admin", sitePrefix, "output/index.html")
-				} else {
-					response.OutputURL = nbrew.Scheme + nbrew.AdminDomain + "/" + path.Join("admin", sitePrefix, "output", path.Join(segments[1:]...), "index.html")
-				}
-			} else if segments[0] == "posts" {
-				response.OutputURL = nbrew.Scheme + nbrew.AdminDomain + "/" + path.Join("admin", sitePrefix, "output", path.Join(segments...), "index.html")
-			} else if segments[0] == "output" {
-				if segments[1] == "posts" {
-					sourcePath := path.Join(sitePrefix, path.Join(segments[:len(segments)-1]...)) + ".md"
-					_, err := fs.Stat(nbrew.FS, sourcePath)
-					if err != nil {
-						sourcePath = path.Join(sitePrefix, path.Join(segments[:len(segments)-1]...)) + ".txt"
-						_, err = fs.Stat(nbrew.FS, sourcePath)
-						if err != nil {
-							sourcePath = ""
-						}
-					}
-					if sourcePath != "" {
-						response.SourceURL = nbrew.Scheme + nbrew.AdminDomain + "/" + sourcePath
-					}
-				} else {
-					if response.Path == "output/index.html" {
-						response.SourceURL = nbrew.Scheme + nbrew.AdminDomain + "/" + path.Join("admin", sitePrefix, "pages/index.html")
-					} else {
-						response.SourceURL = nbrew.Scheme + nbrew.AdminDomain + "/" + path.Join("admin", sitePrefix, "pages", path.Join(segments[1:len(segments)-1]...)) + ".html"
-					}
-				}
-			}
 
 			accept, _, _ := mime.ParseMediaType(r.Header.Get("Accept"))
 			if accept == "application/json" {
