@@ -19,10 +19,11 @@ func (nbrew *Notebrew) createfolder(w http.ResponseWriter, r *http.Request, user
 		Name         string `json:"name,omitempty"`
 	}
 	type Response struct {
-		Status         Error  `json:"status"`
-		ContentSiteURL string `json:"contentSiteURL,omitempty"`
-		ParentFolder   string `json:"parentFolder,omitempty"`
-		Name           string `json:"name,omitempty"`
+		Status           Error              `json:"status"`
+		ContentSiteURL   string             `json:"contentSiteURL,omitempty"`
+		ParentFolder     string             `json:"parentFolder,omitempty"`
+		Name             string             `json:"name,omitempty"`
+		ValidationErrors map[string][]Error `json:"validationErrors,omitempty"`
 	}
 
 	isValidParentFolder := func(parentFolder string) bool {
