@@ -181,7 +181,7 @@ func badRequest(w http.ResponseWriter, r *http.Request, serverErr error) {
 	defer bufPool.Put(buf)
 	err := errorTemplate.Execute(buf, map[string]any{
 		"Title":    `400 bad request`,
-		"Headline": "401 bad request",
+		"Headline": "400 bad request",
 		"Byline":   msg,
 	})
 	if err != nil {
@@ -351,7 +351,7 @@ func unsupportedContentType(w http.ResponseWriter, r *http.Request) {
 		encoder := json.NewEncoder(w)
 		encoder.SetEscapeHTML(false)
 		err := encoder.Encode(map[string]any{
-			"status": ErrUnsupportedMediaType.Code() + ": " + msg,
+			"status": ErrUnsupportedMediaType.Code() + " " + msg,
 		})
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
@@ -368,7 +368,7 @@ func unsupportedContentType(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		getLogger(r.Context()).Error(err.Error())
-		http.Error(w, ErrUnsupportedMediaType.Code()+": "+msg, http.StatusUnsupportedMediaType)
+		http.Error(w, ErrUnsupportedMediaType.Code()+" "+msg, http.StatusUnsupportedMediaType)
 		return
 	}
 	w.Header().Set("Content-Security-Policy", defaultContentSecurityPolicy)
