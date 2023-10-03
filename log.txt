@@ -36,6 +36,7 @@ TODO: coalesce the following into a single "site" tab in the menu bar
 - the storage used and storage breakdown
 - site-wide search
 TODO: cut | copy | paste | rename (no need for link indexing and rewriting yet, that comes later)
+TODO: view source/view output is buggy af, create some css files and see
 TODO: Once we figure out rendering, we can implement render-on-write whenever a user creates or updates a file. That means we can also implement viewing the content page! Which means implementing the default post.html and posts.html templates!
 TODO: see if you can get codemirror to play nice with the b--invalid-red border from tachyons
 TODO: all the creates need to check if category/name/whatever is not an empty string, otherwise we return an error
