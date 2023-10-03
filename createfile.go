@@ -19,7 +19,7 @@ import (
 func (nbrew *Notebrew) createfile(w http.ResponseWriter, r *http.Request, username, sitePrefix string) {
 	type Request struct {
 		ParentFolder string `json:"parentFolder,omitempty"`
-		Type         string `json:"type,omitempty"`
+		Ext          string `json:"ext,omitempty"`
 		Name         string `json:"name,omitempty"`
 		Content      string `json:"content,omitempty"`
 	}
@@ -27,7 +27,7 @@ func (nbrew *Notebrew) createfile(w http.ResponseWriter, r *http.Request, userna
 		Status           Error              `json:"status"`
 		ContentSiteURL   string             `json:"contentSiteURL,omitempty"`
 		ParentFolder     string             `json:"parentFolder,omitempty"`
-		Type             string             `json:"type,omitempty"`
+		Ext              string             `json:"ext,omitempty"`
 		Name             string             `json:"name,omitempty"`
 		Content          string             `json:"content,omitempty"`
 		ValidationErrors map[string][]Error `json:"validationErrors,omitempty"`
@@ -110,14 +110,14 @@ func (nbrew *Notebrew) createfile(w http.ResponseWriter, r *http.Request, userna
 				response.ValidationErrors["parentFolder"] = append(response.ValidationErrors["parentFolder"], ErrInvalidValue)
 			}
 		}
-		response.Type = r.Form.Get("type")
-		switch response.Type {
+		response.Ext = r.Form.Get("ext")
+		switch response.Ext {
 		case "":
-			response.ValidationErrors["type"] = append(response.ValidationErrors["type"], ErrFieldRequired)
+			response.ValidationErrors["ext"] = append(response.ValidationErrors["ext"], ErrFieldRequired)
 		case "html", "css", "js":
 			break
 		default:
-			response.ValidationErrors["type"] = append(response.ValidationErrors["type"], ErrInvalidValue)
+			response.ValidationErrors["ext"] = append(response.ValidationErrors["ext"], ErrInvalidValue)
 		}
 		if len(response.ValidationErrors) > 0 {
 			response.Status = ErrValidationFailed
@@ -146,7 +146,7 @@ func (nbrew *Notebrew) createfile(w http.ResponseWriter, r *http.Request, userna
 					internalServerError(w, r, err)
 					return
 				}
-				http.Redirect(w, r, nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix, "createfile")+"/?parent="+url.QueryEscape(response.ParentFolder)+"&type="+url.QueryEscape(response.Type), http.StatusFound)
+				http.Redirect(w, r, nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix, "createfile")+"/?parent="+url.QueryEscape(response.ParentFolder)+"&ext="+url.QueryEscape(response.Ext), http.StatusFound)
 				return
 			}
 			err := nbrew.setSession(w, r, "flash", map[string]any{
@@ -189,7 +189,7 @@ func (nbrew *Notebrew) createfile(w http.ResponseWriter, r *http.Request, userna
 				}
 			}
 			request.ParentFolder = r.Form.Get("parentFolder")
-			request.Type = r.Form.Get("type")
+			request.Ext = r.Form.Get("ext")
 			request.Name = r.Form.Get("name")
 			request.Content = r.Form.Get("content")
 		default:
@@ -199,7 +199,7 @@ func (nbrew *Notebrew) createfile(w http.ResponseWriter, r *http.Request, userna
 
 		response := Response{
 			ParentFolder:     request.ParentFolder,
-			Type:             request.Type,
+			Ext:              request.Ext,
 			Name:             urlSafe(request.Name),
 			Content:          request.Content,
 			ValidationErrors: make(map[string][]Error),
@@ -212,13 +212,13 @@ func (nbrew *Notebrew) createfile(w http.ResponseWriter, r *http.Request, userna
 				response.ValidationErrors["parentFolder"] = append(response.ValidationErrors["parentFolder"], ErrInvalidValue)
 			}
 		}
-		switch response.Type {
+		switch response.Ext {
 		case "":
-			response.ValidationErrors["type"] = append(response.ValidationErrors["type"], ErrFieldRequired)
+			response.ValidationErrors["ext"] = append(response.ValidationErrors["ext"], ErrFieldRequired)
 		case "html", "css", "js":
 			break
 		default:
-			response.ValidationErrors["type"] = append(response.ValidationErrors["type"], ErrInvalidValue)
+			response.ValidationErrors["ext"] = append(response.ValidationErrors["ext"], ErrInvalidValue)
 		}
 		if len(response.ValidationErrors) > 0 {
 			response.Status = ErrValidationFailed
@@ -226,7 +226,7 @@ func (nbrew *Notebrew) createfile(w http.ResponseWriter, r *http.Request, userna
 			return
 		}
 
-		fileInfo, err := fs.Stat(nbrew.FS, path.Join(sitePrefix, response.ParentFolder, response.Name+"."+response.Type))
+		fileInfo, err := fs.Stat(nbrew.FS, path.Join(sitePrefix, response.ParentFolder, response.Name+"."+response.Ext))
 		if err != nil && !errors.Is(err, fs.ErrNotExist) {
 			getLogger(r.Context()).Error(err.Error())
 			internalServerError(w, r, err)
@@ -239,48 +239,51 @@ func (nbrew *Notebrew) createfile(w http.ResponseWriter, r *http.Request, userna
 			return
 		}
 
-		tmpl, tmplErrs, err := nbrew.parseTemplate(sitePrefix, "", request.Content)
-		if err != nil {
-			getLogger(r.Context()).Error(err.Error())
-			internalServerError(w, r, err)
-			return
-		}
-		if len(tmplErrs) > 0 {
-			response.ValidationErrors["content"] = tmplErrs
-			response.Status = ErrValidationFailed
-			writeResponse(w, r, response)
-			return
-		}
-		buf := bufPool.Get().(*bytes.Buffer)
-		buf.Reset()
-		defer bufPool.Put(buf)
-		err = tmpl.ExecuteTemplate(buf, "", nil)
-		if err != nil {
-			response.ValidationErrors["content"] = append(response.ValidationErrors["content"], Error(err.Error()))
-			response.Status = ErrValidationFailed
-			writeResponse(w, r, response)
-			return
+		if response.Ext == "html" {
+			tmpl, tmplErrs, err := nbrew.parseTemplate(sitePrefix, "", request.Content)
+			if err != nil {
+				getLogger(r.Context()).Error(err.Error())
+				internalServerError(w, r, err)
+				return
+			}
+			if len(tmplErrs) > 0 {
+				response.ValidationErrors["content"] = tmplErrs
+				response.Status = ErrValidationFailed
+				writeResponse(w, r, response)
+				return
+			}
+			buf := bufPool.Get().(*bytes.Buffer)
+			buf.Reset()
+			defer bufPool.Put(buf)
+			err = tmpl.ExecuteTemplate(buf, "", nil)
+			if err != nil {
+				response.ValidationErrors["content"] = append(response.ValidationErrors["content"], Error(err.Error()))
+				response.Status = ErrValidationFailed
+				writeResponse(w, r, response)
+				return
+			}
+
+			err = MkdirAll(nbrew.FS, path.Join(sitePrefix, "output", strings.TrimPrefix(strings.Trim(response.ParentFolder, "/"), "pages"), response.Name), 0755)
+			if err != nil {
+				getLogger(r.Context()).Error(err.Error())
+				internalServerError(w, r, err)
+				return
+			}
+			readerFrom, err := nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, "output", strings.TrimPrefix(strings.Trim(response.ParentFolder, "/"), "pages"), response.Name, "index.html"), 0644)
+			if err != nil {
+				getLogger(r.Context()).Error(err.Error())
+				internalServerError(w, r, err)
+				return
+			}
+			_, err = readerFrom.ReadFrom(buf)
+			if err != nil {
+				getLogger(r.Context()).Error(err.Error())
+				internalServerError(w, r, err)
+				return
+			}
 		}
 
-		err = MkdirAll(nbrew.FS, path.Join(sitePrefix, "output", strings.TrimPrefix(strings.Trim(response.ParentFolder, "/"), "pages"), response.Name), 0755)
-		if err != nil {
-			getLogger(r.Context()).Error(err.Error())
-			internalServerError(w, r, err)
-			return
-		}
-		readerFrom, err := nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, "output", strings.TrimPrefix(strings.Trim(response.ParentFolder, "/"), "pages"), response.Name, "index.html"), 0644)
-		if err != nil {
-			getLogger(r.Context()).Error(err.Error())
-			internalServerError(w, r, err)
-			return
-		}
-		_, err = readerFrom.ReadFrom(buf)
-		if err != nil {
-			getLogger(r.Context()).Error(err.Error())
-			internalServerError(w, r, err)
-			return
-		}
-		readerFrom, err = nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, response.ParentFolder, response.Name+".html"), 0644)
+		readerFrom, err := nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, response.ParentFolder, response.Name+"."+response.Ext), 0644)
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
 			internalServerError(w, r, err)

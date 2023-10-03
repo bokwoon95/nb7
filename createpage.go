@@ -275,7 +275,7 @@ func (nbrew *Notebrew) createpage(w http.ResponseWriter, r *http.Request, userna
 			internalServerError(w, r, err)
 			return
 		}
-		readerFrom, err = nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, response.ParentFolder, response.Name), 0644)
+		readerFrom, err = nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, response.ParentFolder, response.Name+".html"), 0644)
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
 			internalServerError(w, r, err)
