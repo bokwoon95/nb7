@@ -24,7 +24,7 @@ func (nbrew *Notebrew) createnote(w http.ResponseWriter, r *http.Request, userna
 		Status         Error  `json:"status"`
 		ContentSiteURL string `json:"contentSiteURL,omitempty"`
 		Name           string `json:"name,omitempty"`
-		Category       string `json:"category,omitempty"`
+		Category       string `json:"category,omitempty"` // TODO: maybe have ValidationError for invalid categories?
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 2<<20 /* 2MB */)
