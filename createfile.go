@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"slices"
 	"strings"
 	"time"
 )
@@ -63,11 +64,16 @@ func (nbrew *Notebrew) createfile(w http.ResponseWriter, r *http.Request, userna
 			funcMap := map[string]any{
 				"join":       path.Join,
 				"base":       path.Base,
+				"neatenURL":  neatenURL,
 				"referer":    func() string { return r.Referer() },
 				"username":   func() string { return username },
 				"sitePrefix": func() string { return sitePrefix },
 				"safeHTML":   func(s string) template.HTML { return template.HTML(s) },
-				"neatenURL":  neatenURL,
+				"containsError": func(errors []Error, code string) bool {
+					return slices.ContainsFunc(errors, func(err Error) bool {
+						return err.Code() == code
+					})
+				},
 			}
 			tmpl, err := template.New("createfile.html").Funcs(funcMap).ParseFS(rootFS, "embed/createfile.html")
 			if err != nil {

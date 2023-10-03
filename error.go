@@ -76,6 +76,7 @@ const (
 
 	// Class 05 - idgaf about categorization anymore
 	ErrFieldRequired = Error("NB-05000 field required")
+	ErrInvalidValue  = Error("NB-05010 invalid value")
 
 	// Class 99 - HTTP equivalent
 	ErrBadRequest           = Error("NB-99400 bad request")

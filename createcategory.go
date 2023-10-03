@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"slices"
 	"time"
 )
 
@@ -49,6 +50,11 @@ func (nbrew *Notebrew) createcategory(w http.ResponseWriter, r *http.Request, us
 				"username":   func() string { return username },
 				"sitePrefix": func() string { return sitePrefix },
 				"safeHTML":   func(s string) template.HTML { return template.HTML(s) },
+				"containsError": func(errors []Error, code string) bool {
+					return slices.ContainsFunc(errors, func(err Error) bool {
+						return err.Code() == code
+					})
+				},
 			}
 			tmpl, err := template.New("createcategory.html").Funcs(funcMap).ParseFS(rootFS, "embed/createcategory.html")
 			if err != nil {
@@ -64,7 +70,9 @@ func (nbrew *Notebrew) createcategory(w http.ResponseWriter, r *http.Request, us
 			badRequest(w, r, err)
 			return
 		}
-		var response Response
+		response := Response{
+			ValidationErrors: make(map[string][]Error),
+		}
 		_, err = nbrew.getSession(r, "flash", &response)
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
@@ -81,7 +89,8 @@ func (nbrew *Notebrew) createcategory(w http.ResponseWriter, r *http.Request, us
 		case "note", "post":
 			break
 		default:
-			response.Status = ErrInvalidType
+			response.ValidationErrors["type"] = append(response.ValidationErrors["type"], ErrInvalidValue)
+			response.Status = ErrValidationFailed
 			writeResponse(w, r, response)
 			return
 		}
@@ -183,7 +192,8 @@ func (nbrew *Notebrew) createcategory(w http.ResponseWriter, r *http.Request, us
 		case "post":
 			resource = "posts"
 		default:
-			response.Status = ErrInvalidType
+			response.ValidationErrors["type"] = append(response.ValidationErrors["type"], ErrInvalidValue)
+			response.Status = ErrValidationFailed
 			writeResponse(w, r, response)
 			return
 		}
