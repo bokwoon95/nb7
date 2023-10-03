@@ -153,8 +153,8 @@ func (nbrew *Notebrew) createfile(w http.ResponseWriter, r *http.Request, userna
 				"status": fmt.Sprintf(
 					`%s Created file <a href="%s" class="linktext">%s</a>`,
 					response.Status.Code(),
-					nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix, response.ParentFolder, response.Name),
-					response.Name,
+					nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix, response.ParentFolder, response.Name+"."+response.Ext),
+					response.Name+"."+response.Ext,
 				),
 			})
 			if err != nil {
