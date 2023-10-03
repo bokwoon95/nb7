@@ -155,9 +155,9 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 				rootFolders = append(rootFolders,
 					RootFolder{Name: "notes"},
 					RootFolder{Name: "output"},
-					RootFolder{Name: "output/themes"},
 					RootFolder{Name: "pages"},
 					RootFolder{Name: "posts"},
+					RootFolder{Name: "output/themes"},
 				)
 				break
 			}
@@ -345,13 +345,7 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 		if !isSite1 && isSite2 {
 			return -1
 		}
-		if a.Name == b.Name {
-			return 0
-		}
-		if a.Name < b.Name {
-			return -1
-		}
-		return 1
+		return strings.Compare(path.Base(a.Name), path.Base(b.Name))
 	})
 
 	switch response.Sort {
