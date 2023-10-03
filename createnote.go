@@ -3,6 +3,7 @@ package nb7
 import (
 	"encoding/binary"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html/template"
 	"io/fs"
@@ -21,10 +22,13 @@ func (nbrew *Notebrew) createnote(w http.ResponseWriter, r *http.Request, userna
 		Content  string `json:"content,omitempty"`
 	}
 	type Response struct {
-		Status         Error  `json:"status"`
-		ContentSiteURL string `json:"contentSiteURL,omitempty"`
-		Name           string `json:"name,omitempty"`
-		Category       string `json:"category,omitempty"` // TODO: maybe have ValidationError for invalid categories?
+		Status           Error              `json:"status"`
+		ContentSiteURL   string             `json:"contentSiteURL,omitempty"`
+		Name             string             `json:"name,omitempty"`
+		Category         string             `json:"category,omitempty"`
+		Content          string             `json:"content,omitempty"`
+		Categories       []string           `json:"categories,omitempty"`
+		ValidationErrors map[string][]Error `json:"validationErrors,omitempty"`
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 2<<20 /* 2MB */)
@@ -38,20 +42,16 @@ func (nbrew *Notebrew) createnote(w http.ResponseWriter, r *http.Request, userna
 				internalServerError(w, r, err)
 				return
 			}
-			var categories []string
-			category := r.Form.Get("category")
+			response.Categories = response.Categories[:0]
 			for _, dirEntry := range dirEntries {
 				if !dirEntry.IsDir() {
 					continue
 				}
-				name := dirEntry.Name()
-				if name != urlSafe(name) {
+				category := dirEntry.Name()
+				if category != urlSafe(category) {
 					continue
 				}
-				if name == category {
-					response.Category = category
-				}
-				categories = append(categories, name)
+				response.Categories = append(response.Categories, category)
 			}
 			accept, _, _ := mime.ParseMediaType(r.Header.Get("Accept"))
 			if accept == "application/json" {
@@ -70,7 +70,6 @@ func (nbrew *Notebrew) createnote(w http.ResponseWriter, r *http.Request, userna
 				"referer":    func() string { return r.Referer() },
 				"username":   func() string { return username },
 				"sitePrefix": func() string { return sitePrefix },
-				"categories": func() []string { return categories },
 				"safeHTML":   func(s string) template.HTML { return template.HTML(s) },
 			}
 			tmpl, err := template.New("createnote.html").Funcs(funcMap).ParseFS(rootFS, "embed/createnote.html")
@@ -99,6 +98,7 @@ func (nbrew *Notebrew) createnote(w http.ResponseWriter, r *http.Request, userna
 			writeResponse(w, r, response)
 			return
 		}
+		response.Category = r.Form.Get("category")
 		response.Status = Success
 		writeResponse(w, r, response)
 	case "POST":
@@ -175,12 +175,10 @@ func (nbrew *Notebrew) createnote(w http.ResponseWriter, r *http.Request, userna
 			return
 		}
 
-		var response Response
-		if request.Category != "" {
-			fileInfo, err := fs.Stat(nbrew.FS, path.Join(sitePrefix, "notes", request.Category))
-			if err == nil && fileInfo.IsDir() {
-				response.Category = request.Category
-			}
+		response := Response{
+			Name:     urlSafe(request.Slug),
+			Category: request.Category,
+			Content:  request.Content,
 		}
 		var slug string
 		if request.Slug != "" {
@@ -208,11 +206,27 @@ func (nbrew *Notebrew) createnote(w http.ResponseWriter, r *http.Request, userna
 		binary.BigEndian.PutUint64(timestamp[:], uint64(time.Now().Unix()))
 		prefix := strings.TrimLeft(base32Encoding.EncodeToString(timestamp[len(timestamp)-5:]), "0")
 		if slug != "" {
-			response.Name = prefix + "-" + slug + ".md"
+			response.Name = prefix + "-" + slug
 		} else {
-			response.Name = prefix + ".md"
+			response.Name = prefix
 		}
-		readerFrom, err := nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, "notes", response.Category, response.Name), 0644)
+		if response.Category != "" {
+			fileInfo, err := fs.Stat(nbrew.FS, path.Join(sitePrefix, "notes", response.Category))
+			if err != nil && !errors.Is(err, fs.ErrNotExist) {
+				getLogger(r.Context()).Error(err.Error())
+				internalServerError(w, r, err)
+				return
+			}
+			if fileInfo == nil {
+				response.ValidationErrors["category"] = append(response.ValidationErrors["category"], ErrInvalidValue)
+			}
+		}
+		if len(response.ValidationErrors) > 0 {
+			response.Status = ErrValidationFailed
+			writeResponse(w, r, response)
+			return
+		}
+		readerFrom, err := nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, "notes", response.Category, response.Name+".md"), 0644)
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
 			internalServerError(w, r, err)

@@ -39,7 +39,7 @@
     <a href="{{ referer }}" class="linktext" data-go-back>&larr; back</a>
     <span>&boxv;</span>
     {{- end }}
-    {{- range $category := categories }}
+    {{- range $category := $.Categories }}
     {{- if eq $category $.Category }}
     <a href="/{{ join `admin` sitePrefix `notes` $.Category }}/" class="linktext">{{ $.Category }}</a>
     <span>&boxv;</span>
@@ -69,12 +69,17 @@ my day trip to hokkaido =&gt; https://example.com/notes/my-day-trip-to-hokkaido/
     </div>
     <div class="mv2">
         <div><label for="category" class="b">Category</label></div>
-        <select id="category" name="category" class="pv1 br2 ba w-100">
+        <select id="category" name="category" class="pv1 br2 ba w-100{{ if index $.ValidationErrors `category` }} b--invalid-red{{ end }}">
             <option value="">&lt;default&gt;</option>
-            {{- range $category := categories }}
+            {{- range $category := $.Categories }}
             <option value="{{ $category }}"{{ if eq $category $.Category }} selected{{ end }}>{{ $category }}</option>
             {{- end }}
         </select>
+        <ul>
+            {{- range $i, $error := index $.ValidationErrors "category" }}
+            <li class="f6 invalid-red list-style-disc">{{ $error.Message }}</li>
+            {{- end }}
+        </ul>
         <div class="f6"><a href="/{{ join `admin` sitePrefix `createcategory` }}/?type=note" class="linktext">&plus; create category</a></div>
     </div>
     <div class="mv2">
