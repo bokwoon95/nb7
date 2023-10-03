@@ -57,7 +57,7 @@
     </div>
     <div class="mv2">
         <div><label for="content" class="b">Content:</label></div>
-        <textarea id="content" name="content" dir="auto" class="w-100 pa2 min-h5 h6 resize-vertical" data-codemirror>{{ $.Content }}</textarea>
+        <textarea id="content" name="content" dir="auto" class="w-100 pa2 min-h5 h6 resize-vertical" autofocus data-codemirror>{{ $.Content }}</textarea>
         <ul>
             {{- range $i, $error := index $.ValidationErrors "content" }}
             <li class="f6 invalid-red list-style-disc">{{ templateError $error }}</li>

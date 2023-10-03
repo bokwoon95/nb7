@@ -417,6 +417,7 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 	funcMap := map[string]any{
 		"join":                  path.Join,
 		"base":                  path.Base,
+		"ext":                   path.Ext,
 		"trimPrefix":            strings.TrimPrefix,
 		"neatenURL":             neatenURL,
 		"fileSizeToString":      fileSizeToString,

@@ -56,7 +56,7 @@
     <div class="mv2">
         <div><label for="name" class="b">Name:</label></div>
         <div class="flex items-center">
-            <input id="name" name="name" value="{{ $.Name }}" class="pv1 ph2 br2 ba flex-grow-1{{ if index $.ValidationErrors `category` }} b--invalid-red{{ end }}">
+            <input id="name" name="name" value="{{ $.Name }}" class="pv1 ph2 br2 ba flex-grow-1{{ if index $.ValidationErrors `category` }} b--invalid-red{{ end }}" autofocus>
             <span class="mh1">.{{ $.Ext }}</span>
         </div>
         <ul>

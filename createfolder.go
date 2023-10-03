@@ -8,7 +8,9 @@ import (
 	"io/fs"
 	"mime"
 	"net/http"
+	"net/url"
 	"path"
+	"slices"
 	"strings"
 	"time"
 )
@@ -71,10 +73,15 @@ func (nbrew *Notebrew) createfolder(w http.ResponseWriter, r *http.Request, user
 			funcMap := map[string]any{
 				"join":       path.Join,
 				"base":       path.Base,
+				"neatenURL":  neatenURL,
 				"referer":    func() string { return r.Referer() },
 				"username":   func() string { return username },
 				"sitePrefix": func() string { return sitePrefix },
-				"neatenURL":  neatenURL,
+				"containsError": func(errors []Error, codes ...string) bool {
+					return slices.ContainsFunc(errors, func(err Error) bool {
+						return slices.Contains(codes, err.Code())
+					})
+				},
 			}
 			tmpl, err := template.New("createfolder.html").Funcs(funcMap).ParseFS(rootFS, "embed/createfolder.html")
 			if err != nil {
@@ -102,19 +109,21 @@ func (nbrew *Notebrew) createfolder(w http.ResponseWriter, r *http.Request, user
 			writeResponse(w, r, response)
 			return
 		}
-		parentFolder := r.Form.Get("parent")
-		if parentFolder == "" {
-			response.Status = ErrParentFolderNotProvided
+		response.ValidationErrors = make(map[string][]Error)
+		response.ParentFolder = r.Form.Get("parent")
+		if response.ParentFolder == "" {
+			response.ValidationErrors["parentFolder"] = append(response.ValidationErrors["parentFolder"], ErrFieldRequired)
+		} else {
+			response.ParentFolder = path.Clean(strings.Trim(response.ParentFolder, "/"))
+			if !isValidParentFolder(response.ParentFolder) {
+				response.ValidationErrors["parentFolder"] = append(response.ValidationErrors["parentFolder"], ErrInvalidValue)
+			}
+		}
+		if len(response.ValidationErrors) > 0 {
+			response.Status = ErrValidationFailed
 			writeResponse(w, r, response)
 			return
 		}
-		parentFolder = path.Clean(strings.Trim(parentFolder, "/"))
-		if !isValidParentFolder(parentFolder) {
-			response.Status = ErrInvalidParentFolder
-			writeResponse(w, r, response)
-			return
-		}
-		response.ParentFolder = parentFolder
 		response.Status = Success
 		writeResponse(w, r, response)
 	case "POST":
@@ -131,37 +140,20 @@ func (nbrew *Notebrew) createfolder(w http.ResponseWriter, r *http.Request, user
 				return
 			}
 			if !response.Status.Success() {
-				var status string
-				switch response.Status {
-				case ErrParentFolderNotProvided, ErrInvalidParentFolder:
-					status = response.Status.Code() + " Couldn't create item, " + response.Status.Message()
-				case ErrForbiddenName:
-					status = fmt.Sprintf("%s: %q", response.Status, response.Name)
-				case ErrItemAlreadyExists:
-					status = fmt.Sprintf("%s folder %q already exists", response.Status.Code(), response.Name)
-				default:
-					status = string(response.Status)
-				}
-				err := nbrew.setSession(w, r, "flash", map[string]any{
-					"status": status,
-				})
+				err := nbrew.setSession(w, r, "flash", &response)
 				if err != nil {
 					getLogger(r.Context()).Error(err.Error())
 					internalServerError(w, r, err)
 					return
 				}
-				if response.Status == ErrParentFolderNotProvided || response.Status == ErrInvalidParentFolder {
-					http.Redirect(w, r, nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix)+"/", http.StatusFound)
-					return
-				}
-				http.Redirect(w, r, nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix, response.ParentFolder)+"/", http.StatusFound)
+				http.Redirect(w, r, nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix, "createfolder")+"/?parent="+url.QueryEscape(response.ParentFolder), http.StatusFound)
 				return
 			}
 			err := nbrew.setSession(w, r, "flash", map[string]any{
 				"status": fmt.Sprintf(
 					`%s Created folder <a href="%s" class="linktext">%s</a>`,
 					response.Status.Code(),
-					"/"+path.Join("admin", sitePrefix, response.ParentFolder, response.Name)+"/",
+					nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix, response.ParentFolder, response.Name)+"/",
 					response.Name,
 				),
 			})
@@ -203,33 +195,45 @@ func (nbrew *Notebrew) createfolder(w http.ResponseWriter, r *http.Request, user
 			return
 		}
 
-		var response Response
-		if request.ParentFolder == "" {
-			response.Status = ErrParentFolderNotProvided
+		response := Response{
+			ParentFolder:     request.ParentFolder,
+			Name:             urlSafe(request.Name),
+			ValidationErrors: make(map[string][]Error),
+		}
+		if response.ParentFolder == "" {
+			response.ValidationErrors["parentFolder"] = append(response.ValidationErrors["parentFolder"], ErrFieldRequired)
+		} else {
+			response.ParentFolder = path.Clean(strings.Trim(response.ParentFolder, "/"))
+			if !isValidParentFolder(response.ParentFolder) {
+				response.ValidationErrors["parentFolder"] = append(response.ValidationErrors["parentFolder"], ErrInvalidValue)
+			}
+		}
+		if response.Name == "" {
+			response.ValidationErrors["name"] = append(response.ValidationErrors["name"], ErrFieldRequired)
+		} else {
+			if response.ParentFolder == "pages" {
+				switch response.Name {
+				case "admin", "images", "posts", "themes":
+					response.ValidationErrors["name"] = append(response.ValidationErrors["name"], ErrForbiddenValue)
+				}
+			}
+		}
+		if len(response.ValidationErrors) > 0 {
+			response.Status = ErrValidationFailed
 			writeResponse(w, r, response)
 			return
 		}
-		response.ParentFolder = path.Clean(strings.Trim(request.ParentFolder, "/"))
-		if !isValidParentFolder(response.ParentFolder) {
-			response.Status = ErrInvalidParentFolder
-			writeResponse(w, r, response)
-			return
-		}
-		response.Name = urlSafe(request.Name)
-		if response.ParentFolder == "pages" && (response.Name == "admin" || response.Name == "images" || response.Name == "posts" || response.Name == "themes") {
-			response.Status = ErrForbiddenName
-			writeResponse(w, r, response)
-			return
-		}
+
 		head, tail, _ := strings.Cut(response.ParentFolder, "/")
 		if head == "pages" {
-			err := nbrew.FS.Mkdir(path.Join(sitePrefix, "output", tail, response.Name), 0755)
-			if err != nil && !errors.Is(err, fs.ErrExist) {
+			err := MkdirAll(nbrew.FS, path.Join(sitePrefix, "output", tail, response.Name), 0755)
+			if err != nil {
 				getLogger(r.Context()).Error(err.Error())
 				internalServerError(w, r, err)
 				return
 			}
 		}
+
 		fileInfo, err := fs.Stat(nbrew.FS, path.Join(sitePrefix, response.ParentFolder, response.Name))
 		if err != nil && !errors.Is(err, fs.ErrNotExist) {
 			getLogger(r.Context()).Error(err.Error())
@@ -237,14 +241,17 @@ func (nbrew *Notebrew) createfolder(w http.ResponseWriter, r *http.Request, user
 			return
 		}
 		if fileInfo != nil {
-			response.Status = ErrItemAlreadyExists
+			response.ValidationErrors["name"] = append(response.ValidationErrors["name"], ErrItemAlreadyExists)
+			response.Status = ErrValidationFailed
 			writeResponse(w, r, response)
 			return
 		}
+
 		err = nbrew.FS.Mkdir(path.Join(sitePrefix, response.ParentFolder, response.Name), 0755)
 		if err != nil {
 			if errors.Is(err, fs.ErrExist) {
-				response.Status = ErrItemAlreadyExists
+				response.ValidationErrors["name"] = append(response.ValidationErrors["name"], ErrItemAlreadyExists)
+				response.Status = ErrValidationFailed
 				writeResponse(w, r, response)
 				return
 			}

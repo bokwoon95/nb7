@@ -292,7 +292,7 @@ func (nbrew *Notebrew) createfile(w http.ResponseWriter, r *http.Request, userna
 			internalServerError(w, r, err)
 			return
 		}
-		response.Status = Success
+		response.Status = CreateFileSuccess
 		writeResponse(w, r, response)
 	default:
 		methodNotAllowed(w, r)

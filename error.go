@@ -33,6 +33,7 @@ const (
 	CreateCategorySuccess       = Error("NB-00120 created category successfully")
 	CreateFolderSuccess         = Error("NB-00130 created folder successfully")
 	CreatePageSuccess           = Error("NB-00140 created page successfully")
+	CreateFileSuccess           = Error("NB-00150 created file successfully")
 
 	// Class 03 - General
 	ErrAlreadyAuthenticated      = Error("NB-03000 already authenticated")

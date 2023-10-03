@@ -223,6 +223,7 @@ func (nbrew *Notebrew) createpage(w http.ResponseWriter, r *http.Request, userna
 		}
 		if fileInfo != nil {
 			response.ValidationErrors["name"] = append(response.ValidationErrors["name"], ErrItemAlreadyExists)
+			response.Status = ErrValidationFailed
 			writeResponse(w, r, response)
 			return
 		}
@@ -286,7 +287,7 @@ func (nbrew *Notebrew) createpage(w http.ResponseWriter, r *http.Request, userna
 			internalServerError(w, r, err)
 			return
 		}
-		response.Status = Success
+		response.Status = CreatePageSuccess
 		writeResponse(w, r, response)
 	default:
 		methodNotAllowed(w, r)

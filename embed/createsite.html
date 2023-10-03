@@ -30,7 +30,7 @@
     <h1 class="f3 mv3 b">Create a new site</h1>
     <div class="mv3">
         <div><label for="siteName" class="b">Site name:</label></div>
-        <input id="siteName" name="siteName" value="{{ $.SiteName }}" class="pv1 ph2 br2 ba w-100{{ if index $.ValidationErrors `siteName` }} b--invalid-red{{ end }}" autocomplete="on" required>
+        <input id="siteName" name="siteName" value="{{ $.SiteName }}" class="pv1 ph2 br2 ba w-100{{ if index $.ValidationErrors `siteName` }} b--invalid-red{{ end }}" autocomplete="on" autofocus required>
         <ul>
             {{- range $i, $error := index $.ValidationErrors "siteName" }}
             <li class="f6 invalid-red list-style-disc">{{ $error.Message }}</li>

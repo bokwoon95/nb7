@@ -88,7 +88,7 @@
 </div>
 {{- else }}
 <form method="post" enctype="multipart/form-data" class="mv1" data-disable-after-submit>
-    <textarea name="content" dir="auto" class="w-100 pa2 pa3-m min-h5 h6 resize-vertical">{{ $.Content }}</textarea>
+    <textarea name="content" dir="auto" class="w-100 pa2 pa3-m min-h5 h6 resize-vertical" autofocus>{{ $.Content }}</textarea>
     <ul>
         {{- range $error := $.TemplateErrors }}
         <li class="invalid-red list-style-disc">{{ templateError $error }}</li>
