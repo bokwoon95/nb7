@@ -112,6 +112,7 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 	var folderEntries []Entry
 	var fileEntries []Entry
 
+	var notAuthorizedForRootSite bool
 	if folderPath == "" {
 		// If folderPath empty, show notes/, pages/, posts/, output/ folders.
 		if nbrew.DB != nil && sitePrefix == "" {
@@ -148,10 +149,10 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 				internalServerError(w, r, err)
 				return
 			}
-			for _, rootFolder := range rootFolders {
-				if rootFolder.Name != "" {
-					continue
-				}
+			hasRootSite := slices.ContainsFunc(rootFolders, func(rootFolder RootFolder) bool {
+				return rootFolder.Name == ""
+			})
+			if hasRootSite {
 				rootFolders = append(rootFolders,
 					RootFolder{Name: "notes"},
 					RootFolder{Name: "output"},
@@ -159,7 +160,8 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 					RootFolder{Name: "posts"},
 					RootFolder{Name: "output/themes"},
 				)
-				break
+			} else {
+				notAuthorizedForRootSite = true
 			}
 			for _, rootFolder := range rootFolders {
 				if rootFolder.Name == "" {
@@ -413,16 +415,17 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 	}
 
 	funcMap := map[string]any{
-		"join":             path.Join,
-		"base":             path.Base,
-		"trimPrefix":       strings.TrimPrefix,
-		"neatenURL":        neatenURL,
-		"fileSizeToString": fileSizeToString,
-		"isEven":           func(i int) bool { return i%2 == 0 },
-		"username":         func() string { return username },
-		"referer":          func() string { return r.Referer() },
-		"sitePrefix":       func() string { return sitePrefix },
-		"safeHTML":         func(s string) template.HTML { return template.HTML(s) },
+		"join":                  path.Join,
+		"base":                  path.Base,
+		"trimPrefix":            strings.TrimPrefix,
+		"neatenURL":             neatenURL,
+		"fileSizeToString":      fileSizeToString,
+		"isEven":                func(i int) bool { return i%2 == 0 },
+		"username":              func() string { return username },
+		"referer":               func() string { return r.Referer() },
+		"sitePrefix":            func() string { return sitePrefix },
+		"safeHTML":              func(s string) template.HTML { return template.HTML(s) },
+		"authorizedForRootSite": func() bool { return !notAuthorizedForRootSite },
 		"head": func(s string) string {
 			head, _, _ := strings.Cut(s, "/")
 			return head
