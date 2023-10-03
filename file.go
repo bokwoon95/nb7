@@ -293,7 +293,11 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 
 		// If it's a post, render post to output/posts/*/tmp.html then if it passes rename the tmp.html into index.html and write the content into admin/posts/*
 		if head == "posts" {
-			tmpl, tmplErrs, err := nbrew.parseTemplate(sitePrefix, "", request.Content, nil)
+			// TODO:
+			// - find user's post.html
+			// - if not found, use our own post.html
+			// - parseTemplate(sitePrefix, "", file("post.html")) // TODO: remove the funcMap argument since we will be using {{ .Content }} not {{ content }} in the interest of performance.
+			tmpl, tmplErrs, err := nbrew.parseTemplate(sitePrefix, "", request.Content)
 			if err != nil {
 				getLogger(r.Context()).Error(err.Error())
 				internalServerError(w, r, err)
@@ -341,7 +345,7 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 
 		// If it's a page, render page to output/*/tmp.html then if it passes rename tmp.html into index.html and write the content into admin/pages/*
 		if head == "pages" {
-			tmpl, tmplErrs, err := nbrew.parseTemplate(sitePrefix, "", request.Content, nil)
+			tmpl, tmplErrs, err := nbrew.parseTemplate(sitePrefix, "", request.Content)
 			if err != nil {
 				getLogger(r.Context()).Error(err.Error())
 				internalServerError(w, r, err)

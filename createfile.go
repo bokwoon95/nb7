@@ -240,7 +240,7 @@ func (nbrew *Notebrew) createfile(w http.ResponseWriter, r *http.Request, userna
 		}
 
 		if response.Ext == "html" {
-			tmpl, tmplErrs, err := nbrew.parseTemplate(sitePrefix, "", request.Content, nil)
+			tmpl, tmplErrs, err := nbrew.parseTemplate(sitePrefix, "", request.Content)
 			if err != nil {
 				getLogger(r.Context()).Error(err.Error())
 				internalServerError(w, r, err)

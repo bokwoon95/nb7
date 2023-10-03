@@ -745,18 +745,20 @@ func fileSizeToString(size int64) string {
 	return fmt.Sprintf("%.1f %cB", float64(size)/float64(div), "kMGTPE"[exp])
 }
 
-func (nbrew *Notebrew) parseTemplate(sitePrefix, templateName, templateText string, funcMap map[string]any) (tmpl *template.Template, templateErrors []Error, err error) {
+var commonFuncMap = map[string]any{}
+
+func (nbrew *Notebrew) parseTemplate(sitePrefix, templateName, templateText string) (tmpl *template.Template, templateErrors []Error, err error) {
 	var prefix string
 	if templateName != "" {
 		prefix = templateName + ": "
 	}
-	primaryTemplate, err := template.New(templateName).Funcs(funcMap).Parse(templateText)
+	primaryTemplate, err := template.New(templateName).Funcs(commonFuncMap).Parse(templateText)
 	if err != nil {
 		templateErrors = append(templateErrors, Error(fmt.Sprintf(prefix+"%s", err)))
 		return nil, templateErrors, nil
 	}
 	primaryTemplates := primaryTemplate.Templates()
-	slices.SortStableFunc(primaryTemplates, func(t1, t2 *template.Template) int {
+	slices.SortFunc(primaryTemplates, func(t1, t2 *template.Template) int {
 		return strings.Compare(t1.Name(), t2.Name())
 	})
 	for _, primaryTemplate := range primaryTemplates {
@@ -772,7 +774,7 @@ func (nbrew *Notebrew) parseTemplate(sitePrefix, templateName, templateText stri
 	var nodeStack []parse.Node
 	var currentTemplate *template.Template
 	templateStack := slices.Clone(primaryTemplates)
-	finalTemplate := template.New(templateName).Funcs(funcMap)
+	finalTemplate := template.New(templateName).Funcs(commonFuncMap)
 	visited := make(map[string]struct{})
 	for len(templateStack) > 0 {
 		currentTemplate, templateStack = templateStack[len(templateStack)-1], templateStack[:len(templateStack)-1]
@@ -835,13 +837,13 @@ func (nbrew *Notebrew) parseTemplate(sitePrefix, templateName, templateText stri
 					return nil, nil, fmt.Errorf(prefix+"close %s: %w", filename, err)
 				}
 				text := b.String()
-				newTemplate, err := template.New(filename).Funcs(funcMap).Parse(text)
+				newTemplate, err := template.New(filename).Funcs(commonFuncMap).Parse(text)
 				if err != nil {
 					templateErrors = append(templateErrors, Error(fmt.Sprintf("%s: %s", filename, err)))
 					return nil, templateErrors, nil
 				}
 				newTemplates := newTemplate.Templates()
-				slices.SortStableFunc(newTemplates, func(t1, t2 *template.Template) int {
+				slices.SortFunc(newTemplates, func(t1, t2 *template.Template) int {
 					return strings.Compare(t1.Name(), t2.Name())
 				})
 				for _, newTemplate := range newTemplates {
