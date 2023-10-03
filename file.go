@@ -29,7 +29,7 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 		Type           string     `json:"type,omitempty"`
 		Content        string     `json:"content,omitempty"`
 		Location       string     `json:"location,omitempty"`
-		TemplateErrors []string   `json:"templateErrors,omitempty"`
+		TemplateErrors []Error    `json:"templateErrors,omitempty"`
 		StorageUsed    int64      `json:"storageUsed,omitempty"`
 		StorageLimit   int64      `json:"storageLimit,omitempty"`
 		SourceURL      string     `json:"sourceURL,omitempty"`
@@ -123,6 +123,7 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 				"base":             path.Base,
 				"neatenURL":        neatenURL,
 				"fileSizeToString": fileSizeToString,
+				"templateError":    templateError,
 				"referer":          func() string { return r.Referer() },
 				"username":         func() string { return username },
 				"sitePrefix":       func() string { return sitePrefix },
@@ -348,7 +349,7 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 			defer bufPool.Put(buf)
 			err = tmpl.ExecuteTemplate(buf, "", nil)
 			if err != nil {
-				response.TemplateErrors = []string{err.Error()}
+				response.TemplateErrors = append(response.TemplateErrors, Error(err.Error()))
 				response.Status = ErrTemplateError
 				writeResponse(w, r, response)
 				return

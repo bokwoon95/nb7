@@ -747,14 +747,14 @@ func fileSizeToString(size int64) string {
 
 var userTemplateFuncs = map[string]any{}
 
-func (nbrew *Notebrew) parseTemplate(sitePrefix, templateName, templateText string) (tmpl *template.Template, templateErrors []string, err error) {
+func (nbrew *Notebrew) parseTemplate(sitePrefix, templateName, templateText string) (tmpl *template.Template, templateErrors []Error, err error) {
 	var prefix string
 	if templateName != "" {
 		prefix = templateName + ": "
 	}
 	primaryTemplate, err := template.New(templateName).Funcs(userTemplateFuncs).Parse(templateText)
 	if err != nil {
-		templateErrors = append(templateErrors, fmt.Sprintf(prefix+"%s", err))
+		templateErrors = append(templateErrors, Error(fmt.Sprintf(prefix+"%s", err)))
 		return nil, templateErrors, nil
 	}
 	primaryTemplates := primaryTemplate.Templates()
@@ -764,7 +764,7 @@ func (nbrew *Notebrew) parseTemplate(sitePrefix, templateName, templateText stri
 	for _, primaryTemplate := range primaryTemplates {
 		name := primaryTemplate.Name()
 		if strings.HasSuffix(name, ".html") {
-			templateErrors = append(templateErrors, fmt.Sprintf(prefix+"define %q: defined template's name cannot end in .html", name))
+			templateErrors = append(templateErrors, Error(fmt.Sprintf(prefix+"define %q: defined template's name cannot end in .html", name)))
 		}
 	}
 	if len(templateErrors) > 0 {
@@ -816,7 +816,7 @@ func (nbrew *Notebrew) parseTemplate(sitePrefix, templateName, templateText stri
 				}
 				file, err := nbrew.FS.Open(path.Join(sitePrefix, "output/themes", filename))
 				if errors.Is(err, fs.ErrNotExist) {
-					templateErrors = append(templateErrors, fmt.Sprintf(prefix+"template %q does not exist", filename))
+					templateErrors = append(templateErrors, Error(fmt.Sprintf(prefix+"template %q does not exist", filename)))
 					return nil, templateErrors, nil
 				}
 				if err != nil {
@@ -839,7 +839,7 @@ func (nbrew *Notebrew) parseTemplate(sitePrefix, templateName, templateText stri
 				text := b.String()
 				newTemplate, err := template.New(filename).Funcs(userTemplateFuncs).Parse(text)
 				if err != nil {
-					templateErrors = append(templateErrors, fmt.Sprintf("%s: %s", filename, err))
+					templateErrors = append(templateErrors, Error(fmt.Sprintf("%s: %s", filename, err)))
 					return nil, templateErrors, nil
 				}
 				newTemplates := newTemplate.Templates()
@@ -849,7 +849,7 @@ func (nbrew *Notebrew) parseTemplate(sitePrefix, templateName, templateText stri
 				for _, newTemplate := range newTemplates {
 					name := newTemplate.Name()
 					if name != filename && strings.HasSuffix(name, ".html") {
-						templateErrors = append(templateErrors, fmt.Sprintf("%s: define %q: defined template name cannot end in .html", filename, name))
+						templateErrors = append(templateErrors, Error(fmt.Sprintf("%s: define %q: defined template name cannot end in .html", filename, name)))
 						continue
 					}
 					_, err = finalTemplate.AddParseTree(name, newTemplate.Tree)
@@ -893,4 +893,8 @@ func neatenURL(s string) string {
 		return strings.TrimSuffix(strings.TrimPrefix(s, "https://"), "/")
 	}
 	return strings.TrimSuffix(strings.TrimPrefix(s, "http://"), "/")
+}
+
+func templateError(err Error) template.HTML {
+	return template.HTML(err)
 }

@@ -100,9 +100,9 @@
                 <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createpage` }}/?parent={{ $.Path }}" class="linktext tr nowrap dib w-100 h-100">create page</a></div>
                 {{- else if and (eq (head $.Path) "output") (eq (head (tail $.Path)) "themes") }}
                 <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createfolder` }}?parent={{ $.Path }}" class="linktext tr nowrap dib w-100 h-100">create folder</a></div>
-                <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createfile` }}/?parent={{ $.Path }}&type=html" class="linktext tr nowrap dib w-100 h-100">create html file</a></div>
-                <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createfile` }}/?parent={{ $.Path }}&type=css" class="linktext tr nowrap dib w-100 h-100">create css file</a></div>
-                <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createfile` }}/?parent={{ $.Path }}&type=js" class="linktext tr nowrap dib w-100 h-100">create js file</a></div>
+                <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createfile` }}/?parent={{ $.Path }}&ext=html" class="linktext tr nowrap dib w-100 h-100">create html file</a></div>
+                <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createfile` }}/?parent={{ $.Path }}&ext=css" class="linktext tr nowrap dib w-100 h-100">create css file</a></div>
+                <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createfile` }}/?parent={{ $.Path }}&ext=js" class="linktext tr nowrap dib w-100 h-100">create js file</a></div>
                 {{- else }}
                 <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createnote` }}/" class="linktext tr nowrap dib w-100 h-100">create note</a></div>
                 <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createpost` }}/" class="linktext tr nowrap dib w-100 h-100">create post</a></div>
