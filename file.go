@@ -292,10 +292,56 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 		// If it's a note, just write it into admin/notes/*
 
 		// If it's a post, render post to output/posts/*/tmp.html then if it passes rename the tmp.html into index.html and write the content into admin/posts/*
+		if head == "posts" {
+			tmpl, tmplErrs, err := nbrew.parseTemplate(sitePrefix, "", request.Content, nil)
+			if err != nil {
+				getLogger(r.Context()).Error(err.Error())
+				internalServerError(w, r, err)
+				return
+			}
+			if len(tmplErrs) > 0 {
+				response.TemplateErrors = tmplErrs
+				response.Status = ErrTemplateError
+				writeResponse(w, r, response)
+				return
+			}
+			buf := bufPool.Get().(*bytes.Buffer)
+			buf.Reset()
+			defer bufPool.Put(buf)
+			err = tmpl.ExecuteTemplate(buf, "", nil)
+			if err != nil {
+				response.TemplateErrors = append(response.TemplateErrors, Error(err.Error()))
+				response.Status = ErrTemplateError
+				writeResponse(w, r, response)
+				return
+			}
+			var name string
+			if response.Path != "pages/index.html" {
+				name = strings.TrimSuffix(tail, path.Ext(tail))
+			}
+			err = MkdirAll(nbrew.FS, path.Join(sitePrefix, "output", name), 0755)
+			if err != nil {
+				getLogger(r.Context()).Error(err.Error())
+				internalServerError(w, r, err)
+				return
+			}
+			readerFrom, err := nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, "output", name, "index.html"), 0644)
+			if err != nil {
+				getLogger(r.Context()).Error(err.Error())
+				internalServerError(w, r, err)
+				return
+			}
+			_, err = readerFrom.ReadFrom(buf)
+			if err != nil {
+				getLogger(r.Context()).Error(err.Error())
+				internalServerError(w, r, err)
+				return
+			}
+		}
 
 		// If it's a page, render page to output/*/tmp.html then if it passes rename tmp.html into index.html and write the content into admin/pages/*
 		if head == "pages" {
-			tmpl, tmplErrs, err := nbrew.parseTemplate(sitePrefix, "", request.Content)
+			tmpl, tmplErrs, err := nbrew.parseTemplate(sitePrefix, "", request.Content, nil)
 			if err != nil {
 				getLogger(r.Context()).Error(err.Error())
 				internalServerError(w, r, err)

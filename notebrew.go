@@ -745,14 +745,12 @@ func fileSizeToString(size int64) string {
 	return fmt.Sprintf("%.1f %cB", float64(size)/float64(div), "kMGTPE"[exp])
 }
 
-var userTemplateFuncs = map[string]any{}
-
-func (nbrew *Notebrew) parseTemplate(sitePrefix, templateName, templateText string) (tmpl *template.Template, templateErrors []Error, err error) {
+func (nbrew *Notebrew) parseTemplate(sitePrefix, templateName, templateText string, funcMap map[string]any) (tmpl *template.Template, templateErrors []Error, err error) {
 	var prefix string
 	if templateName != "" {
 		prefix = templateName + ": "
 	}
-	primaryTemplate, err := template.New(templateName).Funcs(userTemplateFuncs).Parse(templateText)
+	primaryTemplate, err := template.New(templateName).Funcs(funcMap).Parse(templateText)
 	if err != nil {
 		templateErrors = append(templateErrors, Error(fmt.Sprintf(prefix+"%s", err)))
 		return nil, templateErrors, nil
@@ -774,7 +772,7 @@ func (nbrew *Notebrew) parseTemplate(sitePrefix, templateName, templateText stri
 	var nodeStack []parse.Node
 	var currentTemplate *template.Template
 	templateStack := slices.Clone(primaryTemplates)
-	finalTemplate := template.New(templateName).Funcs(userTemplateFuncs)
+	finalTemplate := template.New(templateName).Funcs(funcMap)
 	visited := make(map[string]struct{})
 	for len(templateStack) > 0 {
 		currentTemplate, templateStack = templateStack[len(templateStack)-1], templateStack[:len(templateStack)-1]
@@ -837,7 +835,7 @@ func (nbrew *Notebrew) parseTemplate(sitePrefix, templateName, templateText stri
 					return nil, nil, fmt.Errorf(prefix+"close %s: %w", filename, err)
 				}
 				text := b.String()
-				newTemplate, err := template.New(filename).Funcs(userTemplateFuncs).Parse(text)
+				newTemplate, err := template.New(filename).Funcs(funcMap).Parse(text)
 				if err != nil {
 					templateErrors = append(templateErrors, Error(fmt.Sprintf("%s: %s", filename, err)))
 					return nil, templateErrors, nil

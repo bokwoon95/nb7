@@ -228,7 +228,7 @@ func (nbrew *Notebrew) createpage(w http.ResponseWriter, r *http.Request, userna
 			return
 		}
 
-		tmpl, tmplErrs, err := nbrew.parseTemplate(sitePrefix, "", request.Content)
+		tmpl, tmplErrs, err := nbrew.parseTemplate(sitePrefix, "", request.Content, nil)
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
 			internalServerError(w, r, err)
