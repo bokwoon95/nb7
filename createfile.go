@@ -24,13 +24,14 @@ func (nbrew *Notebrew) createfile(w http.ResponseWriter, r *http.Request, userna
 		Content      string `json:"content,omitempty"`
 	}
 	type Response struct {
-		Status         Error    `json:"status"`
-		ContentSiteURL string   `json:"contentSiteURL,omitempty"`
-		ParentFolder   string   `json:"parentFolder,omitempty"`
-		Type           string   `json:"type,omitempty"`
-		Name           string   `json:"name,omitempty"`
-		Content        string   `json:"content,omitempty"`
-		TemplateErrors []string `json:"templateError,omitempty"`
+		Status           Error              `json:"status"`
+		ContentSiteURL   string             `json:"contentSiteURL,omitempty"`
+		ParentFolder     string             `json:"parentFolder,omitempty"`
+		Type             string             `json:"type,omitempty"`
+		Name             string             `json:"name,omitempty"`
+		Content          string             `json:"content,omitempty"`
+		ValidationErrors map[string][]Error `json:"validationErrors,omitempty"`
+		TemplateErrors   []string           `json:"templateError,omitempty"`
 	}
 
 	isValidParentFolder := func(parentFolder string) bool {
@@ -69,9 +70,9 @@ func (nbrew *Notebrew) createfile(w http.ResponseWriter, r *http.Request, userna
 				"username":   func() string { return username },
 				"sitePrefix": func() string { return sitePrefix },
 				"safeHTML":   func(s string) template.HTML { return template.HTML(s) },
-				"containsError": func(errors []Error, code string) bool {
+				"containsError": func(errors []Error, codes ...string) bool {
 					return slices.ContainsFunc(errors, func(err Error) bool {
-						return err.Code() == code
+						return slices.Contains(codes, err.Code())
 					})
 				},
 			}
@@ -99,25 +100,27 @@ func (nbrew *Notebrew) createfile(w http.ResponseWriter, r *http.Request, userna
 			writeResponse(w, r, response)
 			return
 		}
-		parentFolder := r.Form.Get("parent")
-		if parentFolder == "" {
-			response.Status = ErrParentFolderNotProvided
-			writeResponse(w, r, response)
-			return
+		response.ValidationErrors = make(map[string][]Error)
+		response.ParentFolder = r.Form.Get("parent")
+		if response.ParentFolder == "" {
+			response.ValidationErrors["parentFolder"] = append(response.ValidationErrors["parentFolder"], ErrFieldRequired)
+		} else {
+			response.ParentFolder = path.Clean(strings.Trim(response.ParentFolder, "/"))
+			if !isValidParentFolder(response.ParentFolder) {
+				response.ValidationErrors["parentFolder"] = append(response.ValidationErrors["parentFolder"], ErrInvalidValue)
+			}
 		}
-		parentFolder = path.Clean(strings.Trim(parentFolder, "/"))
-		if !isValidParentFolder(parentFolder) {
-			response.Status = ErrInvalidParentFolder
-			writeResponse(w, r, response)
-			return
-		}
-		response.ParentFolder = parentFolder
 		response.Type = r.Form.Get("type")
 		switch response.Type {
+		case "":
+			response.ValidationErrors["type"] = append(response.ValidationErrors["type"], ErrFieldRequired)
 		case "html", "css", "js":
 			break
 		default:
-			response.Status = ErrInvalidType
+			response.ValidationErrors["type"] = append(response.ValidationErrors["type"], ErrInvalidValue)
+		}
+		if len(response.ValidationErrors) > 0 {
+			response.Status = ErrValidationFailed
 			writeResponse(w, r, response)
 			return
 		}

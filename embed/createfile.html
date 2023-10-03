@@ -19,14 +19,14 @@
     <a href="" class="ma2">{{ if username }}@{{ username }}{{ else }}user{{ end }}</a>
     <a href="/admin/logout/" class="ma2">logout</a>
 </nav>
-{{- if eq $.Status.Code "NB-03140" "NB-03150" }}
+{{- if containsError (index $.ValidationErrors "parentFolder") "NB-05000" "NB-05010" }}
 <div class="mv5 w-80 w-70-m w-60-l center">
     {{- if referer }}
     <div><a href="{{ referer }}" class="linktext" data-go-back>&larr; back</a></div>
     {{- end }}
     <div class="mv3 b tc">Can't create a file here.</div>
 </div>
-{{- else if eq $.Status.Code "NB-03180" }}
+{{- else if containsError (index $.ValidationErrors "type") "NB-05000" "NB-05010" }}
 <ul class="mv5 w-80 w-70-m w-60-l center">
     {{- if referer }}
     <div><a href="{{ referer }}" class="linktext" data-go-back>&larr; back</a></div>

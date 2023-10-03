@@ -50,9 +50,9 @@ func (nbrew *Notebrew) createcategory(w http.ResponseWriter, r *http.Request, us
 				"username":   func() string { return username },
 				"sitePrefix": func() string { return sitePrefix },
 				"safeHTML":   func(s string) template.HTML { return template.HTML(s) },
-				"containsError": func(errors []Error, code string) bool {
+				"containsError": func(errors []Error, codes ...string) bool {
 					return slices.ContainsFunc(errors, func(err Error) bool {
-						return err.Code() == code
+						return slices.Contains(codes, err.Code())
 					})
 				},
 			}
@@ -70,9 +70,7 @@ func (nbrew *Notebrew) createcategory(w http.ResponseWriter, r *http.Request, us
 			badRequest(w, r, err)
 			return
 		}
-		response := Response{
-			ValidationErrors: make(map[string][]Error),
-		}
+		var response Response
 		_, err = nbrew.getSession(r, "flash", &response)
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
@@ -84,6 +82,7 @@ func (nbrew *Notebrew) createcategory(w http.ResponseWriter, r *http.Request, us
 			writeResponse(w, r, response)
 			return
 		}
+		response.ValidationErrors = make(map[string][]Error)
 		response.Type = r.Form.Get("type")
 		switch response.Type {
 		case "note", "post":
@@ -181,23 +180,34 @@ func (nbrew *Notebrew) createcategory(w http.ResponseWriter, r *http.Request, us
 		}
 		if response.Category == "" {
 			response.ValidationErrors["category"] = append(response.ValidationErrors["category"], ErrFieldRequired)
-			response.Status = ErrValidationFailed
-			writeResponse(w, r, response)
-			return
 		}
 		var resource string
 		switch response.Type {
+		case "":
+			response.ValidationErrors["type"] = append(response.ValidationErrors["type"], ErrFieldRequired)
 		case "note":
 			resource = "notes"
 		case "post":
 			resource = "posts"
 		default:
 			response.ValidationErrors["type"] = append(response.ValidationErrors["type"], ErrInvalidValue)
+		}
+		fileInfo, err := fs.Stat(nbrew.FS, path.Join(sitePrefix, resource, response.Category))
+		if err != nil && !errors.Is(err, fs.ErrNotExist) {
+			getLogger(r.Context()).Error(err.Error())
+			internalServerError(w, r, err)
+			return
+		}
+		if fileInfo != nil {
+			response.ValidationErrors["category"] = append(response.ValidationErrors["category"], ErrItemAlreadyExists)
+		}
+		if len(response.ValidationErrors) > 0 {
 			response.Status = ErrValidationFailed
 			writeResponse(w, r, response)
 			return
 		}
-		err := nbrew.FS.Mkdir(path.Join(sitePrefix, resource, response.Category), 0755)
+
+		err = nbrew.FS.Mkdir(path.Join(sitePrefix, resource, response.Category), 0755)
 		if err != nil {
 			if errors.Is(err, fs.ErrExist) {
 				response.ValidationErrors["category"] = append(response.ValidationErrors["category"], ErrItemAlreadyExists)
