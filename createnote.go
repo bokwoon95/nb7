@@ -45,7 +45,7 @@ func (nbrew *Notebrew) createnote(w http.ResponseWriter, r *http.Request, userna
 					continue
 				}
 				name := dirEntry.Name()
-				if len(name) > 30 || strings.ContainsAny(name, "\t\n\v\f\r \x85\xA0") {
+				if name != urlSafe(name) {
 					continue
 				}
 				if name == category {
@@ -66,12 +66,12 @@ func (nbrew *Notebrew) createnote(w http.ResponseWriter, r *http.Request, userna
 			}
 			funcMap := map[string]any{
 				"join":       path.Join,
+				"neatenURL":  neatenURL,
 				"referer":    func() string { return r.Referer() },
 				"username":   func() string { return username },
 				"sitePrefix": func() string { return sitePrefix },
 				"categories": func() []string { return categories },
 				"safeHTML":   func(s string) template.HTML { return template.HTML(s) },
-				"neatenURL":  neatenURL,
 			}
 			tmpl, err := template.New("createnote.html").Funcs(funcMap).ParseFS(rootFS, "embed/createnote.html")
 			if err != nil {
