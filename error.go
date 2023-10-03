@@ -74,6 +74,9 @@ const (
 	ErrSiteIsUser          = Error("NB-04130 site is a user")
 	ErrSiteNotFound        = Error("NB-04140 site not found")
 
+	// Class 05 - idgaf about categorization anymore
+	ErrFieldRequired = Error("NB-05000 field required")
+
 	// Class 99 - HTTP equivalent
 	ErrBadRequest           = Error("NB-99400 bad request")
 	ErrNotAuthenticated     = Error("NB-99401 not authenticated")

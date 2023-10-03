@@ -19,10 +19,11 @@ func (nbrew *Notebrew) createcategory(w http.ResponseWriter, r *http.Request, us
 		Category string `json:"category,omitempty"`
 	}
 	type Response struct {
-		Status         Error  `json:"status"`
-		ContentSiteURL string `json:"contentSiteURL,omitempty"`
-		Type           string `json:"type,omitempty"`
-		Category       string `json:"category,omitempty"`
+		Status           Error              `json:"status"`
+		ContentSiteURL   string             `json:"contentSiteURL,omitempty"`
+		Type             string             `json:"type,omitempty"`
+		Category         string             `json:"category,omitempty"`
+		ValidationErrors map[string][]Error `json:"validationErrors,omitempty"`
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 2<<20 /* 2MB */)
@@ -43,10 +44,11 @@ func (nbrew *Notebrew) createcategory(w http.ResponseWriter, r *http.Request, us
 			}
 			funcMap := map[string]any{
 				"join":       path.Join,
+				"neatenURL":  neatenURL,
 				"referer":    func() string { return r.Referer() },
 				"username":   func() string { return username },
 				"sitePrefix": func() string { return sitePrefix },
-				"neatenURL":  neatenURL,
+				"safeHTML":   func(s string) template.HTML { return template.HTML(s) },
 			}
 			tmpl, err := template.New("createcategory.html").Funcs(funcMap).ParseFS(rootFS, "embed/createcategory.html")
 			if err != nil {
@@ -98,29 +100,37 @@ func (nbrew *Notebrew) createcategory(w http.ResponseWriter, r *http.Request, us
 				}
 				return
 			}
-			var status string
-			switch response.Status {
-			case ErrItemAlreadyExists:
-				status = fmt.Sprintf("%s Category %s already exists", response.Status.Code(), response.Category)
-			case CreateCategorySuccess:
-				status = fmt.Sprintf("%s Created category %s", response.Status.Code(), response.Category)
+			if !response.Status.Success() {
+				err := nbrew.setSession(w, r, "flash", &response)
+				if err != nil {
+					getLogger(r.Context()).Error(err.Error())
+					internalServerError(w, r, err)
+					return
+				}
+				http.Redirect(w, r, nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix, "createcategory")+"/?type="+url.QueryEscape(response.Type), http.StatusFound)
+				return
+			}
+			var action, resource string
+			switch response.Type {
+			case "note":
+				action, resource = "createnote", "notes"
+			case "post":
+				action, resource = "createpost", "posts"
+			default:
+				panic("unreachable")
 			}
 			err := nbrew.setSession(w, r, "flash", map[string]any{
-				"status": status,
+				"status": fmt.Sprintf(
+					`%s Created category <a href="%s" class="linktext">%s</a>`,
+					response.Status.Code(),
+					nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix, resource, response.Category)+"/",
+					response.Category,
+				),
 			})
 			if err != nil {
 				getLogger(r.Context()).Error(err.Error())
 				internalServerError(w, r, err)
 				return
-			}
-			var action string
-			switch response.Type {
-			case "note":
-				action = "createnote"
-			case "post":
-				action = "createpost"
-			default:
-				panic("unreachable")
 			}
 			http.Redirect(w, r, nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix, action)+"/?category="+url.QueryEscape(response.Category), http.StatusFound)
 		}
@@ -156,10 +166,16 @@ func (nbrew *Notebrew) createcategory(w http.ResponseWriter, r *http.Request, us
 		}
 
 		response := Response{
-			Type:     request.Type,
-			Category: urlSafe(request.Category),
+			Type:             request.Type,
+			Category:         urlSafe(request.Category),
+			ValidationErrors: make(map[string][]Error),
 		}
-
+		if response.Category == "" {
+			response.ValidationErrors["category"] = append(response.ValidationErrors["category"], ErrFieldRequired)
+			response.Status = ErrValidationFailed
+			writeResponse(w, r, response)
+			return
+		}
 		var resource string
 		switch response.Type {
 		case "note":
@@ -171,11 +187,11 @@ func (nbrew *Notebrew) createcategory(w http.ResponseWriter, r *http.Request, us
 			writeResponse(w, r, response)
 			return
 		}
-
 		err := nbrew.FS.Mkdir(path.Join(sitePrefix, resource, response.Category), 0755)
 		if err != nil {
 			if errors.Is(err, fs.ErrExist) {
-				response.Status = ErrItemAlreadyExists
+				response.ValidationErrors["category"] = append(response.ValidationErrors["category"], ErrItemAlreadyExists)
+				response.Status = ErrValidationFailed
 				writeResponse(w, r, response)
 				return
 			}

@@ -37,11 +37,16 @@
     {{- else if eq $.Type "post" }}
     <h1 class="f3 mv3 b">Create post category</h1>
     {{- end }}
+    <input type="hidden" name="type" value="{{ $.Type }}">
     <div class="mv3">
         <div><label for="category" class="b">Category:</label></div>
-        <input id="category" name="category" value="{{ $.Category }}" class="pv1 ph2 br2 ba w-100" autocomplete="on" required>
+        <input id="category" name="category" value="{{ $.Category }}" class="pv1 ph2 br2 ba w-100{{ if index $.ValidationErrors `category` }} b--invalid-red{{ end }}" autocomplete="on" required>
+        <ul>
+            {{- range $i, $error := index $.ValidationErrors "category" }}
+            <li class="f6 invalid-red list-style-disc">{{ $error.Message }}</li>
+            {{- end }}
+        </ul>
     </div>
-    <input type="hidden" name="type" value="{{ $.Type }}">
     {{- if eq $.Type "note" }}
     <button type="submit" class="button ba br2 pa2 mv3 w-100">Create note category</button>
     {{- else if eq $.Type "post" }}
