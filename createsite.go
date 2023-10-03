@@ -22,12 +22,11 @@ func (nbrew *Notebrew) createsite(w http.ResponseWriter, r *http.Request, userna
 	type Response struct {
 		Status           Error              `json:"status"`
 		SiteName         string             `json:"siteName,omitempty"`
-		CurrentSites     []string           `json:"currentSites,omitempty"` // TODO: not needed, remove.
 		ValidationErrors map[string][]Error `json:"validationErrors,omitempty"`
 	}
 
-	getCurrentSites := func() ([]string, error) {
-		return sq.FetchAllContext(r.Context(), nbrew.DB, sq.CustomQuery{
+	getNumSites := func() (int, error) {
+		return sq.FetchOneContext(r.Context(), nbrew.DB, sq.CustomQuery{
 			Dialect: nbrew.Dialect,
 			Format: "SELECT {*}" +
 				" FROM site" +
@@ -40,8 +39,8 @@ func (nbrew *Notebrew) createsite(w http.ResponseWriter, r *http.Request, userna
 			Values: []any{
 				sq.StringParam("username", username),
 			},
-		}, func(row *sq.Row) string {
-			return row.String("site.site_name")
+		}, func(row *sq.Row) int {
+			return row.Int("COUNT(*)")
 		})
 	}
 
@@ -91,13 +90,13 @@ func (nbrew *Notebrew) createsite(w http.ResponseWriter, r *http.Request, userna
 			return
 		}
 		response.SiteName = r.Form.Get("name")
-		response.CurrentSites, err = getCurrentSites()
+		numSites, err := getNumSites()
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
 			internalServerError(w, r, err)
 			return
 		}
-		if len(response.CurrentSites) >= 10 {
+		if numSites >= 10 {
 			response.Status = ErrMaxSitesReached
 			writeResponse(w, r, response)
 			return
@@ -184,13 +183,13 @@ func (nbrew *Notebrew) createsite(w http.ResponseWriter, r *http.Request, userna
 			ValidationErrors: make(map[string][]Error),
 		}
 
-		response.CurrentSites, err = getCurrentSites()
+		numSites, err := getNumSites()
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
 			internalServerError(w, r, err)
 			return
 		}
-		if len(response.CurrentSites) >= 10 {
+		if numSites >= 10 {
 			response.Status = ErrMaxSitesReached
 			writeResponse(w, r, response)
 			return
