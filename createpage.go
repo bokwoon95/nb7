@@ -142,8 +142,8 @@ func (nbrew *Notebrew) createpage(w http.ResponseWriter, r *http.Request, userna
 				"status": fmt.Sprintf(
 					`%s Created page <a href="%s" class="linktext">%s</a>`,
 					response.Status.Code(),
-					nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix, response.ParentFolder, response.Name),
-					response.Name,
+					nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix, response.ParentFolder, response.Name+".html"),
+					response.Name+".html",
 				),
 			})
 			if err != nil {

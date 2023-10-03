@@ -130,10 +130,10 @@ func (nbrew *Notebrew) createnote(w http.ResponseWriter, r *http.Request, userna
 			}
 			err := nbrew.setSession(w, r, "flash", map[string]any{
 				"status": Error(fmt.Sprintf(
-					`%s Note created: <a href="%s" class="linktext">%s</a>`,
+					`%s Created note <a href="%s" class="linktext">%s</a>`,
 					response.Status.Code(),
-					nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix, "notes", response.Category, response.Name),
-					response.Name,
+					nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix, "notes", response.Category, response.Name+".md"),
+					response.Name+".md",
 				)),
 			})
 			if err != nil {
