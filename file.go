@@ -296,51 +296,8 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 			// TODO:
 			// - find user's post.html
 			// - if not found, use our own post.html
-			// - parseTemplate(sitePrefix, "", file("post.html")) // TODO: remove the funcMap argument since we will be using {{ .Content }} not {{ content }} in the interest of performance.
-			tmpl, tmplErrs, err := nbrew.parseTemplate(sitePrefix, "", request.Content)
-			if err != nil {
-				getLogger(r.Context()).Error(err.Error())
-				internalServerError(w, r, err)
-				return
-			}
-			if len(tmplErrs) > 0 {
-				response.TemplateErrors = tmplErrs
-				response.Status = ErrTemplateError
-				writeResponse(w, r, response)
-				return
-			}
-			buf := bufPool.Get().(*bytes.Buffer)
-			buf.Reset()
-			defer bufPool.Put(buf)
-			err = tmpl.ExecuteTemplate(buf, "", nil)
-			if err != nil {
-				response.TemplateErrors = append(response.TemplateErrors, Error(err.Error()))
-				response.Status = ErrTemplateError
-				writeResponse(w, r, response)
-				return
-			}
-			var name string
-			if response.Path != "pages/index.html" {
-				name = strings.TrimSuffix(tail, path.Ext(tail))
-			}
-			err = MkdirAll(nbrew.FS, path.Join(sitePrefix, "output", name), 0755)
-			if err != nil {
-				getLogger(r.Context()).Error(err.Error())
-				internalServerError(w, r, err)
-				return
-			}
-			readerFrom, err := nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, "output", name, "index.html"), 0644)
-			if err != nil {
-				getLogger(r.Context()).Error(err.Error())
-				internalServerError(w, r, err)
-				return
-			}
-			_, err = readerFrom.ReadFrom(buf)
-			if err != nil {
-				getLogger(r.Context()).Error(err.Error())
-				internalServerError(w, r, err)
-				return
-			}
+			// - parseTemplate(sitePrefix, "", file("post.html")), pass in request.Content as {{ .Content }}
+			// - if any template errors, reject the update.
 		}
 
 		// If it's a page, render page to output/*/tmp.html then if it passes rename tmp.html into index.html and write the content into admin/pages/*
