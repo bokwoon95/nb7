@@ -1,6 +1,7 @@
 // To build this file:
-// 1. npm install
-// 2. ./node_modules/.bin/esbuild ./static/codemirror.ts --outfile=./static/codemirror.js --bundle --minify
+// 1. Navigate to the project root where package.json is located.
+// 1. Run npm install
+// 2. Run ./node_modules/.bin/esbuild ./static/codemirror.ts --outfile=./static/codemirror.js --bundle --minify
 import { EditorState, Prec } from '@codemirror/state';
 import { EditorView, lineNumbers, drawSelection, rectangularSelection, crosshairCursor, keymap } from '@codemirror/view';
 import { indentWithTab, history, defaultKeymap, historyKeymap } from '@codemirror/commands';
