@@ -11,7 +11,13 @@
 <script type="module" src="/admin/static/disable-click-selection.js"></script>
 <script type="module" src="/admin/static/dismiss-alert.js"></script>
 <script type="module" src="/admin/static/go-back.js"></script>
-<title>{{ if title }}{{ title }}{{ else }}Untitled{{ end }}</title>
+<title>
+    {{- if or (eq (head $.Path) "") (eq (head $.Path) "") }}
+    {{ if title }}{{ title }}{{ else }}Untitled{{ end }}
+    {{- else }}
+    {{ base $.Path }}
+    {{- end }}
+</title>
 <body class="centered-body">
 <nav class="mv2 bg-dark-cyan white flex flex-wrap items-center">
     {{- if $.ContentSiteURL }}

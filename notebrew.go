@@ -837,6 +837,6 @@ func neatenURL(s string) string {
 	return strings.TrimSuffix(strings.TrimPrefix(s, "http://"), "/")
 }
 
-func templateError(err Error) template.HTML {
-	return template.HTML(err)
+func templateError(v any) template.HTML {
+	return template.HTML(fmt.Sprint(v))
 }

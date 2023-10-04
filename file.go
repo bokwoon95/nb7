@@ -367,7 +367,7 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 			buf := bufPool.Get().(*bytes.Buffer)
 			buf.Reset()
 			defer bufPool.Put(buf)
-			err = tmpl.ExecuteTemplate(buf, "", nil)
+			err = tmpl.ExecuteTemplate(buf, filePath, nil)
 			if err != nil {
 				response.TemplateErrors = append(response.TemplateErrors, err.Error())
 				response.Status = ErrTemplateError

@@ -23,14 +23,6 @@ import (
 )
 
 func (nbrew *Notebrew) parseTemplate(sitePrefix string, cache map[string]*template.Template, errmsgs map[string][]string, callers []string, templateName, templateText string) (*template.Template, error) {
-	if slices.Contains(callers, templateName) {
-		errmsgs[callers[0]] = append(errmsgs[callers[0]], fmt.Sprintf(
-			"calling %s ends in a circular reference: %s",
-			callers[0],
-			strings.Join(append(callers, templateName), " => "),
-		))
-		return nil, nil
-	}
 	primaryTemplate, err := template.New(templateName).Funcs(commonFuncMap).Parse(templateText)
 	if err != nil {
 		errmsgs[templateName] = append(errmsgs[templateName], strings.TrimSpace(strings.TrimPrefix(err.Error(), "template:")))
@@ -89,6 +81,14 @@ func (nbrew *Notebrew) parseTemplate(sitePrefix string, cache map[string]*templa
 				errmsgs[name] = append(errmsgs[name], fmt.Sprintf("%s calls nonexistent template %q", templateName, name))
 				continue
 			}
+			if slices.Contains(callers, name) {
+				errmsgs[callers[0]] = append(errmsgs[callers[0]], fmt.Sprintf(
+					"calling %s ends in a circular reference: %s",
+					callers[0],
+					strings.Join(append(callers, name), " => "),
+				))
+				return nil, nil
+			}
 			if err != nil {
 				return nil, fmt.Errorf("%s: open %s: %w", templateName, name, err)
 			}
@@ -111,6 +111,9 @@ func (nbrew *Notebrew) parseTemplate(sitePrefix string, cache map[string]*templa
 			if err != nil {
 				return nil, err
 			}
+			if tmpl == nil {
+				continue
+			}
 			cache[name] = tmpl
 		}
 		for _, tmpl := range tmpl.Templates() {
@@ -129,7 +132,7 @@ func (nbrew *Notebrew) parseTemplate(sitePrefix string, cache map[string]*templa
 			return nil, fmt.Errorf("%s: add %s: %w", templateName, tmpl.Name(), err)
 		}
 	}
-	return nil, nil
+	return finalTemplate, nil
 }
 
 var gzipPool = sync.Pool{
