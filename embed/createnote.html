@@ -5,6 +5,7 @@
 <link rel="icon" href="data:,">
 <link rel="stylesheet" href="/admin/static/tachyons.min.css">
 <link rel="stylesheet" href="/admin/static/styles.css">
+<script type="module" src="/admin/static/codemirror.js"></script>
 <script type="module" src="/admin/static/dismiss-alert.js"></script>
 <script type="module" src="/admin/static/go-back.js"></script>
 <title>Create note</title>
@@ -69,7 +70,9 @@ my day trip to hokkaido =&gt; https://example.com/notes/my-day-trip-to-hokkaido/
     </div>
     <div class="mv2">
         <div><label for="content" class="b">Content:</label></div>
-        <textarea id="content" name="content" dir="auto" class="w-100 pa2 min-h5 h6 resize-vertical" autofocus data-codemirror></textarea>
+        <div data-codemirror="markdown">
+            <textarea id="content" name="content" dir="auto" class="w-100 pa2 min-h5 h6 resize-vertical" autofocus>{{ $.Content }}</textarea>
+        </div>
     </div>
     <button type="submit" class="button ba br2 pa2 mv3 w-100">Create note</button>
 </form>

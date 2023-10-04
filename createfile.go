@@ -240,7 +240,7 @@ func (nbrew *Notebrew) createfile(w http.ResponseWriter, r *http.Request, userna
 		}
 
 		if response.Ext == "html" {
-			tmpl, tmplErrs, err := nbrew.parseTemplate(sitePrefix, "", request.Content)
+			tmpl, tmplErrs, err := nbrew.parseTemplate(sitePrefix, response.Name+".html", request.Content)
 			if err != nil {
 				getLogger(r.Context()).Error(err.Error())
 				internalServerError(w, r, err)
@@ -255,7 +255,7 @@ func (nbrew *Notebrew) createfile(w http.ResponseWriter, r *http.Request, userna
 			buf := bufPool.Get().(*bytes.Buffer)
 			buf.Reset()
 			defer bufPool.Put(buf)
-			err = tmpl.ExecuteTemplate(buf, "", nil)
+			err = tmpl.ExecuteTemplate(buf, response.Name+".html", nil)
 			if err != nil {
 				response.ValidationErrors["content"] = append(response.ValidationErrors["content"], Error(err.Error()))
 				response.Status = ErrValidationFailed

@@ -745,7 +745,24 @@ func fileSizeToString(size int64) string {
 	return fmt.Sprintf("%.1f %cB", float64(size)/float64(div), "kMGTPE"[exp])
 }
 
-var commonFuncMap = map[string]any{}
+var commonFuncMap = map[string]any{
+	"list": func(v ...any) []any { return v },
+	"dict": func(v ...any) (map[string]any, error) {
+		dict := make(map[string]any)
+		if len(dict)%2 != 0 {
+			return nil, fmt.Errorf("odd number of arguments passed in")
+		}
+		for i := 0; i+1 < len(dict); i += 2 {
+			key, ok := v[i].(string)
+			if !ok {
+				return nil, fmt.Errorf("value %d (%#v) is not a string", i, v[i])
+			}
+			value := v[i+1]
+			dict[key] = value
+		}
+		return dict, nil
+	},
+}
 
 func (nbrew *Notebrew) parseTemplate(sitePrefix, templateName, templateText string) (tmpl *template.Template, templateErrors []Error, err error) {
 	var prefix string
@@ -754,7 +771,7 @@ func (nbrew *Notebrew) parseTemplate(sitePrefix, templateName, templateText stri
 	}
 	primaryTemplate, err := template.New(templateName).Funcs(commonFuncMap).Parse(templateText)
 	if err != nil {
-		templateErrors = append(templateErrors, Error(fmt.Sprintf(prefix+"%s", err)))
+		templateErrors = append(templateErrors, Error(strings.TrimSpace(strings.TrimPrefix(err.Error(), "template:"))))
 		return nil, templateErrors, nil
 	}
 	primaryTemplates := primaryTemplate.Templates()
@@ -763,7 +780,7 @@ func (nbrew *Notebrew) parseTemplate(sitePrefix, templateName, templateText stri
 	})
 	for _, primaryTemplate := range primaryTemplates {
 		name := primaryTemplate.Name()
-		if strings.HasSuffix(name, ".html") {
+		if name != templateName && strings.HasSuffix(name, ".html") {
 			templateErrors = append(templateErrors, Error(fmt.Sprintf(prefix+"define %q: defined template's name cannot end in .html", name)))
 		}
 	}
@@ -839,7 +856,7 @@ func (nbrew *Notebrew) parseTemplate(sitePrefix, templateName, templateText stri
 				text := b.String()
 				newTemplate, err := template.New(filename).Funcs(commonFuncMap).Parse(text)
 				if err != nil {
-					templateErrors = append(templateErrors, Error(fmt.Sprintf("%s: %s", filename, err)))
+					templateErrors = append(templateErrors, Error(strings.TrimSpace(strings.TrimPrefix(err.Error(), "template:"))))
 					return nil, templateErrors, nil
 				}
 				newTemplates := newTemplate.Templates()

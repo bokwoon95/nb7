@@ -228,7 +228,7 @@ func (nbrew *Notebrew) createpage(w http.ResponseWriter, r *http.Request, userna
 			return
 		}
 
-		tmpl, tmplErrs, err := nbrew.parseTemplate(sitePrefix, "", request.Content)
+		tmpl, tmplErrs, err := nbrew.parseTemplate(sitePrefix, response.Name+".html", request.Content)
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
 			internalServerError(w, r, err)
@@ -243,7 +243,7 @@ func (nbrew *Notebrew) createpage(w http.ResponseWriter, r *http.Request, userna
 		buf := bufPool.Get().(*bytes.Buffer)
 		buf.Reset()
 		defer bufPool.Put(buf)
-		err = tmpl.ExecuteTemplate(buf, "", nil)
+		err = tmpl.ExecuteTemplate(buf, response.Name+".html", nil)
 		if err != nil {
 			response.ValidationErrors["content"] = append(response.ValidationErrors["content"], Error(err.Error()))
 			response.Status = ErrValidationFailed
@@ -252,10 +252,10 @@ func (nbrew *Notebrew) createpage(w http.ResponseWriter, r *http.Request, userna
 		}
 
 		var outputFilepath string
-		if response.ParentFolder == "pages" && response.Name == "index.html" {
+		if response.ParentFolder == "pages" && response.Name == "index" {
 			outputFilepath = path.Join(sitePrefix, "output", strings.TrimPrefix(strings.Trim(response.ParentFolder, "/"), "pages"), "index.html")
 		} else {
-			outputFilepath = path.Join(sitePrefix, "output", strings.TrimPrefix(strings.Trim(response.ParentFolder, "/"), "pages"), strings.TrimSuffix(response.Name, path.Ext(response.Name)), "index.html")
+			outputFilepath = path.Join(sitePrefix, "output", strings.TrimPrefix(strings.Trim(response.ParentFolder, "/"), "pages"), response.Name, "index.html")
 		}
 		err = MkdirAll(nbrew.FS, path.Dir(outputFilepath), 0755)
 		if err != nil {

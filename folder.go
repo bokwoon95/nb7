@@ -155,10 +155,10 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 			if hasRootSite {
 				rootFolders = append(rootFolders,
 					RootFolder{Name: "notes"},
-					RootFolder{Name: "output"},
 					RootFolder{Name: "pages"},
 					RootFolder{Name: "posts"},
 					RootFolder{Name: "output/themes"},
+					RootFolder{Name: "output"},
 				)
 			} else {
 				notAuthorizedForRootSite = true

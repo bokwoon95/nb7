@@ -16,6 +16,32 @@ import (
 	"github.com/bokwoon95/sq"
 )
 
+var extTypes = map[string]string{
+	".html":  "text/html",
+	".css":   "text/css",
+	".js":    "text/javascript",
+	".md":    "text/markdown",
+	".txt":   "text/plain",
+	".csv":   "text/csv",
+	".tsv":   "text/tsv",
+	".json":  "text/json",
+	".xml":   "text/xml",
+	".toml":  "text/toml",
+	".yaml":  "text/yaml",
+	".svg":   "image/svg",
+	".ico":   "image/ico",
+	".jpeg":  "image/jpeg",
+	".jpg":   "image/jpeg",
+	".png":   "image/png",
+	".gif":   "image/gif",
+	".eot":   "font/eot",
+	".otf":   "font/otf",
+	".ttf":   "font/ttf",
+	".woff":  "font/woff",
+	".woff2": "font/woff2",
+	".gzip":  "gzip",
+}
+
 func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, sitePrefix, filePath string, fileInfo fs.FileInfo) {
 	type Request struct {
 		Content string `json:"content"`
@@ -34,19 +60,8 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 		StorageLimit   int64      `json:"storageLimit,omitempty"`
 	}
 
-	var typ string
 	ext := path.Ext(filePath)
-	switch ext {
-	case ".html", ".css", ".js", ".md", ".txt", ".csv", ".tsv", ".json", ".xml", ".toml", ".yaml", ".yml", ".svg":
-		typ = "text"
-	case ".ico", ".jpeg", ".jpg", ".png", ".gif":
-		typ = "image"
-	case ".eot", ".otf", ".ttf", ".woff", ".woff2":
-		typ = "font"
-	case ".gz":
-		typ = "gzip"
-	}
-
+	typ := extTypes[ext]
 	r.Body = http.MaxBytesReader(w, r.Body, 15<<20 /* 15MB */)
 	switch r.Method {
 	case "GET":
@@ -100,6 +115,22 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 					_, tail, _ := strings.Cut(s, "/")
 					return tail
 				},
+				"hasPrefix": func(s string, prefixes ...string) bool {
+					for _, prefix := range prefixes {
+						if strings.HasPrefix(s, prefix) {
+							return true
+						}
+					}
+					return false
+				},
+				"hasSuffix": func(s string, suffixes ...string) bool {
+					for _, suffix := range suffixes {
+						if strings.HasSuffix(s, suffix) {
+							return true
+						}
+					}
+					return false
+				},
 			}
 			tmpl, err := template.New("file.html").Funcs(funcMap).ParseFS(rootFS, "embed/file.html")
 			if err != nil {
@@ -142,10 +173,9 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 		if !modTime.IsZero() {
 			response.ModTime = &modTime
 		}
-		switch response.Type {
-		case "image", "font", "gzip":
+		if strings.HasPrefix(response.Type, "image") || strings.HasPrefix(response.Type, "font") || response.Type == "gzip" {
 			response.Location = nbrew.Scheme + nbrew.AdminDomain + "/" + path.Join("admin", sitePrefix, tail)
-		case "text":
+		} else if strings.HasPrefix(response.Type, "text") {
 			file, err := nbrew.FS.Open(path.Join(sitePrefix, filePath))
 			if err != nil {
 				getLogger(r.Context()).Error(err.Error())
@@ -162,7 +192,7 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 				return
 			}
 			response.Content = b.String()
-		default:
+		} else {
 			notFound(w, r)
 			return
 		}
