@@ -10,6 +10,7 @@ import (
 	"mime"
 	"net/http"
 	"path"
+	"slices"
 	"strings"
 	"time"
 
@@ -55,7 +56,7 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 		Type           string     `json:"type,omitempty"`
 		Content        string     `json:"content,omitempty"`
 		Location       string     `json:"location,omitempty"`
-		TemplateErrors []Error    `json:"templateErrors,omitempty"`
+		TemplateErrors []string   `json:"templateErrors,omitempty"`
 		StorageUsed    int64      `json:"storageUsed,omitempty"`
 		StorageLimit   int64      `json:"storageLimit,omitempty"`
 	}
@@ -331,15 +332,34 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 		}
 
 		// If it's a page, render page to output/*/tmp.html then if it passes rename tmp.html into index.html and write the content into admin/pages/*
-		if head == "pages" {
-			tmpl, tmplErrs, err := nbrew.parseTemplate_Old(sitePrefix, "", request.Content)
+		if head == "pages" && ext == ".html" {
+			cache := make(map[string]*template.Template)
+			errmsgs := make(map[string][]string)
+			tmpl, err := nbrew.parseTemplate(sitePrefix, cache, errmsgs, nil, filePath, response.Content)
 			if err != nil {
 				getLogger(r.Context()).Error(err.Error())
 				internalServerError(w, r, err)
 				return
 			}
-			if len(tmplErrs) > 0 {
-				response.TemplateErrors = tmplErrs
+			if len(errmsgs) > 0 {
+				names := make([]string, 0, len(errmsgs))
+				for name := range errmsgs {
+					names = append(names, name)
+				}
+				slices.SortFunc(names, func(name1, name2 string) int {
+					if name1 == filePath {
+						return -1
+					}
+					if name2 == filePath {
+						return 1
+					}
+					return strings.Compare(name1, name2)
+				})
+				for _, name := range names {
+					for _, msg := range errmsgs[name] {
+						response.TemplateErrors = append(response.TemplateErrors, msg)
+					}
+				}
 				response.Status = ErrTemplateError
 				writeResponse(w, r, response)
 				return
@@ -349,22 +369,24 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 			defer bufPool.Put(buf)
 			err = tmpl.ExecuteTemplate(buf, "", nil)
 			if err != nil {
-				response.TemplateErrors = append(response.TemplateErrors, Error(err.Error()))
+				response.TemplateErrors = append(response.TemplateErrors, err.Error())
 				response.Status = ErrTemplateError
 				writeResponse(w, r, response)
 				return
 			}
-			var name string
-			if response.Path != "pages/index.html" {
-				name = strings.TrimSuffix(tail, path.Ext(tail))
+			var outputFilepath string
+			if response.Path == "pages/index.html" {
+				outputFilepath = path.Join(sitePrefix, "output", "index.html")
+			} else {
+				outputFilepath = path.Join(sitePrefix, "output", strings.TrimSuffix(tail, path.Ext(tail)), "index.html")
 			}
-			err = MkdirAll(nbrew.FS, path.Join(sitePrefix, "output", name), 0755)
+			err = MkdirAll(nbrew.FS, path.Dir(outputFilepath), 0755)
 			if err != nil {
 				getLogger(r.Context()).Error(err.Error())
 				internalServerError(w, r, err)
 				return
 			}
-			readerFrom, err := nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, "output", name, "index.html"), 0644)
+			readerFrom, err := nbrew.FS.OpenReaderFrom(outputFilepath, 0644)
 			if err != nil {
 				getLogger(r.Context()).Error(err.Error())
 				internalServerError(w, r, err)

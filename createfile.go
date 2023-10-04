@@ -1,7 +1,6 @@
 package nb7
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -237,31 +236,6 @@ func (nbrew *Notebrew) createfile(w http.ResponseWriter, r *http.Request, userna
 			response.Status = ErrValidationFailed
 			writeResponse(w, r, response)
 			return
-		}
-
-		if response.Ext == "html" {
-			tmpl, tmplErrs, err := nbrew.parseTemplate_Old(sitePrefix, response.Name+".html", request.Content)
-			if err != nil {
-				getLogger(r.Context()).Error(err.Error())
-				internalServerError(w, r, err)
-				return
-			}
-			if len(tmplErrs) > 0 {
-				response.ValidationErrors["content"] = tmplErrs
-				response.Status = ErrValidationFailed
-				writeResponse(w, r, response)
-				return
-			}
-			buf := bufPool.Get().(*bytes.Buffer)
-			buf.Reset()
-			defer bufPool.Put(buf)
-			err = tmpl.ExecuteTemplate(buf, response.Name+".html", nil)
-			if err != nil {
-				response.ValidationErrors["content"] = append(response.ValidationErrors["content"], Error(err.Error()))
-				response.Status = ErrValidationFailed
-				writeResponse(w, r, response)
-				return
-			}
 		}
 
 		readerFrom, err := nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, response.ParentFolder, response.Name+"."+response.Ext), 0644)

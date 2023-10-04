@@ -228,14 +228,34 @@ func (nbrew *Notebrew) createpage(w http.ResponseWriter, r *http.Request, userna
 			return
 		}
 
-		tmpl, tmplErrs, err := nbrew.parseTemplate_Old(sitePrefix, response.Name+".html", request.Content)
+		cache := make(map[string]*template.Template)
+		errmsgs := make(map[string][]string)
+		templateName := response.Name + ".html"
+		tmpl, err := nbrew.parseTemplate(sitePrefix, cache, errmsgs, nil, templateName, response.Content)
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
 			internalServerError(w, r, err)
 			return
 		}
-		if len(tmplErrs) > 0 {
-			response.ValidationErrors["content"] = tmplErrs
+		if len(errmsgs) > 0 {
+			names := make([]string, 0, len(errmsgs))
+			for name := range errmsgs {
+				names = append(names, name)
+			}
+			slices.SortFunc(names, func(name1, name2 string) int {
+				if name1 == templateName {
+					return -1
+				}
+				if name2 == templateName {
+					return 1
+				}
+				return strings.Compare(name1, name2)
+			})
+			for _, name := range names {
+				for _, msg := range errmsgs[name] {
+					response.ValidationErrors["content"] = append(response.ValidationErrors["content"], Error(msg))
+				}
+			}
 			response.Status = ErrValidationFailed
 			writeResponse(w, r, response)
 			return
@@ -243,7 +263,7 @@ func (nbrew *Notebrew) createpage(w http.ResponseWriter, r *http.Request, userna
 		buf := bufPool.Get().(*bytes.Buffer)
 		buf.Reset()
 		defer bufPool.Put(buf)
-		err = tmpl.ExecuteTemplate(buf, response.Name+".html", nil)
+		err = tmpl.ExecuteTemplate(buf, templateName, nil)
 		if err != nil {
 			response.ValidationErrors["content"] = append(response.ValidationErrors["content"], Error(err.Error()))
 			response.Status = ErrValidationFailed

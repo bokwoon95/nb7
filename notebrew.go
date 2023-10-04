@@ -438,86 +438,6 @@ var bufPool = sync.Pool{
 	New: func() any { return &bytes.Buffer{} },
 }
 
-var gzipPool = sync.Pool{
-	New: func() any {
-		// Use compression level 4 for best balance between space and
-		// performance.
-		// https://blog.klauspost.com/gzip-performance-for-go-webservers/
-		gzipWriter, _ := gzip.NewWriterLevel(nil, 4)
-		return gzipWriter
-	},
-}
-
-var hashPool = sync.Pool{
-	New: func() any {
-		hash, err := blake2b.New256(nil)
-		if err != nil {
-			panic(err)
-		}
-		return hash
-	},
-}
-
-var bytesPool = sync.Pool{
-	New: func() any {
-		b := make([]byte, 0, 64)
-		return &b
-	},
-}
-
-func executeTemplate(w http.ResponseWriter, r *http.Request, modtime time.Time, tmpl *template.Template, data any) {
-	buf := bufPool.Get().(*bytes.Buffer)
-	buf.Reset()
-	defer bufPool.Put(buf)
-
-	hasher := hashPool.Get().(hash.Hash)
-	hasher.Reset()
-	defer hashPool.Put(hasher)
-
-	multiWriter := io.MultiWriter(buf, hasher)
-	gzipWriter := gzipPool.Get().(*gzip.Writer)
-	gzipWriter.Reset(multiWriter)
-	defer gzipPool.Put(gzipWriter)
-
-	err := tmpl.Execute(gzipWriter, data)
-	if err != nil {
-		getLogger(r.Context()).Error(err.Error(), slog.String("data", fmt.Sprintf("%#v", data)))
-		internalServerError(w, r, err)
-		return
-	}
-	err = gzipWriter.Close()
-	if err != nil {
-		getLogger(r.Context()).Error(err.Error())
-		internalServerError(w, r, err)
-		return
-	}
-
-	src := bytesPool.Get().(*[]byte)
-	*src = (*src)[:0]
-	defer bytesPool.Put(src)
-
-	dst := bytesPool.Get().(*[]byte)
-	*dst = (*dst)[:0]
-	defer bytesPool.Put(dst)
-
-	*src = hasher.Sum(*src)
-	encodedLen := hex.EncodedLen(len(*src))
-	if cap(*dst) < encodedLen {
-		*dst = make([]byte, encodedLen)
-	}
-	*dst = (*dst)[:encodedLen]
-	hex.Encode(*dst, *src)
-
-	if _, ok := w.Header()["Content-Security-Policy"]; !ok {
-		w.Header().Set("Content-Security-Policy", defaultContentSecurityPolicy)
-	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Content-Encoding", "gzip")
-	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("ETag", string(*dst))
-	http.ServeContent(w, r, "", modtime, bytes.NewReader(buf.Bytes()))
-}
-
 func getIP(r *http.Request) string {
 	// Get IP from the X-REAL-IP header
 	ip := r.Header.Get("X-REAL-IP")
@@ -774,7 +694,7 @@ func (nbrew *Notebrew) parseTemplate_Old(sitePrefix, templateName, templateText 
 		templateErrors = append(templateErrors, Error(strings.TrimSpace(strings.TrimPrefix(err.Error(), "template:"))))
 		return nil, templateErrors, nil
 	}
-	// parseTemplate
+	// parseTemplate(cache map[string]*template.Template, templateErrors map[string][]string, sitePrefix, templateName, templateText string) (*template.Template, error)
 	// errors in a template:
 	// - syntax (parse) errors
 	// - .html errors
