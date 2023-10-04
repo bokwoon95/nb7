@@ -139,7 +139,7 @@
         {{- else if eq $entry.Name "output" }}
         <details data-dont-autoclose-details>
             <summary class="pointer hide-marker flex flex-wrap items-center" data-disable-click-selection>
-                {{ template "heroicons-dir" }}
+                {{ template "heroicons-globe" }}
                 <a href="/{{ join `admin` sitePrefix `output` }}/" class="linktext ma1 dib">output/</a>
                 <span class="f6 mid-gray">({{ filecount $entry.NumFolders $entry.NumFiles}})</span>
                 <span class="flex-grow-1"></span>

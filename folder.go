@@ -339,12 +339,26 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 		}
 	}
 	slices.SortFunc(folderEntries, func(a, b Entry) int {
-		isSite1 := strings.HasPrefix(a.Name, "@") || strings.Contains(a.Name, ".")
-		isSite2 := strings.HasPrefix(b.Name, "@") || strings.Contains(b.Name, ".")
-		if isSite1 && !isSite2 {
+		isSiteA := strings.HasPrefix(a.Name, "@") || strings.Contains(a.Name, ".")
+		isSiteB := strings.HasPrefix(b.Name, "@") || strings.Contains(b.Name, ".")
+		// Custom rule: the output folder comes after all folders but before
+		// all sites.
+		if a.Name == "output" {
+			if isSiteB {
+				return -1
+			}
 			return 1
 		}
-		if !isSite1 && isSite2 {
+		if b.Name == "output" {
+			if isSiteA {
+				return 1
+			}
+			return -1
+		}
+		if isSiteA && !isSiteB {
+			return 1
+		}
+		if !isSiteA && isSiteB {
 			return -1
 		}
 		return strings.Compare(path.Base(a.Name), path.Base(b.Name))
