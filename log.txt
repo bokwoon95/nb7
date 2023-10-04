@@ -32,6 +32,8 @@ TODO: what if the generated pages are compressed, does file.go still handle disp
 TODO: notebrew createpost, notebrew createnote "this is a new note" -site bokwoon -category breh -slug "weegee"
 TODO: allow users to update their email address, but whenever that happens send a message to the old email with a password reset link (add new columns: users.old_email, users.old_email_reset_token_hash) that is invalidated after like 30 days. So if the user has their email changed by an attacker they have up to 30 days to take back control. Once a new password is set, the email reverts back to the old one.
 TODO: upload files, download themes from github
+- output/themes dropdown > download theme > enter URL > uses go-git to clone a repo from github.
+- downloadtheme.go/downloadtheme.html
 TODO: coalesce the following into a single "site" tab in the menu bar
 - the link to the content site
 - the storage used and storage breakdown
