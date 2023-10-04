@@ -384,13 +384,7 @@ var commonPasswordHashes = make(map[string]struct{})
 func init() {
 	file, err := rootFS.Open("embed/top-10000-passwords.txt")
 	if err != nil {
-		if errors.Is(err, fs.ErrNotExist) {
-			panic("could not locate necessary files for startup." +
-				"\n\n- If you are a non-technical user, this means you downloaded the non-embedded version of notebrew. Please over to <install docs> to download the version with the necessary dependency files embedded." +
-				"\n\n- If you are a developer, this means you built the binary with the \"dev\" build tag. Please omit that tag when building from source.",
-			)
-		}
-		panic(err)
+		return
 	}
 	defer file.Close()
 	reader := bufio.NewReader(file)

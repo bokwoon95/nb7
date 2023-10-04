@@ -20,6 +20,19 @@ import (
 )
 
 func New(fsys FS) (*Notebrew, error) {
+	_, err := fs.Stat(rootFS, "embed/top-10000-passwords.txt")
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil, fmt.Errorf("== notebrew ==" +
+				"\n\nCould not locate necessary files for startup." +
+				"\n\n- If you are a non-technical user, this means you downloaded the wrong (non-embedded) version of notebrew." +
+				"\nPlease over to <install docs> to download the right version with the necessary dependency files embedded." +
+				"\n\n- If you are a developer, this means you built the binary with the \"dev\" build tag." +
+				"\nPlease omit that tag when building from source.\n",
+			)
+		}
+		return nil, err
+	}
 	nbrew := &Notebrew{
 		FS:        fsys,
 		ErrorCode: func(error) string { return "" },
