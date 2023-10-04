@@ -764,7 +764,7 @@ var commonFuncMap = map[string]any{
 	},
 }
 
-func (nbrew *Notebrew) parseTemplate(sitePrefix, templateName, templateText string) (tmpl *template.Template, templateErrors []Error, err error) {
+func (nbrew *Notebrew) parseTemplate_Old(sitePrefix, templateName, templateText string) (tmpl *template.Template, templateErrors []Error, err error) {
 	var prefix string
 	if templateName != "" {
 		prefix = templateName + ": "
@@ -774,6 +774,11 @@ func (nbrew *Notebrew) parseTemplate(sitePrefix, templateName, templateText stri
 		templateErrors = append(templateErrors, Error(strings.TrimSpace(strings.TrimPrefix(err.Error(), "template:"))))
 		return nil, templateErrors, nil
 	}
+	// parseTemplate
+	// errors in a template:
+	// - syntax (parse) errors
+	// - .html errors
+	// - .html not exist in themes errors
 	primaryTemplates := primaryTemplate.Templates()
 	slices.SortFunc(primaryTemplates, func(t1, t2 *template.Template) int {
 		return strings.Compare(t1.Name(), t2.Name())

@@ -332,7 +332,7 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 
 		// If it's a page, render page to output/*/tmp.html then if it passes rename tmp.html into index.html and write the content into admin/pages/*
 		if head == "pages" {
-			tmpl, tmplErrs, err := nbrew.parseTemplate(sitePrefix, "", request.Content)
+			tmpl, tmplErrs, err := nbrew.parseTemplate_Old(sitePrefix, "", request.Content)
 			if err != nil {
 				getLogger(r.Context()).Error(err.Error())
 				internalServerError(w, r, err)
