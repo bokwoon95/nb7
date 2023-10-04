@@ -37,7 +37,8 @@ TODO: coalesce the following into a single "site" tab in the menu bar
 - the storage used and storage breakdown
 - site-wide search
 TODO: cut | copy | paste | rename (no need for link indexing and rewriting yet, that comes later)
-TODO: Once we figure out rendering, we can implement render-on-write whenever a user creates or updates a file. That means we can also implement viewing the content page! Which means implementing the default post.html and posts.html templates!
+TODO: re-render the whole site whenever a html file in output/themes gets updated.
+TODO: render post.html on post.md creation/update/delete. This requires implementing the default posts.html and post.html templates.
 
 output folder trails pages and posts
 on page creation => generate output page
