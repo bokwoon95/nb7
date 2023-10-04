@@ -24,10 +24,8 @@ import (
 	"net/http"
 	"net/netip"
 	"path"
-	"slices"
 	"strings"
 	"sync"
-	"text/template/parse"
 	"time"
 	"unicode"
 	"unicode/utf8"
@@ -682,137 +680,6 @@ var commonFuncMap = map[string]any{
 		}
 		return dict, nil
 	},
-}
-
-func (nbrew *Notebrew) parseTemplate_Old(sitePrefix, templateName, templateText string) (tmpl *template.Template, templateErrors []Error, err error) {
-	var prefix string
-	if templateName != "" {
-		prefix = templateName + ": "
-	}
-	primaryTemplate, err := template.New(templateName).Funcs(commonFuncMap).Parse(templateText)
-	if err != nil {
-		templateErrors = append(templateErrors, Error(strings.TrimSpace(strings.TrimPrefix(err.Error(), "template:"))))
-		return nil, templateErrors, nil
-	}
-	// parseTemplate(cache map[string]*template.Template, templateErrors map[string][]string, sitePrefix, templateName, templateText string) (*template.Template, error)
-	// errors in a template:
-	// - syntax (parse) errors
-	// - .html errors
-	// - .html not exist in themes errors
-	primaryTemplates := primaryTemplate.Templates()
-	slices.SortFunc(primaryTemplates, func(t1, t2 *template.Template) int {
-		return strings.Compare(t1.Name(), t2.Name())
-	})
-	for _, primaryTemplate := range primaryTemplates {
-		name := primaryTemplate.Name()
-		if name != templateName && strings.HasSuffix(name, ".html") {
-			templateErrors = append(templateErrors, Error(fmt.Sprintf(prefix+"define %q: defined template's name cannot end in .html", name)))
-		}
-	}
-	if len(templateErrors) > 0 {
-		return nil, templateErrors, nil
-	}
-	var currentNode parse.Node
-	var nodeStack []parse.Node
-	var currentTemplate *template.Template
-	templateStack := slices.Clone(primaryTemplates)
-	finalTemplate := template.New(templateName).Funcs(commonFuncMap)
-	visited := make(map[string]struct{})
-	for len(templateStack) > 0 {
-		currentTemplate, templateStack = templateStack[len(templateStack)-1], templateStack[:len(templateStack)-1]
-		if currentTemplate.Tree == nil {
-			continue
-		}
-		if cap(nodeStack) < len(currentTemplate.Tree.Root.Nodes) {
-			nodeStack = make([]parse.Node, 0, len(currentTemplate.Tree.Root.Nodes))
-		}
-		for i := len(currentTemplate.Tree.Root.Nodes) - 1; i >= 0; i-- {
-			nodeStack = append(nodeStack, currentTemplate.Tree.Root.Nodes[i])
-		}
-		for len(nodeStack) > 0 {
-			currentNode, nodeStack = nodeStack[len(nodeStack)-1], nodeStack[:len(nodeStack)-1]
-			switch node := currentNode.(type) {
-			case *parse.ListNode:
-				if node == nil {
-					continue
-				}
-				for i := len(node.Nodes) - 1; i >= 0; i-- {
-					nodeStack = append(nodeStack, node.Nodes[i])
-				}
-			case *parse.BranchNode:
-				nodeStack = append(nodeStack, node.ElseList, node.List)
-			case *parse.RangeNode:
-				nodeStack = append(nodeStack, node.ElseList, node.List)
-			case *parse.TemplateNode:
-				if !strings.HasSuffix(node.Name, ".html") {
-					continue
-				}
-				filename := node.Name
-				if _, ok := visited[filename]; ok {
-					continue
-				}
-				visited[filename] = struct{}{}
-				var prefix string
-				if currentTemplate.Name() != "" {
-					prefix = currentTemplate.Name() + ": "
-				}
-				file, err := nbrew.FS.Open(path.Join(sitePrefix, "output/themes", filename))
-				if errors.Is(err, fs.ErrNotExist) {
-					templateErrors = append(templateErrors, Error(fmt.Sprintf(prefix+"template %q does not exist", filename)))
-					return nil, templateErrors, nil
-				}
-				if err != nil {
-					return nil, nil, fmt.Errorf(prefix+"open %s: %w", filename, err)
-				}
-				fileinfo, err := file.Stat()
-				if err != nil {
-					return nil, nil, fmt.Errorf(prefix+"stat %s: %w", filename, err)
-				}
-				var b strings.Builder
-				b.Grow(int(fileinfo.Size()))
-				_, err = io.Copy(&b, file)
-				if err != nil {
-					return nil, nil, fmt.Errorf(prefix+"copy %s: %w", filename, err)
-				}
-				err = file.Close()
-				if err != nil {
-					return nil, nil, fmt.Errorf(prefix+"close %s: %w", filename, err)
-				}
-				text := b.String()
-				newTemplate, err := template.New(filename).Funcs(commonFuncMap).Parse(text)
-				if err != nil {
-					templateErrors = append(templateErrors, Error(strings.TrimSpace(strings.TrimPrefix(err.Error(), "template:"))))
-					return nil, templateErrors, nil
-				}
-				newTemplates := newTemplate.Templates()
-				slices.SortFunc(newTemplates, func(t1, t2 *template.Template) int {
-					return strings.Compare(t1.Name(), t2.Name())
-				})
-				for _, newTemplate := range newTemplates {
-					name := newTemplate.Name()
-					if name != filename && strings.HasSuffix(name, ".html") {
-						templateErrors = append(templateErrors, Error(fmt.Sprintf("%s: define %q: defined template name cannot end in .html", filename, name)))
-						continue
-					}
-					_, err = finalTemplate.AddParseTree(name, newTemplate.Tree)
-					if err != nil {
-						return nil, nil, fmt.Errorf(prefix+"add %s: %w", filename, err)
-					}
-					templateStack = append(templateStack, newTemplate)
-				}
-				if len(templateErrors) > 0 {
-					return nil, templateErrors, nil
-				}
-			}
-		}
-	}
-	for _, primaryTemplate := range primaryTemplates {
-		_, err = finalTemplate.AddParseTree(primaryTemplate.Name(), primaryTemplate.Tree)
-		if err != nil {
-			return nil, nil, fmt.Errorf(prefix+"add %s: %w", primaryTemplate.Name(), err)
-		}
-	}
-	return finalTemplate, nil, nil
 }
 
 func contentSiteURL(nbrew *Notebrew, sitePrefix string) string {

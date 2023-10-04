@@ -20,6 +20,21 @@
     <a href="" class="ma2">{{ if username }}@{{ username }}{{ else }}user{{ end }}</a>
     <a href="/admin/logout/" class="ma2">logout</a>
 </nav>
+{{- if and $.Status (ne $.Status.Code "NB-00000") }}
+{{- if $.Status.Success }}
+<div role="alert" class="alert-success mv2 pa2 br2 flex items-center">
+    <div>{{ safeHTML $.Status.Message }}</div>
+    <div class="flex-grow-1"></div>
+    <button class="f3 bg-transparent bn color-success o-70 hover-black" data-dismiss-alert>&times;</button>
+</div>
+{{- else }}
+<div role="alert" class="alert-danger mv2 pa2 br2 flex items-center">
+    <div>{{ safeHTML $.Status.Message }}</div>
+    <div class="flex-grow-1"></div>
+    <button class="f3 bg-transparent bn color-success o-70 hover-black" data-dismiss-alert>&times;</button>
+</div>
+{{- end }}
+{{- end }}
 <div class="mv2">
     {{- if referer }}
     <a href="{{ referer }}" class="linktext" data-go-back>&larr; back</a>

@@ -134,6 +134,7 @@ func (nbrew *Notebrew) createcategory(w http.ResponseWriter, r *http.Request, us
 					nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix, resource, response.Category)+"/",
 					response.Category,
 				),
+				"category": response.Category,
 			})
 			if err != nil {
 				getLogger(r.Context()).Error(err.Error())
