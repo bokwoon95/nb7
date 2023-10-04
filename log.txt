@@ -26,6 +26,7 @@ new.go
 Search Indexing => Link Indexing and rewrites => PWA => publish
 the last thing would probably be to make the site into a usable PWA on iOS then you're done, you can publish it to the world.
 
+TODO: why does clicking a *.html.gz file hang and then 404? What's being calculated here?
 TODO: rethink error codes: I don't like how some validation errors are also standalone errors, maybe merge them together and split them by some other fault line
 TODO: what if the generated pages are compressed, does file.go still handle displaying the contents transparently?
 TODO: notebrew createpost, notebrew createnote "this is a new note" -site bokwoon -category breh -slug "weegee"
@@ -37,7 +38,6 @@ TODO: coalesce the following into a single "site" tab in the menu bar
 - site-wide search
 TODO: cut | copy | paste | rename (no need for link indexing and rewriting yet, that comes later)
 TODO: Once we figure out rendering, we can implement render-on-write whenever a user creates or updates a file. That means we can also implement viewing the content page! Which means implementing the default post.html and posts.html templates!
-TODO: see if you can get codemirror to play nice with the b--invalid-red border from tachyons
 
 output folder trails pages and posts
 on page creation => generate output page
