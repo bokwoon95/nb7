@@ -46,7 +46,7 @@
     <div class="mv2">
         <div><label for="name" class="b">Name:</label></div>
         <div class="flex items-center">
-            <input id="name" name="name" value="{{ $.Name }}" class="pv1 ph2 br2 ba flex-grow-1{{ if index $.ValidationErrors `name` }} b--invalid-red{{ end }}" required autofocus>
+            <input id="name" name="name" value="{{ $.Name }}" class="pv1 ph2 br2 ba flex-grow-1{{ if index $.ValidationErrors `name` }} b--invalid-red{{ end }}" autocomplete="on" required autofocus>
             <span class="mh1">.html</span>
         </div>
         <ul>
@@ -57,7 +57,9 @@
     </div>
     <div class="mv2">
         <div><label for="content" class="b">Content:</label></div>
-        <textarea id="content" name="content" dir="auto" class="w-100 pa2 min-h5 h6 resize-vertical" data-codemirror>{{ $.Content }}</textarea>
+        <div data-codemirror>
+            <textarea id="content" name="content" dir="auto" class="w-100 pa2 min-h5 h6 resize-vertical">{{ $.Content }}</textarea>
+        </div>
         <ul>
             {{- range $i, $error := index $.ValidationErrors "content" }}
             <li class="f6 invalid-red list-style-disc">{{ templateError $error }}</li>
