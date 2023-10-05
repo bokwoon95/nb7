@@ -32,15 +32,6 @@ func (nbrew *Notebrew) createpost(w http.ResponseWriter, r *http.Request, userna
 		Categories       []string           `json:"categories,omitempty"`
 		ValidationErrors map[string][]Error `json:"validationErrors,omitempty"`
 	}
-	type Post struct {
-		Category     string
-		Name         string
-		Title        string
-		Preview      string
-		Content      template.HTML
-		CreationDate time.Time
-		LastModified time.Time
-	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 2<<20 /* 2MB */)
 	switch r.Method {

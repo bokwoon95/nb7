@@ -701,3 +701,17 @@ func neatenURL(s string) string {
 func templateError(v any) template.HTML {
 	return template.HTML(fmt.Sprint(v))
 }
+
+type Post struct {
+	Category     string
+	Name         string
+	Title        string
+	Preview      string
+	Content      template.HTML
+	CreationDate time.Time
+	LastModified time.Time
+}
+
+func (nbrew *Notebrew) getPosts(sitePrefix, category string) ([]Post, error) {
+	return nil, nil
+}
