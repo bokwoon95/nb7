@@ -2,18 +2,26 @@
 <html lang="en">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="icon" href="data:,">
-<link rel="stylesheet" href="{{ $.AdminURL }}/admin/static/minimal.css">
-<title>{{ neatenURL $.ContentURL }}</title>
+<link rel="stylesheet" href="/admin/static/minimal.css">
+<title>{{ shortSiteURL }} posts</title>
 
-<h3><a href="{{ $.ContentURL }}">{{ neatenURL $.ContentURL }}</a> &boxv; <a href="{{ $.ContentURL }}/posts/">posts</a></h3>
+<div><a href="{{ siteURL }}" class="linktext">{{ shortSiteURL }}</a> &boxv; <a href="{{ siteURL }}/posts/" class="linktext">posts</a></div>
 
 <hr>
 
+<h1>Posts</h1>
+
 {{- if $.Posts }}
 <ul>
-{{- range $post := $.Posts }}
-<li><a href="{{ $post.URL }}">{{ $post.Title }}</a></li>
-{{- end }}
+    {{- range $post := index $.Posts "" }}
+    <li class="mv3">
+        <div>
+            <a href="{{ siteURL }}/{{ join $post.Category $post.Name }}" class="b linktext">{{ $post.Title }}</a>
+            <span class="f6 mid-gray ml2">{{ $post.CreationDate.Format "2006-01-02" }}</span>
+        </div>
+        <div class="f6 truncate mv1" title="{{ $post.Preview }}">{{ $post.Preview }}</div>
+    </li>
+    {{- end }}
 </ul>
 {{- else }}
 <p>No posts</p>

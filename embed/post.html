@@ -2,21 +2,17 @@
 <html lang="en">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="icon" href="data:,">
-<link rel="stylesheet" href="{{ $.AdminURL }}/admin/static/minimal.css">
-<title>{{ $.Title }}</title>
+<link rel="stylesheet" href="/admin/static/minimal.css">
+<title>{{ .Title }}</title>
 
-<h3><a href="{{ $.ContentURL }}">{{ neatenURL $.ContentURL }}</a> &boxv; <a href="{{ $.ContentURL }}/posts/">posts</a></h3>
-
-<hr>
-
-{{- if not $.CreationDate.IsZero }}
-<div class="f6 mid-gray">{{ $.CreationDate.Format "2006-01-02" }}</div>
-{{- end }}
-
-{{ $.Content }}
+<div><a href="{{ siteURL }}" class="linktext">{{ shortSiteURL }}</a> &boxv; <a href="{{ siteURL }}/posts/" class="linktext">posts</a></div>
 
 <hr>
 
-{{- if not $.LastModified.IsZero }}
-<div class="f6 mid-gray">modified {{ $.LastModified.Format "2006-01-02 15:04:05Z" }}</div>
-{{- end }}
+<div class="f6 mid-gray">{{ $post.CreationDate.Format "2006-01-02" }}</div>
+
+{{ .Content }}
+
+<hr>
+
+<div class="f6 mid-gray">modified {{ $post.LastModified.Format "2006-01-02 15:04:05Z" }}</div>
