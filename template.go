@@ -106,10 +106,6 @@ func (parser *TemplateParser) Parse(ctx context.Context, templateName, templateT
 }
 
 func (parser *TemplateParser) parse(ctx context.Context, templateName, templateText string, callers []string) (*template.Template, error) {
-	err := ctx.Err()
-	if err != nil {
-		return nil, err
-	}
 	primaryTemplate, err := template.New(templateName).Funcs(parser.funcMap).Parse(templateText)
 	if err != nil {
 		parser.mu.Lock()
@@ -176,6 +172,10 @@ func (parser *TemplateParser) parse(ctx context.Context, templateName, templateT
 	})
 	names = slices.Compact(names)
 	for _, name := range names {
+		err := ctx.Err()
+		if err != nil {
+			return nil, err
+		}
 		parser.mu.RLock()
 		tmpl := parser.cache[name]
 		parser.mu.RUnlock()
@@ -240,6 +240,10 @@ func (parser *TemplateParser) parse(ctx context.Context, templateName, templateT
 		return nil, TemplateErrors(errmsgs)
 	}
 	for _, tmpl := range primaryTemplates {
+		err := ctx.Err()
+		if err != nil {
+			return nil, err
+		}
 		_, err = finalTemplate.AddParseTree(tmpl.Name(), tmpl.Tree)
 		if err != nil {
 			return nil, fmt.Errorf("%s: add %s: %w", templateName, tmpl.Name(), err)
