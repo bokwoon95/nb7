@@ -51,7 +51,7 @@ func NewTemplateParser(nbrew *Notebrew, sitePrefix string) *TemplateParser {
 	} else if siteName != "" {
 		switch nbrew.MultisiteMode {
 		case "subdomain":
-			siteURL = nbrew.Scheme + strings.TrimPrefix(sitePrefix, "@") + "." + nbrew.ContentDomain
+			siteURL = nbrew.Scheme + siteName + "." + nbrew.ContentDomain
 		case "subdirectory":
 			siteURL = nbrew.Scheme + nbrew.ContentDomain + "/" + sitePrefix
 		}
