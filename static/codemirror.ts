@@ -13,7 +13,9 @@ import { javascript } from "@codemirror/lang-javascript";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { languages } from '@codemirror/language-data'
 
-for (const [index, dataCodemirror] of document.querySelectorAll<HTMLElement>("[data-codemirror]").entries()) {
+let index = -1;
+for (const dataCodemirror of document.querySelectorAll<HTMLElement>("[data-codemirror]")) {
+    index++;
     // The textarea we are overriding.
     const textarea = dataCodemirror.querySelector("textarea");
     if (!textarea) {
