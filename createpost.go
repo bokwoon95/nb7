@@ -1,11 +1,13 @@
 package nb7
 
 import (
+	"bytes"
 	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"html/template"
+	"io"
 	"io/fs"
 	"mime"
 	"net/http"
@@ -180,26 +182,26 @@ func (nbrew *Notebrew) createpost(w http.ResponseWriter, r *http.Request, userna
 			Category: request.Category,
 			Content:  request.Content,
 		}
+		var title string
+		str := request.Content
+		for {
+			if str == "" {
+				break
+			}
+			title, str, _ = strings.Cut(str, "\n")
+			title = strings.TrimSpace(title)
+			if title == "" {
+				continue
+			}
+			var b strings.Builder
+			stripMarkdownStyles(&b, []byte(title))
+			title = b.String()
+			break
+		}
 		var slug string
 		if request.Slug != "" {
 			slug = urlSafe(request.Slug)
 		} else {
-			var title string
-			str := request.Content
-			for {
-				if str == "" {
-					break
-				}
-				title, str, _ = strings.Cut(str, "\n")
-				title = strings.TrimSpace(title)
-				if title == "" {
-					continue
-				}
-				var b strings.Builder
-				stripMarkdownStyles(&b, []byte(title))
-				title = b.String()
-				break
-			}
 			slug = urlSafe(title)
 		}
 		var timestamp [8]byte
@@ -226,6 +228,71 @@ func (nbrew *Notebrew) createpost(w http.ResponseWriter, r *http.Request, userna
 			writeResponse(w, r, response)
 			return
 		}
+
+		file, err := nbrew.FS.Open(path.Join(sitePrefix, "output/themes/post.html"))
+		if err != nil && !errors.Is(err, fs.ErrNotExist) {
+			getLogger(r.Context()).Error(err.Error())
+			internalServerError(w, r, err)
+			return
+		}
+		if file == nil {
+			file, err = rootFS.Open("static/post.html")
+			if err != nil {
+				getLogger(r.Context()).Error(err.Error())
+				internalServerError(w, r, err)
+				return
+			}
+		}
+		fileInfo, err := file.Stat()
+		if err != nil {
+			getLogger(r.Context()).Error(err.Error())
+			internalServerError(w, r, err)
+			return
+		}
+		var b strings.Builder
+		b.Grow(int(fileInfo.Size()))
+		_, err = io.Copy(&b, file)
+		if err != nil {
+			getLogger(r.Context()).Error(err.Error())
+			internalServerError(w, r, err)
+			return
+		}
+		templateParser := NewTemplateParser(nbrew, sitePrefix)
+		tmpl, err := templateParser.Parse(r.Context(), "post.html", b.String())
+		if err != nil {
+			var templateErrors TemplateErrors
+			if errors.As(err, &templateErrors) {
+				for _, msg := range templateErrors.List() {
+					response.ValidationErrors["content"] = append(response.ValidationErrors["content"], Error(msg))
+				}
+				response.Status = ErrValidationFailed
+				writeResponse(w, r, response)
+				return
+			}
+			getLogger(r.Context()).Error(err.Error())
+			internalServerError(w, r, err)
+			return
+		}
+		buf := bufPool.Get().(*bytes.Buffer)
+		buf.Reset()
+		defer bufPool.Put(buf)
+		// $.Title
+		// $.Preview
+		// $.Content
+		// $.CreationDate
+		// $.LastModified
+		err = tmpl.ExecuteTemplate(buf, "post.html", nil)
+		if err != nil {
+			response.ValidationErrors["content"] = append(response.ValidationErrors["content"], Error(err.Error()))
+			response.Status = ErrValidationFailed
+			writeResponse(w, r, response)
+			return
+		}
+		post := buf.String()
+		_ = post
+
+		// TODO: ohh we need to re-render posts.html too, if we create a new post or delete an existing one :/.
+
 		readerFrom, err := nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, "posts", response.Category, response.Name+".md"), 0644)
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())

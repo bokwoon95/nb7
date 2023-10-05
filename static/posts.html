@@ -13,7 +13,7 @@
 
 {{- if $.Posts }}
 <ul>
-    {{- range $post := index $.Posts "" }}
+    {{- range $post := $.Posts }}
     <li class="mv3">
         <div>
             <a href="{{ siteURL }}/{{ join $post.Category $post.Name }}" class="b linktext">{{ $post.Title }}</a>

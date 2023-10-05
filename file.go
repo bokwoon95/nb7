@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"html/template"
 	"io"
 	"io/fs"
 	"mime"
 	"net/http"
 	"path"
-	"slices"
 	"strings"
 	"time"
 
@@ -333,35 +333,17 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 
 		// If it's a page, render page to output/*/tmp.html then if it passes rename tmp.html into index.html and write the content into admin/pages/*
 		if head == "pages" && ext == ".html" {
-			cache := make(map[string]*template.Template)
-			errmsgs := make(map[string][]string)
-			tmpl, err := nbrew.parseTemplate(sitePrefix, cache, errmsgs, nil, filePath, response.Content)
+			tmpl, err := NewTemplateParser(nbrew, sitePrefix).Parse(r.Context(), filePath, response.Content)
 			if err != nil {
+				var templateErrors TemplateErrors
+				if errors.As(err, &templateErrors) {
+					response.TemplateErrors = templateErrors.List()
+					response.Status = ErrValidationFailed
+					writeResponse(w, r, response)
+					return
+				}
 				getLogger(r.Context()).Error(err.Error())
 				internalServerError(w, r, err)
-				return
-			}
-			if len(errmsgs) > 0 {
-				names := make([]string, 0, len(errmsgs))
-				for name := range errmsgs {
-					names = append(names, name)
-				}
-				slices.SortFunc(names, func(name1, name2 string) int {
-					if name1 == filePath {
-						return -1
-					}
-					if name2 == filePath {
-						return 1
-					}
-					return strings.Compare(name1, name2)
-				})
-				for _, name := range names {
-					for _, msg := range errmsgs[name] {
-						response.TemplateErrors = append(response.TemplateErrors, msg)
-					}
-				}
-				response.Status = ErrTemplateError
-				writeResponse(w, r, response)
 				return
 			}
 			buf := bufPool.Get().(*bytes.Buffer)
