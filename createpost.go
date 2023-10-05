@@ -32,6 +32,15 @@ func (nbrew *Notebrew) createpost(w http.ResponseWriter, r *http.Request, userna
 		Categories       []string           `json:"categories,omitempty"`
 		ValidationErrors map[string][]Error `json:"validationErrors,omitempty"`
 	}
+	type Post struct {
+		Category     string
+		Name         string
+		Title        string
+		Preview      string
+		Content      template.HTML
+		CreationDate time.Time
+		LastModified time.Time
+	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 2<<20 /* 2MB */)
 	switch r.Method {
@@ -178,9 +187,10 @@ func (nbrew *Notebrew) createpost(w http.ResponseWriter, r *http.Request, userna
 		}
 
 		response := Response{
-			Name:     urlSafe(request.Slug),
-			Category: request.Category,
-			Content:  request.Content,
+			Name:             urlSafe(request.Slug),
+			Category:         request.Category,
+			Content:          request.Content,
+			ValidationErrors: make(map[string][]Error),
 		}
 		var title string
 		str := request.Content
@@ -205,7 +215,8 @@ func (nbrew *Notebrew) createpost(w http.ResponseWriter, r *http.Request, userna
 			slug = urlSafe(title)
 		}
 		var timestamp [8]byte
-		binary.BigEndian.PutUint64(timestamp[:], uint64(time.Now().Unix()))
+		now := time.Now()
+		binary.BigEndian.PutUint64(timestamp[:], uint64(now.Unix()))
 		prefix := strings.TrimLeft(base32Encoding.EncodeToString(timestamp[len(timestamp)-5:]), "0")
 		if slug != "" {
 			response.Name = prefix + "-" + slug
@@ -230,12 +241,12 @@ func (nbrew *Notebrew) createpost(w http.ResponseWriter, r *http.Request, userna
 		}
 
 		file, err := nbrew.FS.Open(path.Join(sitePrefix, "output/themes/post.html"))
-		if err != nil && !errors.Is(err, fs.ErrNotExist) {
-			getLogger(r.Context()).Error(err.Error())
-			internalServerError(w, r, err)
-			return
-		}
-		if file == nil {
+		if err != nil {
+			if !errors.Is(err, fs.ErrNotExist) {
+				getLogger(r.Context()).Error(err.Error())
+				internalServerError(w, r, err)
+				return
+			}
 			file, err = rootFS.Open("static/post.html")
 			if err != nil {
 				getLogger(r.Context()).Error(err.Error())
@@ -276,34 +287,60 @@ func (nbrew *Notebrew) createpost(w http.ResponseWriter, r *http.Request, userna
 		buf := bufPool.Get().(*bytes.Buffer)
 		buf.Reset()
 		defer bufPool.Put(buf)
-		// $.Title
-		// $.Content
-		// $.CreationDate
-		// $.LastModified
-		err = tmpl.ExecuteTemplate(buf, "post.html", nil)
+		err = goldmarkMarkdown.Convert([]byte(response.Content), buf)
+		if err != nil {
+			getLogger(r.Context()).Error(err.Error())
+			internalServerError(w, r, err)
+			return
+		}
+		content := template.HTML(buf.String())
+		buf.Reset()
+		err = tmpl.ExecuteTemplate(buf, "post.html", Post{
+			Title:        title,
+			Content:      content,
+			CreationDate: now,
+			LastModified: now,
+		})
 		if err != nil {
 			response.ValidationErrors["content"] = append(response.ValidationErrors["content"], Error(err.Error()))
 			response.Status = ErrValidationFailed
 			writeResponse(w, r, response)
 			return
 		}
-		post := buf.String()
-		_ = post
-
-		// TODO: ohh we need to re-render posts.html too, if we create a new post or delete an existing one :/.
-
-		readerFrom, err := nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, "posts", response.Category, response.Name+".md"), 0644)
+		outputFilepath := path.Join(sitePrefix, "output/posts", response.Category, response.Name, "index.html")
+		err = MkdirAll(nbrew.FS, path.Dir(outputFilepath), 0755)
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
 			internalServerError(w, r, err)
 			return
 		}
-		_, err = readerFrom.ReadFrom(strings.NewReader(request.Content))
+		readerFrom, err := nbrew.FS.OpenReaderFrom(outputFilepath, 0644)
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
 			internalServerError(w, r, err)
 			return
 		}
+		_, err = readerFrom.ReadFrom(buf)
+		if err != nil {
+			getLogger(r.Context()).Error(err.Error())
+			internalServerError(w, r, err)
+			return
+		}
+		readerFrom, err = nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, "posts", response.Category, response.Name+".md"), 0644)
+		if err != nil {
+			getLogger(r.Context()).Error(err.Error())
+			internalServerError(w, r, err)
+			return
+		}
+		_, err = readerFrom.ReadFrom(strings.NewReader(response.Content))
+		if err != nil {
+			getLogger(r.Context()).Error(err.Error())
+			internalServerError(w, r, err)
+			return
+		}
+
+		// TODO: then we read everything in the posts folder (using getPosts(category string)) and use that to render posts.html.
+
 		response.Status = CreatePostSuccess
 		writeResponse(w, r, response)
 	default:

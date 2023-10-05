@@ -98,6 +98,7 @@ func NewTemplateParser(nbrew *Notebrew, sitePrefix string) *TemplateParser {
 			}
 			return dict, nil
 		},
+		// TODO: "getPosts(category string) []Post"
 	}
 	return parser
 }
@@ -171,7 +172,7 @@ func (parser *TemplateParser) parse(ctx context.Context, templateName, templateT
 			}
 		}
 	}
-	finalTemplate := template.New(templateName)
+	finalTemplate := template.New(templateName).Funcs(parser.funcMap)
 	slices.SortFunc(names, func(name1, name2 string) int {
 		return -strings.Compare(name1, name2)
 	})
