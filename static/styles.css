@@ -21,7 +21,8 @@ body {
 }
 
 .centered-body {
-    max-width: min(100ch, calc(100% - 0.5rem));
+    max-width: 100ch;
+    padding: 0 0.5rem 0 0.5rem;
     margin: 0.5rem auto;
 }
 
