@@ -62,7 +62,7 @@ for (const [index, dataCodemirror] of document.querySelectorAll<HTMLElement>("[d
             },
             ".cm-content": {
                 fontFamily: "Menlo, Monaco, Lucida Console, monospace",
-                minHeight: "350px"
+                minHeight: "16rem"
             },
             ".cm-scroller": {
                 overflow: "auto",
