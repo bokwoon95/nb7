@@ -25,23 +25,21 @@ import (
 )
 
 type TemplateParser struct {
-	nbrew        *Notebrew
-	sitePrefix   string
-	cache        map[string]*template.Template
-	cacheMutex   *sync.RWMutex
-	errmsgs      map[string][]string
-	errmsgsMutex *sync.RWMutex
-	funcMap      map[string]any
+	nbrew      *Notebrew
+	sitePrefix string
+	mu         *sync.RWMutex // protects cache and errmsgs
+	cache      map[string]*template.Template
+	errmsgs    map[string][]string
+	funcMap    map[string]any
 }
 
 func NewTemplateParser(nbrew *Notebrew, sitePrefix string) *TemplateParser {
 	parser := &TemplateParser{
-		nbrew:        nbrew,
-		sitePrefix:   sitePrefix,
-		cache:        make(map[string]*template.Template),
-		cacheMutex:   &sync.RWMutex{},
-		errmsgs:      make(url.Values),
-		errmsgsMutex: &sync.RWMutex{},
+		nbrew:      nbrew,
+		sitePrefix: sitePrefix,
+		mu:         &sync.RWMutex{},
+		cache:      make(map[string]*template.Template),
+		errmsgs:    make(url.Values),
 	}
 	siteName := strings.TrimPrefix(sitePrefix, "@")
 	adminURL := nbrew.Scheme + nbrew.AdminDomain
@@ -114,9 +112,9 @@ func (parser *TemplateParser) parse(ctx context.Context, templateName, templateT
 	}
 	primaryTemplate, err := template.New(templateName).Funcs(parser.funcMap).Parse(templateText)
 	if err != nil {
-		parser.errmsgsMutex.Lock()
+		parser.mu.Lock()
 		parser.errmsgs[templateName] = append(parser.errmsgs[templateName], strings.TrimSpace(strings.TrimPrefix(err.Error(), "template:")))
-		parser.errmsgsMutex.Unlock()
+		parser.mu.Unlock()
 		return nil, TemplateErrors(parser.errmsgs)
 	}
 	primaryTemplates := primaryTemplate.Templates()
@@ -130,14 +128,14 @@ func (parser *TemplateParser) parse(ctx context.Context, templateName, templateT
 		}
 		name := tmpl.Name()
 		if name != templateName && strings.HasSuffix(name, ".html") {
-			parser.errmsgsMutex.Lock()
+			parser.mu.Lock()
 			parser.errmsgs[templateName] = append(parser.errmsgs[templateName], fmt.Sprintf("%s: define %q: defined template's name cannot end in .html", templateName, name))
-			parser.errmsgsMutex.Unlock()
+			parser.mu.Unlock()
 		}
 	}
-	parser.errmsgsMutex.RLock()
+	parser.mu.RLock()
 	errmsgs := parser.errmsgs
-	parser.errmsgsMutex.RUnlock()
+	parser.mu.RUnlock()
 	if len(errmsgs) > 0 {
 		return nil, TemplateErrors(errmsgs)
 	}
@@ -178,25 +176,25 @@ func (parser *TemplateParser) parse(ctx context.Context, templateName, templateT
 	})
 	names = slices.Compact(names)
 	for _, name := range names {
-		parser.cacheMutex.RLock()
+		parser.mu.RLock()
 		tmpl := parser.cache[name]
-		parser.cacheMutex.RUnlock()
+		parser.mu.RUnlock()
 		if tmpl == nil {
 			file, err := parser.nbrew.FS.Open(path.Join(parser.sitePrefix, "output/themes", name))
 			if errors.Is(err, fs.ErrNotExist) {
-				parser.errmsgsMutex.Lock()
+				parser.mu.Lock()
 				parser.errmsgs[name] = append(parser.errmsgs[name], fmt.Sprintf("%s calls nonexistent template %q", templateName, name))
-				parser.errmsgsMutex.Unlock()
+				parser.mu.Unlock()
 				continue
 			}
 			if slices.Contains(callers, name) {
-				parser.errmsgsMutex.Lock()
+				parser.mu.Lock()
 				parser.errmsgs[callers[0]] = append(parser.errmsgs[callers[0]], fmt.Sprintf(
 					"calling %s ends in a circular reference: %s",
 					callers[0],
 					strings.Join(append(callers, name), " => "),
 				))
-				parser.errmsgsMutex.Unlock()
+				parser.mu.Unlock()
 				return nil, TemplateErrors(parser.errmsgs)
 			}
 			if err != nil {
@@ -224,9 +222,9 @@ func (parser *TemplateParser) parse(ctx context.Context, templateName, templateT
 			if tmpl == nil {
 				continue
 			}
-			parser.cacheMutex.Lock()
+			parser.mu.Lock()
 			parser.cache[name] = tmpl
-			parser.cacheMutex.Unlock()
+			parser.mu.Unlock()
 		}
 		for _, tmpl := range tmpl.Templates() {
 			_, err = finalTemplate.AddParseTree(tmpl.Name(), tmpl.Tree)
@@ -235,9 +233,9 @@ func (parser *TemplateParser) parse(ctx context.Context, templateName, templateT
 			}
 		}
 	}
-	parser.errmsgsMutex.RLock()
+	parser.mu.RLock()
 	errmsgs = parser.errmsgs
-	parser.errmsgsMutex.RUnlock()
+	parser.mu.RUnlock()
 	if len(errmsgs) > 0 {
 		return nil, TemplateErrors(errmsgs)
 	}
