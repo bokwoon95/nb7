@@ -277,7 +277,6 @@ func (nbrew *Notebrew) createpost(w http.ResponseWriter, r *http.Request, userna
 		buf.Reset()
 		defer bufPool.Put(buf)
 		// $.Title
-		// $.Preview
 		// $.Content
 		// $.CreationDate
 		// $.LastModified

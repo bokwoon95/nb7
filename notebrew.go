@@ -298,16 +298,16 @@ func NewID() [16]byte {
 	return id
 }
 
-var goldmarkParser = func() parser.Parser {
+var markdown = func() goldmark.Markdown {
 	md := goldmark.New()
 	md.Parser().AddOptions(parser.WithAttribute())
 	extension.Table.Extend(md)
-	return md.Parser()
+	return md
 }()
 
 func stripMarkdownStyles(dest io.Writer, src []byte) {
 	var node ast.Node
-	nodes := []ast.Node{goldmarkParser.Parse(text.NewReader(src))}
+	nodes := []ast.Node{markdown.Parser().Parse(text.NewReader(src))}
 	for len(nodes) > 0 {
 		node, nodes = nodes[len(nodes)-1], nodes[:len(nodes)-1]
 		if node == nil {
