@@ -452,7 +452,7 @@ func (templateErrors TemplateErrors) Error() string {
 	return fmt.Sprintf("the following templates have errors: %+v", names)
 }
 
-func (templateErrors TemplateErrors) List() []string {
+func (templateErrors TemplateErrors) Msgs() []string {
 	var list []string
 	names := make([]string, 0, len(templateErrors))
 	for name := range templateErrors {
