@@ -118,10 +118,6 @@ func (parser *TemplateParser) parse(ctx context.Context, templateName, templateT
 		return strings.Compare(t1.Name(), t2.Name())
 	})
 	for _, tmpl := range primaryTemplates {
-		err := ctx.Err()
-		if err != nil {
-			return nil, err
-		}
 		name := tmpl.Name()
 		if name != templateName && strings.HasSuffix(name, ".html") {
 			parser.mu.Lock()
@@ -139,10 +135,6 @@ func (parser *TemplateParser) parse(ctx context.Context, templateName, templateT
 	var node parse.Node
 	var nodes []parse.Node
 	for _, tmpl := range primaryTemplates {
-		err := ctx.Err()
-		if err != nil {
-			return nil, err
-		}
 		if tmpl.Tree == nil {
 			continue
 		}
@@ -240,10 +232,6 @@ func (parser *TemplateParser) parse(ctx context.Context, templateName, templateT
 		return nil, TemplateErrors(errmsgs)
 	}
 	for _, tmpl := range primaryTemplates {
-		err := ctx.Err()
-		if err != nil {
-			return nil, err
-		}
 		_, err = finalTemplate.AddParseTree(tmpl.Name(), tmpl.Tree)
 		if err != nil {
 			return nil, fmt.Errorf("%s: add %s: %w", templateName, tmpl.Name(), err)
