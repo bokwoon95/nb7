@@ -214,20 +214,38 @@ func (nbrew *Notebrew) createsite(w http.ResponseWriter, r *http.Request, userna
 				response.ValidationErrors["siteName"] = append(response.ValidationErrors["siteName"], Error(string(ErrTooLong)+" - cannot exceed 30 characters"))
 			}
 		}
-		if len(response.ValidationErrors["siteName"]) == 0 {
-			exists, err := sq.FetchExistsContext(r.Context(), nbrew.DB, sq.CustomQuery{
-				Dialect: nbrew.Dialect,
-				Format:  "SELECT 1 FROM site WHERE site_name = {siteName}",
-				Values: []any{
-					sq.StringParam("siteName", response.SiteName),
-				},
-			})
+		var sitePrefix string
+		if strings.Contains(response.SiteName, ".") {
+			sitePrefix = response.SiteName
+		} else if response.SiteName != "" {
+			sitePrefix = "@" + response.SiteName
+		}
+		if response.SiteName == "www" {
+			response.ValidationErrors["siteName"] = append(response.ValidationErrors["siteName"], ErrUnavailable)
+		} else if len(response.ValidationErrors["siteName"]) == 0 {
+			_, err := fs.Stat(nbrew.FS, sitePrefix)
 			if err != nil {
-				getLogger(r.Context()).Error(err.Error())
-				internalServerError(w, r, err)
-				return
-			}
-			if exists {
+				if !errors.Is(err, fs.ErrNotExist) {
+					getLogger(r.Context()).Error(err.Error())
+					internalServerError(w, r, err)
+					return
+				}
+				exists, err := sq.FetchExistsContext(r.Context(), nbrew.DB, sq.CustomQuery{
+					Dialect: nbrew.Dialect,
+					Format:  "SELECT 1 FROM site WHERE site_name = {siteName}",
+					Values: []any{
+						sq.StringParam("siteName", response.SiteName),
+					},
+				})
+				if err != nil {
+					getLogger(r.Context()).Error(err.Error())
+					internalServerError(w, r, err)
+					return
+				}
+				if exists {
+					response.ValidationErrors["siteName"] = append(response.ValidationErrors["siteName"], ErrUnavailable)
+				}
+			} else {
 				response.ValidationErrors["siteName"] = append(response.ValidationErrors["siteName"], ErrUnavailable)
 			}
 		}
@@ -237,12 +255,6 @@ func (nbrew *Notebrew) createsite(w http.ResponseWriter, r *http.Request, userna
 			return
 		}
 
-		var sitePrefix string
-		if strings.Contains(response.SiteName, ".") {
-			sitePrefix = response.SiteName
-		} else if response.SiteName != "" {
-			sitePrefix = "@" + response.SiteName
-		}
 		err = nbrew.FS.Mkdir(sitePrefix, 0755)
 		if err != nil && !errors.Is(err, fs.ErrExist) {
 			getLogger(r.Context()).Error(err.Error())

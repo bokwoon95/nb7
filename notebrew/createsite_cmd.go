@@ -120,6 +120,12 @@ func (cmd *CreatesiteCmd) validateSiteName(siteName string) (validationError str
 			return "site name can only contain lowercase letters, numbers, hyphen and period", nil
 		}
 	}
+	if len(siteName) > 30 {
+		return "site name cannot exceed 30 characters", nil
+	}
+	if siteName == "www" {
+		return "site name unavailable", nil
+	}
 	var sitePrefix string
 	if strings.Contains(siteName, ".") {
 		sitePrefix = siteName
@@ -131,7 +137,7 @@ func (cmd *CreatesiteCmd) validateSiteName(siteName string) (validationError str
 		return "", err
 	}
 	if fileInfo != nil {
-		return "site name already taken", nil
+		return "site name unavailable", nil
 	}
 	exists, err := sq.FetchExists(cmd.Notebrew.DB, sq.CustomQuery{
 		Dialect: cmd.Notebrew.Dialect,
@@ -144,7 +150,7 @@ func (cmd *CreatesiteCmd) validateSiteName(siteName string) (validationError str
 		return "", err
 	}
 	if exists {
-		return "site name already taken", nil
+		return "site name unavailable", nil
 	}
 	return "", nil
 }
