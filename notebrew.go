@@ -758,12 +758,6 @@ func (nbrew *Notebrew) getPosts(sitePrefix, category string) ([]Post, error) {
 			CreationDate: creationDate,
 			LastModified: fileInfo.ModTime(),
 		}
-		var b strings.Builder
-		b.Grow(int(fileInfo.Size()))
-		_, err = io.Copy(&b, file)
-		if err != nil {
-			return nil, err
-		}
 		reader := bufio.NewReader(file)
 		proceed := true
 		for proceed {
@@ -781,12 +775,9 @@ func (nbrew *Notebrew) getPosts(sitePrefix, category string) ([]Post, error) {
 				post.Title = b.String()
 				continue
 			}
-			if post.Preview == "" {
-				var b strings.Builder
-				stripMarkdownStyles(&b, line)
-				post.Preview = b.String()
-				continue
-			}
+			var b strings.Builder
+			stripMarkdownStyles(&b, line)
+			post.Preview = b.String()
 			break
 		}
 		posts = append(posts, post)
