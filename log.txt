@@ -42,7 +42,6 @@ TODO: cut | copy | paste | rename (no need for link indexing and rewriting yet, 
 TODO: re-render the whole site whenever a html file in output/themes gets updated.
 TODO: render post.html on post.md creation/update/delete. This requires implementing the default posts.html and post.html templates.
 TODO: func (nbrew *Notebrew) getPosts(sitePrefix, category string) ([]Post, error)
-TODO: createsite also always forbids www subdomain from being created. www.notebrew.io and www.notebrew.com always point at the ip address that the server is on.
 
 output folder trails pages and posts
 on page creation => generate output page

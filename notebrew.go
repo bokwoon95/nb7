@@ -713,5 +713,83 @@ type Post struct {
 }
 
 func (nbrew *Notebrew) getPosts(sitePrefix, category string) ([]Post, error) {
-	return nil, nil
+	fileInfo, err := fs.Stat(nbrew.FS, path.Join(sitePrefix, "posts", category))
+	if err != nil {
+		return nil, err
+	}
+	if !fileInfo.IsDir() {
+		return nil, nil
+	}
+	dirEntries, err := fs.ReadDir(nbrew.FS, path.Join(sitePrefix, "posts", category))
+	if err != nil {
+		return nil, err
+	}
+	var posts []Post
+	for _, dirEntry := range dirEntries {
+		if dirEntry.IsDir() {
+			continue
+		}
+		name := dirEntry.Name()
+		ext := path.Ext(name)
+		if ext != ".md" && ext != ".txt" {
+			continue
+		}
+		var creationDate time.Time
+		prefix, _, ok := strings.Cut(name, "-")
+		if ok && len(prefix) <= 8 {
+			b, _ := base32Encoding.DecodeString(fmt.Sprintf("%08s", prefix))
+			if len(b) == 5 {
+				var timestamp [8]byte
+				copy(timestamp[len(timestamp)-5:], b)
+				creationDate = time.Unix(int64(binary.BigEndian.Uint64(timestamp[:])), 0)
+			}
+		}
+		file, err := nbrew.FS.Open(path.Join(sitePrefix, "posts", category, name))
+		if err != nil {
+			return nil, err
+		}
+		fileInfo, err := file.Stat()
+		if err != nil {
+			return nil, err
+		}
+		post := Post{
+			Category:     category,
+			Name:         name,
+			CreationDate: creationDate,
+			LastModified: fileInfo.ModTime(),
+		}
+		var b strings.Builder
+		b.Grow(int(fileInfo.Size()))
+		_, err = io.Copy(&b, file)
+		if err != nil {
+			return nil, err
+		}
+		reader := bufio.NewReader(file)
+		proceed := true
+		for proceed {
+			line, err := reader.ReadBytes('\n')
+			if err != nil {
+				proceed = false
+			}
+			line = bytes.TrimSpace(line)
+			if len(line) == 0 {
+				continue
+			}
+			if post.Title == "" {
+				var b strings.Builder
+				stripMarkdownStyles(&b, line)
+				post.Title = b.String()
+				continue
+			}
+			if post.Preview == "" {
+				var b strings.Builder
+				stripMarkdownStyles(&b, line)
+				post.Preview = b.String()
+				continue
+			}
+			break
+		}
+		posts = append(posts, post)
+	}
+	return posts, nil
 }
