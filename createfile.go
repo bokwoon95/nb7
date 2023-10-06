@@ -61,14 +61,13 @@ func (nbrew *Notebrew) createfile(w http.ResponseWriter, r *http.Request, userna
 				return
 			}
 			funcMap := map[string]any{
-				"join":          path.Join,
-				"base":          path.Base,
-				"neatenURL":     neatenURL,
-				"templateError": templateError,
-				"referer":       func() string { return r.Referer() },
-				"username":      func() string { return username },
-				"sitePrefix":    func() string { return sitePrefix },
-				"safeHTML":      func(s string) template.HTML { return template.HTML(s) },
+				"join":       path.Join,
+				"base":       path.Base,
+				"neatenURL":  neatenURL,
+				"referer":    func() string { return r.Referer() },
+				"username":   func() string { return username },
+				"sitePrefix": func() string { return sitePrefix },
+				"safeHTML":   func(s string) template.HTML { return template.HTML(s) },
 				"containsError": func(errors []Error, codes ...string) bool {
 					return slices.ContainsFunc(errors, func(err Error) bool {
 						return slices.Contains(codes, err.Code())

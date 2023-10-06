@@ -24,13 +24,13 @@ func (nbrew *Notebrew) createpost(w http.ResponseWriter, r *http.Request, userna
 		Content  string `json:"content,omitempty"`
 	}
 	type Response struct {
-		Status           Error              `json:"status"`
-		ContentSiteURL   string             `json:"contentSiteURL,omitempty"`
-		Name             string             `json:"name,omitempty"`
-		Category         string             `json:"category,omitempty"`
-		Content          string             `json:"content,omitempty"`
-		Categories       []string           `json:"categories,omitempty"`
-		ValidationErrors map[string][]Error `json:"validationErrors,omitempty"`
+		Status         Error              `json:"status"`
+		ContentSiteURL string             `json:"contentSiteURL,omitempty"`
+		Name           string             `json:"name,omitempty"`
+		Category       string             `json:"category,omitempty"`
+		Content        string             `json:"content,omitempty"`
+		Categories     []string           `json:"categories,omitempty"`
+		Errors         map[string][]Error `json:"errors,omitempty"`
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 2<<20 /* 2MB */)
@@ -178,10 +178,10 @@ func (nbrew *Notebrew) createpost(w http.ResponseWriter, r *http.Request, userna
 		}
 
 		response := Response{
-			Name:             urlSafe(request.Slug),
-			Category:         request.Category,
-			Content:          request.Content,
-			ValidationErrors: make(map[string][]Error),
+			Name:     urlSafe(request.Slug),
+			Category: request.Category,
+			Content:  request.Content,
+			Errors:   make(map[string][]Error),
 		}
 		var title string
 		str := request.Content
@@ -222,26 +222,57 @@ func (nbrew *Notebrew) createpost(w http.ResponseWriter, r *http.Request, userna
 				return
 			}
 			if fileInfo == nil {
-				response.ValidationErrors["category"] = append(response.ValidationErrors["category"], ErrInvalidValue)
+				response.Errors["category"] = append(response.Errors["category"], ErrInvalidValue)
 			}
 		}
-		if len(response.ValidationErrors) > 0 {
+		if len(response.Errors) > 0 {
 			response.Status = ErrValidationFailed
 			writeResponse(w, r, response)
 			return
 		}
+
+		// Keep track of files which have been rollbackList.
+		var rollbackList []string
+		rollback := func() {
+			for _, item := range rollbackList {
+				err := RemoveAll(nbrew.FS, item)
+				if err != nil {
+					getLogger(r.Context()).Error(fmt.Sprintf("rollback: %v", err))
+				}
+			}
+		}
+
+		outputPath := path.Join(sitePrefix, "posts", response.Category, response.Name+".md")
+		readerFrom, err := nbrew.FS.OpenReaderFrom(outputPath, 0644)
+		if err != nil {
+			getLogger(r.Context()).Error(err.Error())
+			internalServerError(w, r, err)
+			rollback()
+			return
+		}
+		_, err = readerFrom.ReadFrom(strings.NewReader(response.Content))
+		if err != nil {
+			getLogger(r.Context()).Error(err.Error())
+			internalServerError(w, r, err)
+			rollback()
+			return
+		}
+		rollbackList = append(rollbackList, outputPath)
+		templateParser := NewTemplateParser(r.Context(), nbrew, sitePrefix)
 
 		file, err := nbrew.FS.Open(path.Join(sitePrefix, "output/themes/post.html"))
 		if err != nil {
 			if !errors.Is(err, fs.ErrNotExist) {
 				getLogger(r.Context()).Error(err.Error())
 				internalServerError(w, r, err)
+				rollback()
 				return
 			}
 			file, err = rootFS.Open("static/post.html")
 			if err != nil {
 				getLogger(r.Context()).Error(err.Error())
 				internalServerError(w, r, err)
+				rollback()
 				return
 			}
 		}
@@ -249,6 +280,7 @@ func (nbrew *Notebrew) createpost(w http.ResponseWriter, r *http.Request, userna
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
 			internalServerError(w, r, err)
+			rollback()
 			return
 		}
 		var b strings.Builder
@@ -257,22 +289,24 @@ func (nbrew *Notebrew) createpost(w http.ResponseWriter, r *http.Request, userna
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
 			internalServerError(w, r, err)
+			rollback()
 			return
 		}
-		templateParser := NewTemplateParser(nbrew, sitePrefix)
-		tmpl, err := templateParser.Parse(r.Context(), "post.html", b.String())
+		tmpl, err := templateParser.Parse("post.html", b.String())
 		if err != nil {
 			var templateErrors TemplateErrors
 			if errors.As(err, &templateErrors) {
 				for _, msg := range templateErrors.List() {
-					response.ValidationErrors["content"] = append(response.ValidationErrors["content"], Error(msg))
+					response.Errors["content"] = append(response.Errors["content"], Error(msg))
 				}
-				response.Status = ErrValidationFailed
+				response.Status = ErrFileGenerationFailed
 				writeResponse(w, r, response)
+				rollback()
 				return
 			}
 			getLogger(r.Context()).Error(err.Error())
 			internalServerError(w, r, err)
+			rollback()
 			return
 		}
 		buf := bufPool.Get().(*bytes.Buffer)
@@ -282,6 +316,7 @@ func (nbrew *Notebrew) createpost(w http.ResponseWriter, r *http.Request, userna
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
 			internalServerError(w, r, err)
+			rollback()
 			return
 		}
 		content := template.HTML(buf.String())
@@ -293,42 +328,49 @@ func (nbrew *Notebrew) createpost(w http.ResponseWriter, r *http.Request, userna
 			LastModified: now,
 		})
 		if err != nil {
-			response.ValidationErrors["content"] = append(response.ValidationErrors["content"], Error(err.Error()))
-			response.Status = ErrValidationFailed
+			response.Errors["content"] = append(response.Errors["content"], Error(err.Error()))
+			response.Status = ErrFileGenerationFailed
 			writeResponse(w, r, response)
+			rollback()
 			return
 		}
-		outputFilepath := path.Join(sitePrefix, "output/posts", response.Category, response.Name, "index.html")
-		err = MkdirAll(nbrew.FS, path.Dir(outputFilepath), 0755)
+		outputPath = path.Join(sitePrefix, "output/posts", response.Category, response.Name, "index.html")
+		err = MkdirAll(nbrew.FS, path.Dir(outputPath), 0755)
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
 			internalServerError(w, r, err)
+			rollback()
 			return
 		}
-		readerFrom, err := nbrew.FS.OpenReaderFrom(outputFilepath, 0644)
+		readerFrom, err = nbrew.FS.OpenReaderFrom(outputPath, 0644)
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
 			internalServerError(w, r, err)
+			rollback()
 			return
 		}
 		_, err = readerFrom.ReadFrom(buf)
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
 			internalServerError(w, r, err)
+			rollback()
 			return
 		}
+		rollbackList = append(rollbackList, path.Dir(outputPath))
 
 		file, err = nbrew.FS.Open(path.Join(sitePrefix, "output/themes/posts.html"))
 		if err != nil {
 			if !errors.Is(err, fs.ErrNotExist) {
 				getLogger(r.Context()).Error(err.Error())
 				internalServerError(w, r, err)
+				rollback()
 				return
 			}
 			file, err = rootFS.Open("static/posts.html")
 			if err != nil {
 				getLogger(r.Context()).Error(err.Error())
 				internalServerError(w, r, err)
+				rollback()
 				return
 			}
 		}
@@ -336,6 +378,7 @@ func (nbrew *Notebrew) createpost(w http.ResponseWriter, r *http.Request, userna
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
 			internalServerError(w, r, err)
+			rollback()
 			return
 		}
 		b.Reset()
@@ -344,69 +387,69 @@ func (nbrew *Notebrew) createpost(w http.ResponseWriter, r *http.Request, userna
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
 			internalServerError(w, r, err)
+			rollback()
 			return
 		}
-		tmpl, err = templateParser.Parse(r.Context(), "posts.html", b.String())
+		tmpl, err = templateParser.Parse("posts.html", b.String())
 		if err != nil {
 			var templateErrors TemplateErrors
 			if errors.As(err, &templateErrors) {
 				for _, msg := range templateErrors.List() {
-					response.ValidationErrors["content"] = append(response.ValidationErrors["content"], Error(msg))
+					response.Errors["content"] = append(response.Errors["content"], Error(msg))
 				}
-				response.Status = ErrValidationFailed
+				response.Status = ErrFileGenerationFailed
 				writeResponse(w, r, response)
+				rollback()
 				return
 			}
 			getLogger(r.Context()).Error(err.Error())
 			internalServerError(w, r, err)
+			rollback()
 			return
 		}
 		posts, err := nbrew.getPosts(r.Context(), sitePrefix, "")
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
 			internalServerError(w, r, err)
+			rollback()
 			return
 		}
 		buf.Reset()
-		err = tmpl.ExecuteTemplate(buf, "posts.html", posts)
+		err = tmpl.ExecuteTemplate(buf, "posts.html", struct {
+			Posts []Post
+		}{
+			Posts: posts,
+		})
 		if err != nil {
-			response.ValidationErrors["content"] = append(response.ValidationErrors["content"], Error(err.Error()))
-			response.Status = ErrValidationFailed
+			response.Errors["content"] = append(response.Errors["content"], Error(err.Error()))
+			response.Status = ErrFileGenerationFailed
 			writeResponse(w, r, response)
+			rollback()
 			return
 		}
-		outputFilepath = path.Join(sitePrefix, "output/posts/index.html")
-		err = MkdirAll(nbrew.FS, path.Dir(outputFilepath), 0755)
+		outputPath = path.Join(sitePrefix, "output/posts/index.html")
+		err = MkdirAll(nbrew.FS, path.Dir(outputPath), 0755)
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
 			internalServerError(w, r, err)
+			rollback()
 			return
 		}
-		readerFrom, err = nbrew.FS.OpenReaderFrom(outputFilepath, 0644)
+		readerFrom, err = nbrew.FS.OpenReaderFrom(outputPath, 0644)
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
 			internalServerError(w, r, err)
+			rollback()
 			return
 		}
 		_, err = readerFrom.ReadFrom(buf)
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
 			internalServerError(w, r, err)
+			rollback()
 			return
 		}
 
-		readerFrom, err = nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, "posts", response.Category, response.Name+".md"), 0644)
-		if err != nil {
-			getLogger(r.Context()).Error(err.Error())
-			internalServerError(w, r, err)
-			return
-		}
-		_, err = readerFrom.ReadFrom(strings.NewReader(response.Content))
-		if err != nil {
-			getLogger(r.Context()).Error(err.Error())
-			internalServerError(w, r, err)
-			return
-		}
 		response.Status = CreatePostSuccess
 		writeResponse(w, r, response)
 	default:

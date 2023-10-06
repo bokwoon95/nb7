@@ -77,7 +77,7 @@ my day trip to hokkaido =&gt; https://example.com/posts/my-day-trip-to-hokkaido/
             {{- end }}
         </select>
         <ul>
-            {{- range $i, $error := index $.ValidationErrors "category" }}
+            {{- range $i, $error := index $.Errors "category" }}
             <li class="f6 invalid-red list-style-disc">{{ $error.Message }}</li>
             {{- end }}
         </ul>
@@ -88,6 +88,11 @@ my day trip to hokkaido =&gt; https://example.com/posts/my-day-trip-to-hokkaido/
         <div data-codemirror="markdown">
             <textarea id="content" name="content" dir="auto" class="w-100 pa2 min-h5 h6 resize-vertical" autofocus>{{ $.Content }}</textarea>
         </div>
+        <ul>
+            {{- range $i, $error := index $.Errors "content" }}
+            <li class="f6 invalid-red list-style-disc">{{ $error }}</li>
+            {{- end }}
+        </ul>
     </div>
     <button type="submit" class="button ba br2 pa2 mv3 w-100">Create post</button>
 </form>

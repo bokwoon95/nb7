@@ -63,7 +63,6 @@ func (nbrew *Notebrew) createpage(w http.ResponseWriter, r *http.Request, userna
 				"join":          path.Join,
 				"base":          path.Base,
 				"neatenURL":     neatenURL,
-				"templateError": templateError,
 				"referer":       func() string { return r.Referer() },
 				"username":      func() string { return username },
 				"sitePrefix":    func() string { return sitePrefix },
@@ -229,7 +228,7 @@ func (nbrew *Notebrew) createpage(w http.ResponseWriter, r *http.Request, userna
 		}
 
 		templateName := response.Name + ".html"
-		tmpl, err := NewTemplateParser(nbrew, sitePrefix).Parse(r.Context(), templateName, response.Content)
+		tmpl, err := NewTemplateParser(r.Context(), nbrew, sitePrefix).Parse(templateName, response.Content)
 		if err != nil {
 			var templateErrors TemplateErrors
 			if errors.As(err, &templateErrors) {

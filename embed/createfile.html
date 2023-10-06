@@ -81,7 +81,7 @@
         </div>
         <ul>
             {{- range $i, $error := index $.ValidationErrors "content" }}
-            <li class="f6 invalid-red list-style-disc">{{ templateError $error }}</li>
+            <li class="f6 invalid-red list-style-disc">{{ $error }}</li>
             {{- end }}
         </ul>
     </div>

@@ -700,10 +700,6 @@ func neatenURL(s string) string {
 	return strings.TrimSuffix(strings.TrimPrefix(s, "http://"), "/")
 }
 
-func templateError(v any) template.HTML {
-	return template.HTML(fmt.Sprint(v))
-}
-
 type Post struct {
 	Category     string
 	Name         string

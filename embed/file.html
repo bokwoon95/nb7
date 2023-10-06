@@ -94,7 +94,7 @@
     </div>
     <ul>
         {{- range $error := $.TemplateErrors }}
-        <li class="invalid-red list-style-disc">{{ templateError $error }}</li>
+        <li class="invalid-red list-style-disc">{{ $error }}</li>
         {{- end }}
     </ul>
     <button type="submit" class="button ba br2 pa2 mv3 w-100">Save</button>

@@ -76,9 +76,10 @@ const (
 	ErrSiteNotFound        = Error("NB-04140 site not found")
 
 	// Class 05 - idgaf about categorization anymore
-	ErrFieldRequired  = Error("NB-05000 field required")
-	ErrInvalidValue   = Error("NB-05010 invalid value")
-	ErrForbiddenValue = Error("NB-05020 forbidden value")
+	ErrFieldRequired        = Error("NB-05000 field required")
+	ErrInvalidValue         = Error("NB-05010 invalid value")
+	ErrForbiddenValue       = Error("NB-05020 forbidden value")
+	ErrFileGenerationFailed = Error("NB-05030 file generation failed")
 
 	// Class 99 - HTTP equivalent
 	ErrBadRequest           = Error("NB-99400 bad request")

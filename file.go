@@ -102,7 +102,6 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 				"base":             path.Base,
 				"neatenURL":        neatenURL,
 				"fileSizeToString": fileSizeToString,
-				"templateError":    templateError,
 				"referer":          func() string { return r.Referer() },
 				"username":         func() string { return username },
 				"sitePrefix":       func() string { return sitePrefix },
@@ -333,7 +332,7 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 
 		// If it's a page, render page to output/*/tmp.html then if it passes rename tmp.html into index.html and write the content into admin/pages/*
 		if head == "pages" && ext == ".html" {
-			tmpl, err := NewTemplateParser(nbrew, sitePrefix).Parse(r.Context(), filePath, response.Content)
+			tmpl, err := NewTemplateParser(r.Context(), nbrew, sitePrefix).Parse(filePath, response.Content)
 			if err != nil {
 				var templateErrors TemplateErrors
 				if errors.As(err, &templateErrors) {

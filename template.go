@@ -31,15 +31,17 @@ type TemplateParser struct {
 	cache      map[string]*template.Template
 	errmsgs    map[string][]string
 	funcMap    map[string]any
+	ctx        context.Context
 }
 
-func NewTemplateParser(nbrew *Notebrew, sitePrefix string) *TemplateParser {
+func NewTemplateParser(ctx context.Context, nbrew *Notebrew, sitePrefix string) *TemplateParser {
 	parser := &TemplateParser{
 		nbrew:      nbrew,
 		sitePrefix: sitePrefix,
 		mu:         &sync.RWMutex{},
 		cache:      make(map[string]*template.Template),
 		errmsgs:    make(url.Values),
+		ctx:        ctx,
 	}
 	siteName := strings.TrimPrefix(sitePrefix, "@")
 	adminURL := nbrew.Scheme + nbrew.AdminDomain
@@ -96,16 +98,18 @@ func NewTemplateParser(nbrew *Notebrew, sitePrefix string) *TemplateParser {
 			}
 			return dict, nil
 		},
-		// TODO: "getPosts(category string) []Post"
+		"getPosts": func(category string) ([]Post, error) {
+			return nbrew.getPosts(ctx, sitePrefix, category)
+		},
 	}
 	return parser
 }
 
-func (parser *TemplateParser) Parse(ctx context.Context, templateName, templateText string) (*template.Template, error) {
-	return parser.parse(ctx, templateName, templateText, nil)
+func (parser *TemplateParser) Parse(templateName, templateText string) (*template.Template, error) {
+	return parser.parse(templateName, templateText, nil)
 }
 
-func (parser *TemplateParser) parse(ctx context.Context, templateName, templateText string, callers []string) (*template.Template, error) {
+func (parser *TemplateParser) parse(templateName, templateText string, callers []string) (*template.Template, error) {
 	primaryTemplate, err := template.New(templateName).Funcs(parser.funcMap).Parse(templateText)
 	if err != nil {
 		parser.mu.Lock()
@@ -164,7 +168,7 @@ func (parser *TemplateParser) parse(ctx context.Context, templateName, templateT
 	})
 	names = slices.Compact(names)
 	for _, name := range names {
-		err := ctx.Err()
+		err := parser.ctx.Err()
 		if err != nil {
 			return nil, err
 		}
@@ -207,7 +211,7 @@ func (parser *TemplateParser) parse(ctx context.Context, templateName, templateT
 				return nil, fmt.Errorf("%s: close %s: %w", templateName, name, err)
 			}
 			text := b.String()
-			tmpl, err = parser.parse(ctx, name, text, append(callers, name))
+			tmpl, err = parser.parse(name, text, append(callers, name))
 			if err != nil {
 				return nil, err
 			}
