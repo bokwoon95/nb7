@@ -40,6 +40,7 @@ TODO: coalesce the following into a single "site" tab in the menu bar
 - site-wide search
 TODO: cut | copy | paste | rename (no need for link indexing and rewriting yet, that comes later)
 TODO: re-render the whole site whenever a html file in output/themes gets updated.
+- bonus: on the root admin page, put a button that says 'regenerate site' and does what it says on the tin (mostly for troubleshooting purposes)
 TODO: render post.html on post.md creation/update/delete. This requires implementing the default posts.html and post.html templates.
 TODO: rename all ValidationErrors fields to just Errors
 
