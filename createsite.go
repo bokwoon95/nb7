@@ -89,7 +89,6 @@ func (nbrew *Notebrew) createsite(w http.ResponseWriter, r *http.Request, userna
 			writeResponse(w, r, response)
 			return
 		}
-		response.SiteName = r.Form.Get("name")
 		numSites, err := getNumSites()
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
