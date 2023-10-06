@@ -24,6 +24,7 @@ import (
 	"net/http"
 	"net/netip"
 	"path"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -37,6 +38,7 @@ import (
 	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/text"
 	"golang.org/x/crypto/blake2b"
+	"golang.org/x/sync/errgroup"
 )
 
 const defaultContentSecurityPolicy = "default-src 'none';" +
@@ -712,7 +714,7 @@ type Post struct {
 	LastModified time.Time
 }
 
-func (nbrew *Notebrew) getPosts(sitePrefix, category string) ([]Post, error) {
+func (nbrew *Notebrew) getPosts(ctx context.Context, sitePrefix, category string) ([]Post, error) {
 	fileInfo, err := fs.Stat(nbrew.FS, path.Join(sitePrefix, "posts", category))
 	if err != nil {
 		return nil, err
@@ -726,6 +728,10 @@ func (nbrew *Notebrew) getPosts(sitePrefix, category string) ([]Post, error) {
 	}
 	var posts []Post
 	for _, dirEntry := range dirEntries {
+		err := ctx.Err()
+		if err != nil {
+			return nil, err
+		}
 		if dirEntry.IsDir() {
 			continue
 		}
@@ -734,53 +740,67 @@ func (nbrew *Notebrew) getPosts(sitePrefix, category string) ([]Post, error) {
 		if ext != ".md" && ext != ".txt" {
 			continue
 		}
-		var creationDate time.Time
-		prefix, _, ok := strings.Cut(name, "-")
-		if ok && len(prefix) <= 8 {
-			b, _ := base32Encoding.DecodeString(fmt.Sprintf("%08s", prefix))
-			if len(b) == 5 {
-				var timestamp [8]byte
-				copy(timestamp[len(timestamp)-5:], b)
-				creationDate = time.Unix(int64(binary.BigEndian.Uint64(timestamp[:])), 0)
-			}
-		}
-		file, err := nbrew.FS.Open(path.Join(sitePrefix, "posts", category, name))
-		if err != nil {
-			return nil, err
-		}
-		fileInfo, err := file.Stat()
+		fileInfo, err := dirEntry.Info()
 		if err != nil {
 			return nil, err
 		}
 		post := Post{
 			Category:     category,
 			Name:         name,
-			CreationDate: creationDate,
 			LastModified: fileInfo.ModTime(),
 		}
-		reader := bufio.NewReader(file)
-		proceed := true
-		for proceed {
-			line, err := reader.ReadBytes('\n')
+		posts = append(posts, post)
+	}
+	g, ctx := errgroup.WithContext(ctx)
+	g.SetLimit(runtime.NumCPU())
+	for i := range posts {
+		post := &posts[i]
+		g.Go(func() error {
+			prefix, _, ok := strings.Cut(post.Name, "-")
+			if ok && len(prefix) <= 8 {
+				b, _ := base32Encoding.DecodeString(fmt.Sprintf("%08s", prefix))
+				if len(b) == 5 {
+					var timestamp [8]byte
+					copy(timestamp[len(timestamp)-5:], b)
+					post.CreationDate = time.Unix(int64(binary.BigEndian.Uint64(timestamp[:])), 0)
+				}
+			}
+			file, err := nbrew.FS.Open(path.Join(sitePrefix, "posts", post.Category, post.Name))
 			if err != nil {
-				proceed = false
+				return err
 			}
-			line = bytes.TrimSpace(line)
-			if len(line) == 0 {
-				continue
-			}
-			if post.Title == "" {
+			reader := bufio.NewReader(file)
+			proceed := true
+			for proceed {
+				err := ctx.Err()
+				if err != nil {
+					return err
+				}
+				line, err := reader.ReadBytes('\n')
+				if err != nil {
+					proceed = false
+				}
+				line = bytes.TrimSpace(line)
+				if len(line) == 0 {
+					continue
+				}
+				if post.Title == "" {
+					var b strings.Builder
+					stripMarkdownStyles(&b, line)
+					post.Title = b.String()
+					continue
+				}
 				var b strings.Builder
 				stripMarkdownStyles(&b, line)
-				post.Title = b.String()
-				continue
+				post.Preview = b.String()
+				break
 			}
-			var b strings.Builder
-			stripMarkdownStyles(&b, line)
-			post.Preview = b.String()
-			break
-		}
-		posts = append(posts, post)
+			return nil
+		})
+	}
+	err = g.Wait()
+	if err != nil {
+		return nil, err
 	}
 	return posts, nil
 }
