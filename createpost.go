@@ -317,6 +317,84 @@ func (nbrew *Notebrew) createpost(w http.ResponseWriter, r *http.Request, userna
 			internalServerError(w, r, err)
 			return
 		}
+
+		file, err = nbrew.FS.Open(path.Join(sitePrefix, "output/themes/posts.html"))
+		if err != nil {
+			if !errors.Is(err, fs.ErrNotExist) {
+				getLogger(r.Context()).Error(err.Error())
+				internalServerError(w, r, err)
+				return
+			}
+			file, err = rootFS.Open("static/posts.html")
+			if err != nil {
+				getLogger(r.Context()).Error(err.Error())
+				internalServerError(w, r, err)
+				return
+			}
+		}
+		fileInfo, err = file.Stat()
+		if err != nil {
+			getLogger(r.Context()).Error(err.Error())
+			internalServerError(w, r, err)
+			return
+		}
+		b.Reset()
+		b.Grow(int(fileInfo.Size()))
+		_, err = io.Copy(&b, file)
+		if err != nil {
+			getLogger(r.Context()).Error(err.Error())
+			internalServerError(w, r, err)
+			return
+		}
+		tmpl, err = templateParser.Parse(r.Context(), "posts.html", b.String())
+		if err != nil {
+			var templateErrors TemplateErrors
+			if errors.As(err, &templateErrors) {
+				for _, msg := range templateErrors.List() {
+					response.ValidationErrors["content"] = append(response.ValidationErrors["content"], Error(msg))
+				}
+				response.Status = ErrValidationFailed
+				writeResponse(w, r, response)
+				return
+			}
+			getLogger(r.Context()).Error(err.Error())
+			internalServerError(w, r, err)
+			return
+		}
+		posts, err := nbrew.getPosts(r.Context(), sitePrefix, "")
+		if err != nil {
+			getLogger(r.Context()).Error(err.Error())
+			internalServerError(w, r, err)
+			return
+		}
+		buf.Reset()
+		err = tmpl.ExecuteTemplate(buf, "posts.html", posts)
+		if err != nil {
+			response.ValidationErrors["content"] = append(response.ValidationErrors["content"], Error(err.Error()))
+			response.Status = ErrValidationFailed
+			writeResponse(w, r, response)
+			return
+		}
+		outputFilepath = path.Join(sitePrefix, "output/posts/index.html")
+		err = MkdirAll(nbrew.FS, path.Dir(outputFilepath), 0755)
+		if err != nil {
+			getLogger(r.Context()).Error(err.Error())
+			internalServerError(w, r, err)
+			return
+		}
+		readerFrom, err = nbrew.FS.OpenReaderFrom(outputFilepath, 0644)
+		if err != nil {
+			getLogger(r.Context()).Error(err.Error())
+			internalServerError(w, r, err)
+			return
+		}
+		_, err = readerFrom.ReadFrom(buf)
+		if err != nil {
+			getLogger(r.Context()).Error(err.Error())
+			internalServerError(w, r, err)
+			return
+		}
+
 		readerFrom, err = nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, "posts", response.Category, response.Name+".md"), 0644)
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
@@ -329,9 +407,6 @@ func (nbrew *Notebrew) createpost(w http.ResponseWriter, r *http.Request, userna
 			internalServerError(w, r, err)
 			return
 		}
-
-		// TODO: then we read everything in the posts folder (using getPosts(category string)) and use that to render posts.html.
-
 		response.Status = CreatePostSuccess
 		writeResponse(w, r, response)
 	default:
