@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"slices"
 	"strings"
 	"time"
 )
@@ -55,6 +56,7 @@ func (nbrew *Notebrew) createpost(w http.ResponseWriter, r *http.Request, userna
 				}
 				response.Categories = append(response.Categories, category)
 			}
+			slices.Reverse(response.Categories)
 			accept, _, _ := mime.ParseMediaType(r.Header.Get("Accept"))
 			if accept == "application/json" {
 				w.Header().Set("Content-Type", "application/json")

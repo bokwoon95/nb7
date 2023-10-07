@@ -1,6 +1,7 @@
 package nb7
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -13,6 +14,7 @@ import (
 	"strings"
 	"sync"
 	"text/template/parse"
+	"time"
 )
 
 type Renderer struct {
@@ -26,14 +28,6 @@ type Renderer struct {
 }
 
 func NewRenderer(ctx context.Context, nbrew *Notebrew, sitePrefix string) *Renderer {
-	// notebrew.com/@bokwoon/
-	// ?after=xxxx&count=25
-	// The main problem is that posts cannot be efficiently paginated (need to seek from the start everytime)
-	// So we need to store status updates in the database, instead of the filesystem
-	// notebrew.com/admin/
-	// notebrew.com/user/bokwoon
-	// notebrew.com/status/
-	// notebrew.com/image/
 	renderer := &Renderer{
 		nbrew:      nbrew,
 		sitePrefix: sitePrefix,
@@ -103,18 +97,65 @@ func NewRenderer(ctx context.Context, nbrew *Notebrew, sitePrefix string) *Rende
 	return renderer
 }
 
-// example.com/admin/
-// example.com/@bokwoon/
-
-func (renderer *Renderer) RenderPage(w io.Writer, name string, content []byte) error {
+func (renderer *Renderer) RenderPost(w io.Writer, content []byte, creationDate, lastModified time.Time) error {
+	file, err := renderer.nbrew.FS.Open(path.Join(renderer.sitePrefix, "output/themes/post.html"))
+	if err != nil {
+		if !errors.Is(err, fs.ErrNotExist) {
+			return err
+		}
+		file, err = rootFS.Open("static/post.html")
+		if err != nil {
+			return err
+		}
+	}
+	fileInfo, err := file.Stat()
+	if err != nil {
+		return err
+	}
+	var b strings.Builder
+	b.Grow(int(fileInfo.Size()))
+	_, err = io.Copy(&b, file)
+	if err != nil {
+		return err
+	}
+	tmpl, err := renderer.parse("post.html", b.String(), nil)
+	if err != nil {
+		return err
+	}
+	post := Post{
+		CreationDate: creationDate,
+		LastModified: lastModified,
+	}
+	var line []byte
+	remainder := content
+	for len(remainder) > 0 {
+		line, remainder, _ = bytes.Cut(remainder, []byte("\n"))
+		line = bytes.TrimSpace(line)
+		if len(line) == 0 {
+			continue
+		}
+		var b strings.Builder
+		stripMarkdownStyles(&b, line)
+		post.Title = b.String()
+		break
+	}
+	buf := bufPool.Get().(*bytes.Buffer)
+	buf.Reset()
+	defer bufPool.Put(buf)
+	err = goldmarkMarkdown.Convert(content, buf)
+	if err != nil {
+		return err
+	}
+	post.Content = template.HTML(buf.String())
+	buf.Reset()
+	err = tmpl.ExecuteTemplate(buf, "post.html", &post)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
-func (renderer *Renderer) RenderPost(w io.Writer, content []byte) error {
-	return nil
-}
-
-func (renderer *Renderer) RenderPostIndex(w io.Writer) error {
+func (renderer *Renderer) Render(w io.Writer, name string, text string) error {
 	return nil
 }
 
