@@ -61,7 +61,7 @@
     <div class="mv2">
         <div><label for="content" class="b">Content:</label></div>
         <div data-codemirror="html">
-            <textarea id="content" name="content" dir="auto" class="w-100 pa2 min-h5 h6 resize-vertical"{{ if $contentErrors }} autofocus{{ end }}>{{ $.Content }}</textarea>
+            <textarea id="content" name="content" dir="auto" class="w-100 pa2 min-h5 h6 resize-vertical code"{{ if $contentErrors }} autofocus{{ end }}>{{ $.Content }}</textarea>
         </div>
         <ul>
             {{- range $i, $error := index $.ValidationErrors "content" }}

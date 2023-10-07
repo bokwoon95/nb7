@@ -87,7 +87,7 @@ my day trip to hokkaido =&gt; https://example.com/posts/my-day-trip-to-hokkaido/
     <div class="mv2">
         <div><label for="content" class="b">Content:</label></div>
         <div data-codemirror="markdown">
-            <textarea id="content" name="content" dir="auto" class="w-100 pa2 min-h5 h6 resize-vertical" autofocus>{{ $.Content }}</textarea>
+            <textarea id="content" name="content" dir="auto" class="w-100 pa2 min-h5 h6 resize-vertical code" autofocus>{{ $.Content }}</textarea>
         </div>
         <ul>
             {{- range $i, $error := index $.Errors "content" }}

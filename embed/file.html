@@ -91,7 +91,7 @@
 {{- else }}
 <form method="post" enctype="multipart/form-data" class="mv1" data-disable-after-submit>
     <div data-codemirror="{{ base $.Type }}">
-        <textarea id="content" name="content" dir="auto" class="w-100 pa2 min-h5 h6 resize-vertical" autofocus>{{ $.Content }}</textarea>
+        <textarea id="content" name="content" dir="auto" class="w-100 pa2 min-h5 h6 resize-vertical code" autofocus>{{ $.Content }}</textarea>
     </div>
     <ul>
         {{- range $error := $.TemplateErrors }}

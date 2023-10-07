@@ -78,7 +78,7 @@
     <div class="mv2">
         <div><label for="content" class="b">Content:</label></div>
         <div data-codemirror="{{ if eq $.Ext `html` }}html{{ else if eq $.Ext `css` }}css{{ else if eq $.Ext `js` }}javascript{{ end }}">
-            <textarea id="content" name="content" dir="auto" class="w-100 pa2 min-h5 h6 resize-vertical">{{ $.Content }}</textarea>
+            <textarea id="content" name="content" dir="auto" class="w-100 pa2 min-h5 h6 resize-vertical code">{{ $.Content }}</textarea>
         </div>
         <ul>
             {{- range $i, $error := index $.ValidationErrors "content" }}
