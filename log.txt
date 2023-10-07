@@ -47,6 +47,7 @@ TODO: re-render the whole site whenever a html file in output/themes gets update
 - bonus: on the root admin page, put a button that says 'regenerate site' and does what it says on the tin (mostly for troubleshooting purposes)
 TODO: rename all ValidationErrors fields to just Errors
 TODO: render post.html on post.md creation/update/delete. This requires implementing the default posts.html and post.html templates.
+TODO: nbrew.regenerateSite(context.Context, sitePrefix string) error
 
 output folder trails pages and posts
 on page creation => generate output page

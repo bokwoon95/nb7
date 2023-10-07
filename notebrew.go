@@ -724,6 +724,9 @@ func (nbrew *Notebrew) getPosts(ctx context.Context, sitePrefix, category string
 			siteURL = nbrew.Scheme + nbrew.ContentDomain + "/" + sitePrefix
 		}
 	}
+	if category != urlSafe(category) {
+		return nil, fs.ErrNotExist
+	}
 	fileInfo, err := fs.Stat(nbrew.FS, path.Join(sitePrefix, "posts", category))
 	if err != nil {
 		return nil, err

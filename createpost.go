@@ -276,6 +276,7 @@ func (nbrew *Notebrew) createpost(w http.ResponseWriter, r *http.Request, userna
 			return
 		}
 
+		// NOTE: god I fucking hate Renderer so much, please do not use it anymore and remove all traces of it.
 		readerFrom, err := nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, "output/posts", response.Category, response.Name, "index.html"), 0644)
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
