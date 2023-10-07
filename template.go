@@ -72,7 +72,6 @@ func NewTemplateParser(ctx context.Context, nbrew *Notebrew, sitePrefix string) 
 		"adminURL":         func() string { return adminURL },
 		"siteURL":          func() string { return siteURL },
 		"shortSiteURL":     func() string { return shortSiteURL },
-		"isEven":           func(i int) bool { return i%2 == 0 },
 		"safeHTML":         func(s string) template.HTML { return template.HTML(s) },
 		"head": func(s string) string {
 			head, _, _ := strings.Cut(s, "/")
