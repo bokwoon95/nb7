@@ -185,10 +185,7 @@ func (nbrew *Notebrew) createpost(w http.ResponseWriter, r *http.Request, userna
 		}
 		var title string
 		str := request.Content
-		for {
-			if str == "" {
-				break
-			}
+		for str != "" {
 			title, str, _ = strings.Cut(str, "\n")
 			title = strings.TrimSpace(title)
 			if title == "" {
