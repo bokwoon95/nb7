@@ -11,12 +11,13 @@
 
 <h1>Posts</h1>
 
-{{- if $.Posts }}
+{{ $posts := getPosts "" }}
+{{- if $posts }}
 <ul>
-    {{- range $post := $.Posts }}
+    {{- range $i, $post := $posts }}
     <li class="mv3">
         <div>
-            <a href="{{ siteURL }}/{{ join $post.Category $post.Name }}" class="b linktext">{{ $post.Title }}</a>
+            <a href="{{ $post.URL }}" class="b linktext">{{ $post.Title }}</a>
             <span class="f6 mid-gray ml2">{{ $post.CreationDate.Format "2006-01-02" }}</span>
         </div>
         <div class="f6 truncate mv1" title="{{ $post.Preview }}">{{ $post.Preview }}</div>

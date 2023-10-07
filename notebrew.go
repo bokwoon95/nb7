@@ -25,6 +25,7 @@ import (
 	"net/netip"
 	"path"
 	"runtime"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -700,7 +701,8 @@ func neatenURL(s string) string {
 	return strings.TrimSuffix(strings.TrimPrefix(s, "http://"), "/")
 }
 
-type Post struct {
+type Post = struct {
+	URL          string
 	Category     string
 	Name         string
 	Title        string
@@ -711,6 +713,17 @@ type Post struct {
 }
 
 func (nbrew *Notebrew) getPosts(ctx context.Context, sitePrefix, category string) ([]Post, error) {
+	siteURL := nbrew.Scheme + nbrew.ContentDomain
+	if strings.Contains(sitePrefix, ".") {
+		siteURL = "https://" + sitePrefix
+	} else if sitePrefix != "" {
+		switch nbrew.MultisiteMode {
+		case "subdomain":
+			siteURL = nbrew.Scheme + strings.TrimPrefix(sitePrefix, "@") + "." + nbrew.ContentDomain
+		case "subdirectory":
+			siteURL = nbrew.Scheme + nbrew.ContentDomain + "/" + sitePrefix
+		}
+	}
 	fileInfo, err := fs.Stat(nbrew.FS, path.Join(sitePrefix, "posts", category))
 	if err != nil {
 		return nil, err
@@ -740,27 +753,39 @@ func (nbrew *Notebrew) getPosts(ctx context.Context, sitePrefix, category string
 		if err != nil {
 			return nil, err
 		}
+		var creationDate time.Time
+		prefix, _, ok := strings.Cut(name, "-")
+		if ok && len(prefix) > 0 && len(prefix) <= 8 {
+			b, _ := base32Encoding.DecodeString(fmt.Sprintf("%08s", prefix))
+			if len(b) == 5 {
+				var timestamp [8]byte
+				copy(timestamp[len(timestamp)-5:], b)
+				creationDate = time.Unix(int64(binary.BigEndian.Uint64(timestamp[:])), 0)
+			}
+		}
 		post := Post{
+			URL:          siteURL + "/" + path.Join("posts", category, strings.TrimSuffix(name, path.Ext(name))) + "/",
 			Category:     category,
 			Name:         name,
+			CreationDate: creationDate,
 			LastModified: fileInfo.ModTime(),
 		}
 		posts = append(posts, post)
 	}
+	slices.SortFunc(posts, func(p1, p2 Post) int {
+		if p1.CreationDate.Equal(p2.CreationDate) {
+			return 0
+		}
+		if p1.CreationDate.Before(p2.CreationDate) {
+			return 1
+		}
+		return -1
+	})
 	g, ctx := errgroup.WithContext(ctx)
 	g.SetLimit(runtime.NumCPU())
 	for i := range posts {
 		post := &posts[i]
 		g.Go(func() error {
-			prefix, _, ok := strings.Cut(post.Name, "-")
-			if ok && len(prefix) > 0 && len(prefix) <= 8 {
-				b, _ := base32Encoding.DecodeString(fmt.Sprintf("%08s", prefix))
-				if len(b) == 5 {
-					var timestamp [8]byte
-					copy(timestamp[len(timestamp)-5:], b)
-					post.CreationDate = time.Unix(int64(binary.BigEndian.Uint64(timestamp[:])), 0)
-				}
-			}
 			file, err := nbrew.FS.Open(path.Join(sitePrefix, "posts", post.Category, post.Name))
 			if err != nil {
 				return err
