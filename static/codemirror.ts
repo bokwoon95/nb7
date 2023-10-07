@@ -56,7 +56,7 @@ for (const [index, dataCodemirror] of document.querySelectorAll<HTMLElement>("[d
         // Custom theme.
         EditorView.theme({
             "&": {
-                fontSize: "12pt",
+                fontSize: "11.5pt",
                 border: "1px solid black",
                 backgroundColor: "white",
             },
