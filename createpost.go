@@ -254,6 +254,7 @@ func (nbrew *Notebrew) createpost(w http.ResponseWriter, r *http.Request, userna
 			internalServerError(w, r, err)
 			return
 		}
+
 		response.Status = CreatePostSuccess
 		writeResponse(w, r, response)
 	default:

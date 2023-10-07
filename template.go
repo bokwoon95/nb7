@@ -313,293 +313,8 @@ func (templateErrors TemplateError) ToList() []string {
 }
 
 func (nbrew *Notebrew) RegenerateSite(ctx context.Context, sitePrefix string) error {
-	startedAt := time.Now()
-	defer func() {
-		timeTaken := time.Since(startedAt)
-		fmt.Println("RegenerateSite: " + timeTaken.String())
-	}()
-	templateParser, err := NewTemplateParser(ctx, nbrew, sitePrefix)
-	if err != nil {
-		return err
-	}
 	g, ctx := errgroup.WithContext(ctx)
 	g.SetLimit(runtime.NumCPU())
-
-	dirEntries, err := fs.ReadDir(nbrew.FS, path.Join(sitePrefix, "output"))
-	if err != nil {
-		return err
-	}
-	for _, dirEntry := range dirEntries {
-		name, isDir := dirEntry.Name(), dirEntry.IsDir()
-		g.Go(func() error {
-			if isDir {
-				if name == "images" || name == "themes" {
-					return nil
-				}
-				return RemoveAll(nbrew.FS, path.Join(sitePrefix, "output", name))
-			}
-			return nbrew.FS.Remove(path.Join(sitePrefix, "output", name))
-		})
-	}
-	err = g.Wait()
-	if err != nil {
-		return err
-	}
-
-	err = MkdirAll(nbrew.FS, path.Join(sitePrefix, "output/posts"), 0755)
-	if err != nil {
-		return err
-	}
-
-	file, err := nbrew.FS.Open(path.Join(sitePrefix, "output/themes/posts.html"))
-	if err != nil {
-		if !errors.Is(err, fs.ErrNotExist) {
-			return err
-		}
-		file, err = rootFS.Open("static/posts.html")
-		if err != nil {
-			return err
-		}
-	}
-	fileInfo, err := file.Stat()
-	if err != nil {
-		return err
-	}
-	var b strings.Builder
-	b.Grow(int(fileInfo.Size()))
-	_, err = io.Copy(&b, file)
-	if err != nil {
-		return err
-	}
-	postsTmpl, err := templateParser.Parse(b.String())
-	if err != nil {
-		return err
-	}
-
-	file, err = nbrew.FS.Open(path.Join(sitePrefix, "output/themes/post.html"))
-	if err != nil {
-		if !errors.Is(err, fs.ErrNotExist) {
-			return err
-		}
-		file, err = rootFS.Open("static/post.html")
-		if err != nil {
-			return err
-		}
-	}
-	fileInfo, err = file.Stat()
-	if err != nil {
-		return err
-	}
-	b.Reset()
-	b.Grow(int(fileInfo.Size()))
-	_, err = io.Copy(&b, file)
-	if err != nil {
-		return err
-	}
-	postTmpl, err := templateParser.Parse(b.String())
-	if err != nil {
-		return err
-	}
-
-	// Render posts.
-	fs.WalkDir(nbrew.FS, path.Join(sitePrefix, "posts"), func(filePath string, dirEntry fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		isDir := dirEntry.IsDir()
-		relativePath := strings.Trim(strings.TrimPrefix(filePath, path.Join(sitePrefix, "posts")), "/")
-		segments := strings.Split(relativePath, "/")
-		var category, name string
-		if isDir {
-			if len(segments) > 1 {
-				return fs.SkipDir
-			}
-			category = segments[0]
-		} else {
-			if len(segments) > 2 {
-				return nil
-			}
-			if len(segments) == 2 {
-				category, name = segments[0], segments[1]
-			} else {
-				name = segments[0]
-			}
-		}
-		ext := path.Ext(name)
-		g.Go(func() error {
-			if isDir {
-				err = MkdirAll(nbrew.FS, path.Join(sitePrefix, "output/posts", category), 0755)
-				if err != nil {
-					return err
-				}
-				readerFrom, err := nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, "output/posts", category, "index.html"), 0644)
-				if err != nil {
-					return err
-				}
-				pipeReader, pipeWriter := io.Pipe()
-				ch := make(chan error, 1)
-				go func() {
-					_, err := readerFrom.ReadFrom(pipeReader)
-					ch <- err
-				}()
-				defer pipeReader.Close()
-				err = postsTmpl.Execute(&ctxWriter{ctx: ctx, dest: pipeWriter}, struct {
-					Category string
-				}{
-					Category: category,
-				})
-				pipeWriter.CloseWithError(err)
-				if err != nil {
-					_, file, line, _ := runtime.Caller(0)
-					fmt.Printf("cancelled here!!! %s:%d\n", file, line)
-					return err
-				}
-				return <-ch
-			}
-			if ext != ".md" && ext != ".txt" {
-				return nil
-			}
-			file, err := nbrew.FS.Open(path.Join(sitePrefix, "posts", category, name))
-			if err != nil {
-				return err
-			}
-			buf := bufPool.Get().(*bytes.Buffer)
-			buf.Reset()
-			defer bufPool.Put(buf)
-			_, err = buf.ReadFrom(file)
-			if err != nil {
-				return err
-			}
-			// title
-			var title string
-			var line []byte
-			remainder := buf.Bytes()
-			for len(remainder) > 0 {
-				line, remainder, _ = bytes.Cut(remainder, []byte("\n"))
-				line = bytes.TrimSpace(line)
-				if len(line) == 0 {
-					continue
-				}
-				var b strings.Builder
-				stripMarkdownStyles(&b, line)
-				title = b.String()
-				break
-			}
-			// content
-			var b strings.Builder
-			err = goldmarkMarkdown.Convert(buf.Bytes(), &b)
-			if err != nil {
-				return err
-			}
-			content := template.HTML(b.String())
-			// creationDate
-			var creationDate time.Time
-			prefix, _, ok := strings.Cut(name, "-")
-			if ok && len(prefix) > 0 && len(prefix) <= 8 {
-				b, _ := base32Encoding.DecodeString(fmt.Sprintf("%08s", prefix))
-				if len(b) == 5 {
-					var timestamp [8]byte
-					copy(timestamp[len(timestamp)-5:], b)
-					creationDate = time.Unix(int64(binary.BigEndian.Uint64(timestamp[:])), 0)
-				}
-			}
-			// lastModified
-			fileInfo, err := dirEntry.Info()
-			if err != nil {
-				return err
-			}
-			lastModified := fileInfo.ModTime()
-			err = MkdirAll(nbrew.FS, path.Join(sitePrefix, "output/posts", category, strings.TrimSuffix(name, ext)), 0755)
-			if err != nil {
-				return err
-			}
-			readerFrom, err := nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, "output/posts", category, strings.TrimSuffix(name, ext), "index.html"), 0644)
-			if err != nil {
-				return err
-			}
-			pipeReader, pipeWriter := io.Pipe()
-			ch := make(chan error, 1)
-			go func() {
-				_, err := readerFrom.ReadFrom(pipeReader)
-				ch <- err
-			}()
-			defer pipeReader.Close()
-			err = postTmpl.Execute(&ctxWriter{ctx: ctx, dest: pipeWriter}, Post{
-				URL:          templateParser.siteURL + "/" + path.Join("posts", category, strings.TrimSuffix(name, path.Ext(name))) + "/",
-				Category:     category,
-				Name:         name,
-				Title:        title,
-				Content:      content,
-				CreationDate: creationDate,
-				LastModified: lastModified,
-			})
-			pipeWriter.CloseWithError(err)
-			if err != nil {
-				return err
-			}
-			return <-ch
-		})
-		return nil
-	})
-
-	// Render pages.
-	fs.WalkDir(nbrew.FS, path.Join(sitePrefix, "pages"), func(filePath string, dirEntry fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		g.Go(func() error {
-			if dirEntry.IsDir() {
-				return nil
-			}
-			relativePath := strings.Trim(strings.TrimPrefix(filePath, path.Join(sitePrefix, "pages")), "/")
-			ext := path.Ext(relativePath)
-			if ext != ".html" {
-				return nil
-			}
-			file, err := nbrew.FS.Open(path.Join(sitePrefix, "pages", relativePath))
-			if err != nil {
-				return err
-			}
-			var b strings.Builder
-			_, err = io.Copy(&ctxWriter{ctx: ctx, dest: &b}, file)
-			if err != nil {
-				_, file, line, _ := runtime.Caller(0)
-				fmt.Printf("cancelled here!!! %s:%d\n", file, line)
-				return err
-			}
-			tmpl, err := templateParser.Parse(b.String())
-			if err != nil {
-				return err
-			}
-			readerFrom, err := nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, "output", strings.TrimSuffix(relativePath, ext), "index.html"), 0644)
-			if err != nil {
-				return err
-			}
-			pipeReader, pipeWriter := io.Pipe()
-			ch := make(chan error, 1)
-			go func() {
-				_, err := readerFrom.ReadFrom(pipeReader)
-				ch <- err
-			}()
-			defer pipeReader.Close()
-			err = tmpl.Execute(&ctxWriter{ctx: ctx, dest: pipeWriter}, nil)
-			pipeWriter.CloseWithError(err)
-			if err != nil {
-				return err
-			}
-			return <-ch
-		})
-		return nil
-	})
-	return g.Wait()
-}
-
-func (nbrew *Notebrew) regenerateSite(ctx context.Context, sitePrefix string) error {
-	startedAt := time.Now()
-	defer func() {
-		timeTaken := time.Since(startedAt)
-		fmt.Println("regenerateSite: " + timeTaken.String())
-	}()
 	templateParser, err := NewTemplateParser(ctx, nbrew, sitePrefix)
 	if err != nil {
 		return err
@@ -706,7 +421,7 @@ func (nbrew *Notebrew) regenerateSite(ctx context.Context, sitePrefix string) er
 			}
 		}
 		ext := path.Ext(name)
-		return func() error {
+		g.Go(func() error {
 			if isDir {
 				err = MkdirAll(nbrew.FS, path.Join(sitePrefix, "output/posts", category), 0755)
 				if err != nil {
@@ -816,15 +531,19 @@ func (nbrew *Notebrew) regenerateSite(ctx context.Context, sitePrefix string) er
 				return err
 			}
 			return <-ch
-		}()
+		})
+		return nil
 	})
+	if err != nil {
+		return err
+	}
 
 	// Render pages.
 	err = fs.WalkDir(nbrew.FS, path.Join(sitePrefix, "pages"), func(filePath string, dirEntry fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		return func() error {
+		g.Go(func() error {
 			if dirEntry.IsDir() {
 				return nil
 			}
@@ -838,7 +557,7 @@ func (nbrew *Notebrew) regenerateSite(ctx context.Context, sitePrefix string) er
 				return err
 			}
 			var b strings.Builder
-			_, err = io.Copy(&ctxWriter{ctx: ctx, dest: &b}, file)
+			_, err = io.Copy(&b, file)
 			if err != nil {
 				return err
 			}
@@ -873,8 +592,13 @@ func (nbrew *Notebrew) regenerateSite(ctx context.Context, sitePrefix string) er
 				return err
 			}
 			return <-ch
-		}()
+		})
+		return nil
 	})
+	if err != nil {
+		return err
+	}
+	err = g.Wait()
 	if err != nil {
 		return err
 	}

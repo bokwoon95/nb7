@@ -1,7 +1,6 @@
 package nb7
 
 import (
-	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -332,7 +331,7 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 
 		segments := strings.Split(filePath, "/")
 		if segments[0] == "posts" || segments[0] == "pages" || (len(segments) > 2 && segments[0] == "output" && segments[1] == "themes") {
-			err = nbrew.regenerateSite(context.Background(), sitePrefix)
+			err = nbrew.RegenerateSite(r.Context(), sitePrefix)
 			if err != nil {
 				var templateError TemplateError
 				if errors.As(err, &templateError) {

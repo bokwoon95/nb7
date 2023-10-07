@@ -299,6 +299,21 @@ func (nbrew *Notebrew) delet(w http.ResponseWriter, r *http.Request, username, s
 		} else if len(response.Errors) > 1 {
 			b.WriteString(" (" + strconv.Itoa(len(response.Errors)) + " items failed)")
 		}
+
+		err := nbrew.RegenerateSite(r.Context(), sitePrefix)
+		if err != nil {
+			var templateError TemplateError
+			if errors.As(err, &templateError) {
+				response.Errors = templateError.ToList()
+				response.Status = ErrFileGenerationFailed
+				writeResponse(w, r, response)
+				return
+			}
+			getLogger(r.Context()).Error(err.Error())
+			internalServerError(w, r, err)
+			return
+		}
+
 		response.Status = Error(b.String())
 		writeResponse(w, r, response)
 	default:

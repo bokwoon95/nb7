@@ -1,7 +1,6 @@
 package nb7
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -227,50 +226,7 @@ func (nbrew *Notebrew) createpage(w http.ResponseWriter, r *http.Request, userna
 			return
 		}
 
-		buf := bufPool.Get().(*bytes.Buffer)
-		buf.Reset()
-		defer bufPool.Put(buf)
-		err = NewRenderer(r.Context(), nbrew, sitePrefix).Render(buf, response.Content)
-		if err != nil {
-			var renderError RenderError
-			if errors.As(err, &renderError) {
-				for _, msg := range renderError.ToList() {
-					response.ValidationErrors["content"] = append(response.ValidationErrors["content"], Error(msg))
-				}
-				response.Status = ErrValidationFailed
-				writeResponse(w, r, response)
-				return
-			}
-			getLogger(r.Context()).Error(err.Error())
-			internalServerError(w, r, err)
-			return
-		}
-
-		var outputFilepath string
-		if response.ParentFolder == "pages" && response.Name == "index" {
-			outputFilepath = path.Join(sitePrefix, "output", strings.TrimPrefix(strings.Trim(response.ParentFolder, "/"), "pages"), "index.html")
-		} else {
-			outputFilepath = path.Join(sitePrefix, "output", strings.TrimPrefix(strings.Trim(response.ParentFolder, "/"), "pages"), response.Name, "index.html")
-		}
-		err = MkdirAll(nbrew.FS, path.Dir(outputFilepath), 0755)
-		if err != nil {
-			getLogger(r.Context()).Error(err.Error())
-			internalServerError(w, r, err)
-			return
-		}
-		readerFrom, err := nbrew.FS.OpenReaderFrom(outputFilepath, 0644)
-		if err != nil {
-			getLogger(r.Context()).Error(err.Error())
-			internalServerError(w, r, err)
-			return
-		}
-		_, err = readerFrom.ReadFrom(buf)
-		if err != nil {
-			getLogger(r.Context()).Error(err.Error())
-			internalServerError(w, r, err)
-			return
-		}
-		readerFrom, err = nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, response.ParentFolder, response.Name+".html"), 0644)
+		readerFrom, err := nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, response.ParentFolder, response.Name+".html"), 0644)
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
 			internalServerError(w, r, err)
@@ -282,6 +238,23 @@ func (nbrew *Notebrew) createpage(w http.ResponseWriter, r *http.Request, userna
 			internalServerError(w, r, err)
 			return
 		}
+
+		err = nbrew.RegenerateSite(r.Context(), sitePrefix)
+		if err != nil {
+			var templateError TemplateError
+			if errors.As(err, &templateError) {
+				for _, msg := range templateError.ToList() {
+					response.ValidationErrors["content"] = append(response.ValidationErrors["content"], Error(msg))
+				}
+				response.Status = ErrFileGenerationFailed
+				writeResponse(w, r, response)
+				return
+			}
+			getLogger(r.Context()).Error(err.Error())
+			internalServerError(w, r, err)
+			return
+		}
+
 		response.Status = CreatePageSuccess
 		writeResponse(w, r, response)
 	default:
