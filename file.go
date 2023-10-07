@@ -355,9 +355,9 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 				internalServerError(w, r, err)
 				return
 			}
-			// templater.generatePost(ctx, sitePrefix, buf, )
-			// templater.generatePostIndex(ctx, sitePrefix, buf, )
-			// templater.generatePage(ctx, sitePrefix, buf, )
+			// templater.renderPost(ctx, sitePrefix, buf, )
+			// templater.renderPostIndex(ctx, sitePrefix, buf, )
+			// templater.renderPage(ctx, sitePrefix, buf, )
 			tmpl, err := NewTemplateParser(r.Context(), nbrew, sitePrefix).Parse("post.html", b.String())
 			if err != nil {
 				var templateErrors TemplateErrors
