@@ -846,15 +846,15 @@ func (nbrew *Notebrew) regenerateSite(ctx context.Context, sitePrefix string) er
 			if err != nil {
 				return err
 			}
-			err = MkdirAll(nbrew.FS, path.Join(sitePrefix, "output", strings.TrimSuffix(relativePath, ext)), 0755)
-			if err != nil {
-				return err
-			}
 			var outputPath string
 			if relativePath == "index.html" {
 				outputPath = path.Join(sitePrefix, "output/index.html")
 			} else {
 				outputPath = path.Join(sitePrefix, "output", strings.TrimSuffix(relativePath, ext), "index.html")
+			}
+			err = MkdirAll(nbrew.FS, path.Dir(outputPath), 0755)
+			if err != nil {
+				return err
 			}
 			readerFrom, err := nbrew.FS.OpenReaderFrom(outputPath, 0644)
 			if err != nil {
