@@ -25,6 +25,13 @@ type TemplateParser struct {
 	ctx        context.Context
 }
 
+// createpost
+// updatepost
+// deletepost
+// createpage
+// updatepage
+// regenerateSite
+
 func NewTemplateParser(ctx context.Context, nbrew *Notebrew, sitePrefix string) *TemplateParser {
 	parser := &TemplateParser{
 		nbrew:      nbrew,

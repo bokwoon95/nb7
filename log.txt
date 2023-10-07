@@ -2,6 +2,7 @@ fs.go
 schema.go
 notebrew.go
 error.go
+template.go
 signup.go
 login.go
 logout.go
