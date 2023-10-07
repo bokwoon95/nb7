@@ -425,6 +425,7 @@ func (nbrew *Notebrew) RegenerateSite(ctx context.Context, sitePrefix string) er
 				name = segments[0]
 			}
 		}
+		ext := path.Ext(name)
 		g.Go(func() error {
 			if isDir {
 				err = MkdirAll(nbrew.FS, path.Join(sitePrefix, "output/posts", category), 0755)
@@ -455,7 +456,6 @@ func (nbrew *Notebrew) RegenerateSite(ctx context.Context, sitePrefix string) er
 				}
 				return <-ch
 			}
-			ext := path.Ext(name)
 			if ext != ".md" && ext != ".txt" {
 				return nil
 			}
@@ -509,11 +509,11 @@ func (nbrew *Notebrew) RegenerateSite(ctx context.Context, sitePrefix string) er
 				return err
 			}
 			lastModified := fileInfo.ModTime()
-			err = MkdirAll(nbrew.FS, path.Join(sitePrefix, "output/posts", category, name), 0755)
+			err = MkdirAll(nbrew.FS, path.Join(sitePrefix, "output/posts", category, strings.TrimSuffix(name, ext)), 0755)
 			if err != nil {
 				return err
 			}
-			readerFrom, err := nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, "output/posts", category, name, "index.html"), 0644)
+			readerFrom, err := nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, "output/posts", category, strings.TrimSuffix(name, ext), "index.html"), 0644)
 			if err != nil {
 				return err
 			}
