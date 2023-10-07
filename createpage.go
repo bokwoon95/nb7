@@ -203,7 +203,7 @@ func (nbrew *Notebrew) createpage(w http.ResponseWriter, r *http.Request, userna
 		} else {
 			if response.ParentFolder == "pages" {
 				switch response.Name {
-				case "admin", "forum", "image", "images", "posts", "status", "themes", "thread", "user":
+				case "admin", "forum", "images", "media", "posts", "status", "themes", "thread", "user":
 					response.ValidationErrors["name"] = append(response.ValidationErrors["name"], ErrForbiddenValue)
 				}
 			}
