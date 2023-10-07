@@ -48,6 +48,7 @@ TODO: re-render the whole site whenever a html file in output/themes gets update
 TODO: rename all ValidationErrors fields to just Errors
 TODO: render post.html on post.md creation/update/delete. This requires implementing the default posts.html and post.html templates.
 TODO: nbrew.regenerateSite(context.Context, sitePrefix string) error
+TODO: investigate why RegenerateSite keeps throwing context cancelled (hint: create a synchronous duplicate of RegenerateSite (regensite) and test using that instead. Observe at which step the context throws up "cancelled").
 
 output folder trails pages and posts
 on page creation => generate output page
