@@ -421,7 +421,7 @@ func (nbrew *Notebrew) RegenerateSite(ctx context.Context, sitePrefix string) er
 		}
 		g.Go(func() error {
 			if isDir {
-				err := MkdirAll(nbrew.FS, path.Join(sitePrefix, "output/posts", category), 0755)
+				err = MkdirAll(nbrew.FS, path.Join(sitePrefix, "output/posts", category), 0755)
 				if err != nil {
 					return err
 				}
@@ -541,5 +541,21 @@ func (nbrew *Notebrew) RegenerateSite(ctx context.Context, sitePrefix string) er
 	})
 
 	// Render pages.
+	fs.WalkDir(nbrew.FS, path.Join(sitePrefix, "pages"), func(filePath string, dirEntry fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if dirEntry.IsDir() {
+		}
+		g.Go(func() error {
+			file, err := nbrew.FS.Open(path.Join(sitePrefix, "pages", filePath))
+			if err != nil {
+				return err
+			}
+			_ = file
+			return nil
+		})
+		return nil
+	})
 	return g.Wait()
 }
