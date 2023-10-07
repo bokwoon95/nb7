@@ -436,15 +436,12 @@ func (nbrew *Notebrew) RegenerateSite(ctx context.Context, sitePrefix string) er
 					ch <- err
 				}()
 				defer pipeReader.Close()
-				err = postsTmpl.Execute(pipeWriter, struct {
+				err = postsTmpl.Execute(&ctxWriter{ctx: ctx, wr: pipeWriter}, struct {
 					Category string
 				}{
 					Category: category,
 				})
-				if err != nil {
-					return err
-				}
-				err = pipeWriter.Close()
+				pipeWriter.CloseWithError(err)
 				if err != nil {
 					return err
 				}
@@ -519,7 +516,7 @@ func (nbrew *Notebrew) RegenerateSite(ctx context.Context, sitePrefix string) er
 				ch <- err
 			}()
 			defer pipeReader.Close()
-			err = postTmpl.Execute(pipeWriter, Post{
+			err = postTmpl.Execute(&ctxWriter{ctx: ctx, wr: pipeWriter}, Post{
 				URL:          templateParser.siteURL + "/" + path.Join("posts", category, strings.TrimSuffix(name, path.Ext(name))) + "/",
 				Category:     category,
 				Name:         name,
@@ -558,4 +555,17 @@ func (nbrew *Notebrew) RegenerateSite(ctx context.Context, sitePrefix string) er
 		return nil
 	})
 	return g.Wait()
+}
+
+type ctxWriter struct {
+	ctx context.Context
+	wr  io.Writer
+}
+
+func (w *ctxWriter) Write(p []byte) (n int, err error) {
+	err = w.ctx.Err()
+	if err != nil {
+		return 0, err
+	}
+	return w.wr.Write(p)
 }
