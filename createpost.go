@@ -231,7 +231,6 @@ func (nbrew *Notebrew) createpost(w http.ResponseWriter, r *http.Request, userna
 			return
 		}
 
-		// Keep track of files which have been rollbackList.
 		var rollbackList []string
 		rollback := func() {
 			for _, item := range rollbackList {
