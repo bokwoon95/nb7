@@ -23,7 +23,7 @@ rename.go
 serve_http.go
 new.go
 
-Search Indexing => Link Indexing and rewrites => PWA => publish
+Search Indexing => RSS => PWA => publish
 the last thing would probably be to make the site into a usable PWA on iOS then you're done, you can publish it to the world.
 
 TODO: why does clicking a *.html.gz file hang and then 404? What's being calculated here?
