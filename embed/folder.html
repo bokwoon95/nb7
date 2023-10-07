@@ -233,26 +233,19 @@
             </div>
             {{- end }}
             <div class="br2 truncate mh1">
-                {{ $isNoteOrPost := and (not $entry.IsDir) (or (eq (head $.Path) "notes") (eq (head $.Path) "posts")) }}
                 <div class="flex items-center">
                     {{- if $entry.IsDir }}
                     {{ template "heroicons-dir" }}
                     {{- end }}
-                    {{- if $isNoteOrPost }}
-                    <span class="ma1 truncate">{{ $entry.Name }}</span>
-                    {{- else }}
                     <a href="/{{ join `admin` sitePrefix $.Path $entry.Name }}{{ if $entry.IsDir }}/{{ end }}" class="linktext ma1 truncate">{{ $entry.Name }}{{ if $entry.IsDir }}/{{ end }}</a>
-                    {{- end }}
                     {{- if $entry.IsDir }}
                     <span class="f6 mid-gray">({{ filecount $entry.NumFolders $entry.NumFiles}})</span>
                     {{- else }}
                     <span class="ma1 f6 mid-gray">{{ fileSizeToString $entry.Size }}</span>
                     {{- end }}
                 </div>
-                {{- if $isNoteOrPost }}
-                <div class="mh1 b truncate">
-                    <a href="/{{ join `admin` sitePrefix $.Path $entry.Name }}" class="linktext truncate">{{ if $entry.Title }}{{ $entry.Title }}{{ else }}Untitled{{ end }}</a>
-                </div>
+                {{- if and (not $entry.IsDir) (or (eq (head $.Path) "notes") (eq (head $.Path) "posts")) }}
+                <div class="mh1 b">{{ if $entry.Title }}{{ $entry.Title }}{{ else }}Untitled{{ end }}</div>
                 <div class="ma1 mid-gray truncate f6">{{ if $entry.Preview }}{{ $entry.Preview }}{{ else }}No additional text{{ end }}</div>
                 {{- end }}
             </div>
