@@ -11,10 +11,8 @@
 
 <h1>Posts</h1>
 
-{{ $posts := getPosts "" }}
-{{- if $posts }}
 <ul>
-    {{- range $i, $post := $posts }}
+    {{- range $post := getPosts "" }}
     <li class="mv3">
         <div>
             <a href="{{ $post.URL }}" class="b linktext">{{ $post.Title }}</a>
@@ -22,8 +20,7 @@
         </div>
         <div class="f6 truncate mv1" title="{{ $post.Preview }}">{{ $post.Preview }}</div>
     </li>
+    {{- else }}
+    <p>No posts</p>
     {{- end }}
 </ul>
-{{- else }}
-<p>No posts</p>
-{{- end }}

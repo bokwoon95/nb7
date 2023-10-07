@@ -401,19 +401,8 @@ func (nbrew *Notebrew) createpost(w http.ResponseWriter, r *http.Request, userna
 			rollback()
 			return
 		}
-		posts, err := nbrew.getPosts(r.Context(), sitePrefix, "")
-		if err != nil {
-			getLogger(r.Context()).Error(err.Error())
-			internalServerError(w, r, err)
-			rollback()
-			return
-		}
 		buf.Reset()
-		err = tmpl.ExecuteTemplate(buf, "posts.html", struct {
-			Posts []Post
-		}{
-			Posts: posts,
-		})
+		err = tmpl.ExecuteTemplate(buf, "posts.html", nil)
 		if err != nil {
 			response.Errors["content"] = append(response.Errors["content"], Error(err.Error()))
 			response.Status = ErrFileGenerationFailed
