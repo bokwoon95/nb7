@@ -1,7 +1,9 @@
 package nb7
 
 import (
+	"bytes"
 	"context"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"html/template"
@@ -9,10 +11,14 @@ import (
 	"io/fs"
 	"net/url"
 	"path"
+	"runtime"
 	"slices"
 	"strings"
 	"sync"
 	"text/template/parse"
+	"time"
+
+	"golang.org/x/sync/errgroup"
 )
 
 type TemplateParser struct {
@@ -96,14 +102,15 @@ func NewTemplateParser(ctx context.Context, nbrew *Notebrew, sitePrefix string) 
 			return dict, nil
 		},
 		"getPosts": func(category string) ([]Post, error) {
+			// TODO: cache the output of each call to getPosts for each category.
 			return nbrew.getPosts(ctx, sitePrefix, category)
 		},
 	}
 	return parser
 }
 
-func (parser *TemplateParser) Parse(templateName, templateText string) (*template.Template, error) {
-	return parser.parse(templateName, templateText, nil)
+func (parser *TemplateParser) Parse(templateText string) (*template.Template, error) {
+	return parser.parse("", templateText, nil)
 }
 
 func (parser *TemplateParser) parse(templateName, templateText string, callers []string) (*template.Template, error) {
@@ -264,4 +271,171 @@ func (templateErrors TemplateErrors) List() []string {
 		}
 	}
 	return list
+}
+
+func (nbrew *Notebrew) RegenerateSite(ctx context.Context, sitePrefix string) error {
+	g, ctx := errgroup.WithContext(ctx)
+	g.SetLimit(runtime.NumCPU())
+	templateParser := NewTemplateParser(ctx, nbrew, sitePrefix)
+
+	file, err := nbrew.FS.Open(path.Join(sitePrefix, "output/themes/posts.html"))
+	if err != nil {
+		if !errors.Is(err, fs.ErrNotExist) {
+			return err
+		}
+		file, err = rootFS.Open("static/posts.html")
+		if err != nil {
+			return err
+		}
+	}
+	fileInfo, err := file.Stat()
+	if err != nil {
+		return err
+	}
+	var b strings.Builder
+	b.Grow(int(fileInfo.Size()))
+	_, err = io.Copy(&b, file)
+	if err != nil {
+		return err
+	}
+	postsTmpl, err := templateParser.Parse(b.String())
+	if err != nil {
+		return err
+	}
+	err = MkdirAll(nbrew.FS, path.Join(sitePrefix, "output/posts"), 0755)
+	if err != nil {
+		return err
+	}
+	readerFrom, err := nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, "output/posts/index.html"), 0644)
+	if err != nil {
+		return err
+	}
+	pipeReader, pipeWriter := io.Pipe()
+	ch := make(chan error, 1)
+	go func() {
+		_, err := readerFrom.ReadFrom(pipeReader)
+		ch <- err
+	}()
+	err = postsTmpl.Execute(pipeWriter, nil)
+	if err != nil {
+		return err
+	}
+	err = pipeWriter.Close()
+	if err != nil {
+		return err
+	}
+	err = <-ch
+	if err != nil {
+		return err
+	}
+
+	file, err = nbrew.FS.Open(path.Join(sitePrefix, "output/themes/post.html"))
+	if err != nil {
+		if !errors.Is(err, fs.ErrNotExist) {
+			return err
+		}
+		file, err = rootFS.Open("static/post.html")
+		if err != nil {
+			return err
+		}
+	}
+	fileInfo, err = file.Stat()
+	if err != nil {
+		return err
+	}
+	b.Reset()
+	b.Grow(int(fileInfo.Size()))
+	_, err = io.Copy(&b, file)
+	if err != nil {
+		return err
+	}
+	postTmpl, err := templateParser.Parse(b.String())
+	if err != nil {
+		return err
+	}
+	_ = postTmpl
+	fs.WalkDir(nbrew.FS, path.Join(sitePrefix, "posts"), func(filePath string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		segments := strings.Split(strings.Trim(filePath, "/"), "/")
+		if d.IsDir() {
+			if len(segments) > 1 {
+				return fs.SkipDir
+			}
+			if len(segments) == 1 {
+				category := segments[0]
+				err = MkdirAll(nbrew.FS, path.Join(sitePrefix, "output/posts", category), 0755)
+				if err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+		ext := path.Ext(filePath)
+		if ext != ".md" && ext != ".txt" {
+			return nil
+		}
+		g.Go(func() error {
+			buf := bufPool.Get().(*bytes.Buffer)
+			buf.Reset()
+			defer bufPool.Put(buf)
+			var category, name string
+			if len(segments) == 3 {
+				category, name = segments[1], strings.TrimSuffix(segments[2], ext)
+			} else {
+				name = strings.TrimSuffix(segments[1], ext)
+			}
+			var creationDate time.Time
+			prefix, _, ok := strings.Cut(name, "-")
+			if ok && len(prefix) > 0 && len(prefix) <= 8 {
+				b, _ := base32Encoding.DecodeString(fmt.Sprintf("%08s", prefix))
+				if len(b) == 5 {
+					var timestamp [8]byte
+					copy(timestamp[len(timestamp)-5:], b)
+					creationDate = time.Unix(int64(binary.BigEndian.Uint64(timestamp[:])), 0)
+				}
+			}
+			_ = creationDate
+			file, err := nbrew.FS.Open(path.Join(sitePrefix, "posts", filePath))
+			if err != nil {
+				return err
+			}
+			_, err = buf.ReadFrom(file)
+			if err != nil {
+				return err
+			}
+			var title string
+			var line []byte
+			remainder := buf.Bytes()
+			for len(remainder) > 0 {
+				line, remainder, _ = bytes.Cut(remainder, []byte("\n"))
+				line = bytes.TrimSpace(line)
+				if len(line) == 0 {
+					continue
+				}
+				var b strings.Builder
+				stripMarkdownStyles(&b, line)
+				title = b.String()
+				break
+			}
+			_ = title
+			fileInfo, err := d.Info()
+			if err != nil {
+				return err
+			}
+			_ = fileInfo.ModTime()
+			readerFrom, err := nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, "output/posts", category, name, "index.html"), 0644)
+			if err != nil {
+				return err
+			}
+			_ = readerFrom
+			return nil
+		})
+		return nil
+	})
+
+	// posts
+	// pages
+	return g.Wait()
 }

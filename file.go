@@ -373,68 +373,7 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 				return
 			}
 		} else if segments[0] == "pages" && ext == ".html" {
-			renderer := NewRenderer(r.Context(), nbrew, sitePrefix)
-			buf := bufPool.Get().(*bytes.Buffer)
-			buf.Reset()
-			defer bufPool.Put(buf)
-			renderer.Render(buf, response.Content)
-			tmpl, err := NewTemplateParser(r.Context(), nbrew, sitePrefix).Parse(filePath, response.Content)
-			if err != nil {
-				var templateErrors TemplateErrors
-				if errors.As(err, &templateErrors) {
-					response.TemplateErrors = templateErrors.List()
-					response.Status = ErrValidationFailed
-					writeResponse(w, r, response)
-					return
-				}
-				getLogger(r.Context()).Error(err.Error())
-				internalServerError(w, r, err)
-				return
-			}
-			err = tmpl.ExecuteTemplate(buf, filePath, nil)
-			if err != nil {
-				response.TemplateErrors = append(response.TemplateErrors, err.Error())
-				response.Status = ErrTemplateError
-				writeResponse(w, r, response)
-				return
-			}
-			var outputFilepath string
-			if response.Path == "pages/index.html" {
-				outputFilepath = path.Join(sitePrefix, "output", "index.html")
-			} else {
-				outputFilepath = path.Join(sitePrefix, "output", strings.TrimSuffix(path.Join(segments[1:]...), ext), "index.html")
-			}
-			err = MkdirAll(nbrew.FS, path.Dir(outputFilepath), 0755)
-			if err != nil {
-				getLogger(r.Context()).Error(err.Error())
-				internalServerError(w, r, err)
-				return
-			}
-			readerFrom, err := nbrew.FS.OpenReaderFrom(outputFilepath, 0644)
-			if err != nil {
-				getLogger(r.Context()).Error(err.Error())
-				internalServerError(w, r, err)
-				return
-			}
-			_, err = readerFrom.ReadFrom(buf)
-			if err != nil {
-				getLogger(r.Context()).Error(err.Error())
-				internalServerError(w, r, err)
-				return
-			}
 		} else if len(segments) > 2 && segments[0] == "output" && segments[1] == "themes" && ext == ".html" {
-			categories := []string{""}
-			dirEntries, err := nbrew.FS.ReadDir(path.Join(sitePrefix, "posts"))
-			if err != nil {
-				getLogger(r.Context()).Error(err.Error())
-				internalServerError(w, r, err)
-				return
-			}
-			for _, dirEntry := range dirEntries {
-				if dirEntry.IsDir() {
-					categories = append(categories, dirEntry.Name())
-				}
-			}
 			// generate the posts
 			// generate the pages
 		}
