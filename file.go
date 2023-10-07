@@ -327,74 +327,6 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 			} else {
 				name = segments[1]
 			}
-			file, err := nbrew.FS.Open(path.Join(sitePrefix, "output/themes/post.html"))
-			if err != nil {
-				if !errors.Is(err, fs.ErrNotExist) {
-					getLogger(r.Context()).Error(err.Error())
-					internalServerError(w, r, err)
-					return
-				}
-				file, err = rootFS.Open("static/post.html")
-				if err != nil {
-					getLogger(r.Context()).Error(err.Error())
-					internalServerError(w, r, err)
-					return
-				}
-			}
-			fileInfo, err := file.Stat()
-			if err != nil {
-				getLogger(r.Context()).Error(err.Error())
-				internalServerError(w, r, err)
-				return
-			}
-			var b strings.Builder
-			b.Grow(int(fileInfo.Size()))
-			_, err = io.Copy(&b, file)
-			if err != nil {
-				getLogger(r.Context()).Error(err.Error())
-				internalServerError(w, r, err)
-				return
-			}
-			// templater.renderPost(ctx, sitePrefix, buf, )
-			// templater.renderPostIndex(ctx, sitePrefix, buf, )
-			// templater.renderPage(ctx, sitePrefix, buf, )
-			tmpl, err := NewTemplateParser(r.Context(), nbrew, sitePrefix).Parse("post.html", b.String())
-			if err != nil {
-				var templateErrors TemplateErrors
-				if errors.As(err, &templateErrors) {
-					response.TemplateErrors = templateErrors.List()
-					response.Status = ErrFileGenerationFailed
-					writeResponse(w, r, response)
-					return
-				}
-				getLogger(r.Context()).Error(err.Error())
-				internalServerError(w, r, err)
-				return
-			}
-			buf := bufPool.Get().(*bytes.Buffer)
-			buf.Reset()
-			defer bufPool.Put(buf)
-			err = goldmarkMarkdown.Convert([]byte(response.Content), buf)
-			if err != nil {
-				getLogger(r.Context()).Error(err.Error())
-				internalServerError(w, r, err)
-				return
-			}
-			content := template.HTML(buf.String())
-			buf.Reset()
-			var title string
-			str := request.Content
-			for str != "" {
-				title, str, _ = strings.Cut(str, "\n")
-				title = strings.TrimSpace(title)
-				if title == "" {
-					continue
-				}
-				var b strings.Builder
-				stripMarkdownStyles(&b, []byte(title))
-				title = b.String()
-				break
-			}
 			var creationDate time.Time
 			prefix, _, ok := strings.Cut(path.Base(filePath), "-")
 			if ok && len(prefix) > 0 && len(prefix) <= 8 {
@@ -405,26 +337,30 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 					creationDate = time.Unix(int64(binary.BigEndian.Uint64(timestamp[:])), 0)
 				}
 			}
-			err = tmpl.ExecuteTemplate(buf, "post.html", Post{
-				Title:        title,
-				Content:      content,
-				CreationDate: creationDate,
-				LastModified: time.Now(),
-			})
+			renderer := NewRenderer(r.Context(), nbrew, sitePrefix)
+			buf := bufPool.Get().(*bytes.Buffer)
+			buf.Reset()
+			defer bufPool.Put(buf)
+			err := renderer.RenderPost(buf, []byte(response.Content), creationDate, time.Now())
 			if err != nil {
-				response.TemplateErrors = append(response.TemplateErrors, err.Error())
-				response.Status = ErrFileGenerationFailed
-				writeResponse(w, r, response)
+				var renderError RenderError
+				if errors.As(err, &renderError) {
+					response.TemplateErrors = renderError.Errors()
+					response.Status = ErrFileGenerationFailed
+					writeResponse(w, r, response)
+					return
+				}
+				getLogger(r.Context()).Error(err.Error())
+				internalServerError(w, r, err)
 				return
 			}
-			outputPath := path.Join(sitePrefix, "output/posts", category, name, "index.html")
-			err = MkdirAll(nbrew.FS, path.Dir(outputPath), 0755)
+			err = MkdirAll(nbrew.FS, path.Join(sitePrefix, "output/posts", category, name), 0755)
 			if err != nil {
 				getLogger(r.Context()).Error(err.Error())
 				internalServerError(w, r, err)
 				return
 			}
-			readerFrom, err := nbrew.FS.OpenReaderFrom(outputPath, 0644)
+			readerFrom, err := nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, "output/posts", category, name, "index.html"), 0644)
 			if err != nil {
 				getLogger(r.Context()).Error(err.Error())
 				internalServerError(w, r, err)
@@ -437,6 +373,11 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 				return
 			}
 		} else if segments[0] == "pages" && ext == ".html" {
+			renderer := NewRenderer(r.Context(), nbrew, sitePrefix)
+			buf := bufPool.Get().(*bytes.Buffer)
+			buf.Reset()
+			defer bufPool.Put(buf)
+			renderer.Render(buf, response.Content)
 			tmpl, err := NewTemplateParser(r.Context(), nbrew, sitePrefix).Parse(filePath, response.Content)
 			if err != nil {
 				var templateErrors TemplateErrors
@@ -450,9 +391,6 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 				internalServerError(w, r, err)
 				return
 			}
-			buf := bufPool.Get().(*bytes.Buffer)
-			buf.Reset()
-			defer bufPool.Put(buf)
 			err = tmpl.ExecuteTemplate(buf, filePath, nil)
 			if err != nil {
 				response.TemplateErrors = append(response.TemplateErrors, err.Error())

@@ -1,7 +1,6 @@
 package nb7
 
 import (
-	"bytes"
 	"encoding/binary"
 	"encoding/json"
 	"errors"
@@ -228,213 +227,89 @@ func (nbrew *Notebrew) createpost(w http.ResponseWriter, r *http.Request, userna
 			response.Name = prefix
 		}
 
-		var rollbackItems []string
-		rollback := func() {
-			for _, item := range rollbackItems {
-				err := RemoveAll(nbrew.FS, item)
-				if err != nil {
-					getLogger(r.Context()).Error(fmt.Sprintf("rollback: %v", err))
-				}
-			}
-		}
-
-		outputPath := path.Join(sitePrefix, "posts", response.Category, response.Name+".md")
-		readerFrom, err := nbrew.FS.OpenReaderFrom(outputPath, 0644)
+		readerFrom, err := nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, "posts", response.Category, response.Name+".md"), 0644)
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
 			internalServerError(w, r, err)
-			rollback()
 			return
 		}
 		_, err = readerFrom.ReadFrom(strings.NewReader(response.Content))
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
 			internalServerError(w, r, err)
-			rollback()
 			return
 		}
-		rollbackItems = append(rollbackItems, outputPath)
-		templateParser := NewTemplateParser(r.Context(), nbrew, sitePrefix)
 
-		file, err := nbrew.FS.Open(path.Join(sitePrefix, "output/themes/post.html"))
-		if err != nil {
-			if !errors.Is(err, fs.ErrNotExist) {
-				getLogger(r.Context()).Error(err.Error())
-				internalServerError(w, r, err)
-				rollback()
-				return
-			}
-			file, err = rootFS.Open("static/post.html")
-			if err != nil {
-				getLogger(r.Context()).Error(err.Error())
-				internalServerError(w, r, err)
-				rollback()
-				return
-			}
-		}
-		fileInfo, err := file.Stat()
+		// Make sure the output folder exists.
+		err = MkdirAll(nbrew.FS, path.Join(sitePrefix, "output/posts", response.Category, response.Name), 0755)
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
 			internalServerError(w, r, err)
-			rollback()
 			return
 		}
-		var b strings.Builder
-		b.Grow(int(fileInfo.Size()))
-		_, err = io.Copy(&b, file)
+
+		renderer := NewRenderer(r.Context(), nbrew, sitePrefix)
+		ch := make(chan error, 1)
+		pipeReader, pipeWriter := io.Pipe()
+		// Render post.
+		readerFrom, err = nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, "output/posts", response.Category, response.Name, "index.html"), 0644)
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
 			internalServerError(w, r, err)
-			rollback()
 			return
 		}
-		tmpl, err := templateParser.Parse("post.html", b.String())
+		go func() {
+			_, err := readerFrom.ReadFrom(pipeReader)
+			ch <- err
+		}()
+		err = renderer.RenderPost(pipeWriter, []byte(response.Content), now, now)
 		if err != nil {
-			var templateErrors TemplateErrors
-			if errors.As(err, &templateErrors) {
-				for _, msg := range templateErrors.List() {
+			var renderError RenderError
+			if errors.As(err, &renderError) {
+				for _, msg := range renderError.Errors() {
 					response.Errors["content"] = append(response.Errors["content"], Error(msg))
 				}
 				response.Status = ErrFileGenerationFailed
 				writeResponse(w, r, response)
-				rollback()
 				return
 			}
 			getLogger(r.Context()).Error(err.Error())
 			internalServerError(w, r, err)
-			rollback()
 			return
 		}
-		buf := bufPool.Get().(*bytes.Buffer)
-		buf.Reset()
-		defer bufPool.Put(buf)
-		err = goldmarkMarkdown.Convert([]byte(response.Content), buf)
+		pipeWriter.Close()
+		err = <-ch
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
 			internalServerError(w, r, err)
-			rollback()
 			return
 		}
-		content := template.HTML(buf.String())
-		buf.Reset()
-		err = tmpl.ExecuteTemplate(buf, "post.html", Post{
-			Title:        title,
-			Content:      content,
-			CreationDate: now,
-			LastModified: now,
-		})
-		if err != nil {
-			response.Errors["content"] = append(response.Errors["content"], Error(err.Error()))
-			response.Status = ErrFileGenerationFailed
-			writeResponse(w, r, response)
-			rollback()
-			return
-		}
-		outputPath = path.Join(sitePrefix, "output/posts", response.Category, response.Name, "index.html")
-		err = MkdirAll(nbrew.FS, path.Dir(outputPath), 0755)
+		// Render post index page.
+		readerFrom, err = nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, "output/posts/index.html"), 0644)
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
 			internalServerError(w, r, err)
-			rollback()
 			return
 		}
-		readerFrom, err = nbrew.FS.OpenReaderFrom(outputPath, 0644)
+		go func() {
+			_, err := readerFrom.ReadFrom(pipeReader)
+			ch <- err
+		}()
+		err = renderer.RenderPostIndex(pipeWriter)
 		if err != nil {
-			getLogger(r.Context()).Error(err.Error())
-			internalServerError(w, r, err)
-			rollback()
-			return
-		}
-		_, err = readerFrom.ReadFrom(buf)
-		if err != nil {
-			getLogger(r.Context()).Error(err.Error())
-			internalServerError(w, r, err)
-			rollback()
-			return
-		}
-		rollbackItems = append(rollbackItems, path.Dir(outputPath))
-
-		file, err = nbrew.FS.Open(path.Join(sitePrefix, "output/themes/posts.html"))
-		if err != nil {
-			if !errors.Is(err, fs.ErrNotExist) {
-				getLogger(r.Context()).Error(err.Error())
-				internalServerError(w, r, err)
-				rollback()
-				return
-			}
-			file, err = rootFS.Open("static/posts.html")
-			if err != nil {
-				getLogger(r.Context()).Error(err.Error())
-				internalServerError(w, r, err)
-				rollback()
-				return
-			}
-		}
-		fileInfo, err = file.Stat()
-		if err != nil {
-			getLogger(r.Context()).Error(err.Error())
-			internalServerError(w, r, err)
-			rollback()
-			return
-		}
-		b.Reset()
-		b.Grow(int(fileInfo.Size()))
-		_, err = io.Copy(&b, file)
-		if err != nil {
-			getLogger(r.Context()).Error(err.Error())
-			internalServerError(w, r, err)
-			rollback()
-			return
-		}
-		tmpl, err = templateParser.Parse("posts.html", b.String())
-		if err != nil {
-			var templateErrors TemplateErrors
-			if errors.As(err, &templateErrors) {
-				for _, msg := range templateErrors.List() {
+			var renderError RenderError
+			if errors.As(err, &renderError) {
+				for _, msg := range renderError.Errors() {
 					response.Errors["content"] = append(response.Errors["content"], Error(msg))
 				}
 				response.Status = ErrFileGenerationFailed
 				writeResponse(w, r, response)
-				rollback()
 				return
 			}
 			getLogger(r.Context()).Error(err.Error())
 			internalServerError(w, r, err)
-			rollback()
 			return
 		}
-		buf.Reset()
-		err = tmpl.ExecuteTemplate(buf, "posts.html", nil)
-		if err != nil {
-			response.Errors["content"] = append(response.Errors["content"], Error(err.Error()))
-			response.Status = ErrFileGenerationFailed
-			writeResponse(w, r, response)
-			rollback()
-			return
-		}
-		outputPath = path.Join(sitePrefix, "output/posts/index.html")
-		err = MkdirAll(nbrew.FS, path.Dir(outputPath), 0755)
-		if err != nil {
-			getLogger(r.Context()).Error(err.Error())
-			internalServerError(w, r, err)
-			rollback()
-			return
-		}
-		readerFrom, err = nbrew.FS.OpenReaderFrom(outputPath, 0644)
-		if err != nil {
-			getLogger(r.Context()).Error(err.Error())
-			internalServerError(w, r, err)
-			rollback()
-			return
-		}
-		_, err = readerFrom.ReadFrom(buf)
-		if err != nil {
-			getLogger(r.Context()).Error(err.Error())
-			internalServerError(w, r, err)
-			rollback()
-			return
-		}
-
 		response.Status = CreatePostSuccess
 		writeResponse(w, r, response)
 	default:

@@ -2,12 +2,17 @@ package nb7
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"hash"
 	"html/template"
 	"io"
 	"io/fs"
+	"log/slog"
+	"net/http"
 	"net/url"
 	"path"
 	"slices"
@@ -15,6 +20,8 @@ import (
 	"sync"
 	"text/template/parse"
 	"time"
+
+	"golang.org/x/crypto/blake2b"
 )
 
 type Renderer struct {
@@ -97,6 +104,18 @@ func NewRenderer(ctx context.Context, nbrew *Notebrew, sitePrefix string) *Rende
 	return renderer
 }
 
+func (renderer *Renderer) Render(w io.Writer, text string) error {
+	tmpl, err := renderer.parse("", text, nil)
+	if err != nil {
+		return err
+	}
+	err = tmpl.Execute(w, nil)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (renderer *Renderer) RenderPost(w io.Writer, content []byte, creationDate, lastModified time.Time) error {
 	file, err := renderer.nbrew.FS.Open(path.Join(renderer.sitePrefix, "output/themes/post.html"))
 	if err != nil {
@@ -118,7 +137,7 @@ func (renderer *Renderer) RenderPost(w io.Writer, content []byte, creationDate, 
 	if err != nil {
 		return err
 	}
-	tmpl, err := renderer.parse("post.html", b.String(), nil)
+	tmpl, err := renderer.parse("", b.String(), nil)
 	if err != nil {
 		return err
 	}
@@ -147,23 +166,61 @@ func (renderer *Renderer) RenderPost(w io.Writer, content []byte, creationDate, 
 		return err
 	}
 	post.Content = template.HTML(buf.String())
-	buf.Reset()
-	err = tmpl.ExecuteTemplate(buf, "post.html", &post)
+	err = tmpl.Execute(w, &post)
 	if err != nil {
-		return err
+		renderer.mu.Lock()
+		renderer.errmsgs[""] = append(renderer.errmsgs[""], err.Error())
+		renderer.mu.Unlock()
+		return RenderError(renderer.errmsgs)
 	}
 	return nil
 }
 
-func (renderer *Renderer) Render(w io.Writer, name string, text string) error {
+func (renderer *Renderer) RenderPostIndex(w io.Writer) error {
+	file, err := renderer.nbrew.FS.Open(path.Join(renderer.sitePrefix, "output/themes/posts.html"))
+	if err != nil {
+		if !errors.Is(err, fs.ErrNotExist) {
+			return err
+		}
+		file, err = rootFS.Open("static/posts.html")
+		if err != nil {
+			return err
+		}
+	}
+	fileInfo, err := file.Stat()
+	if err != nil {
+		return err
+	}
+	var b strings.Builder
+	b.Grow(int(fileInfo.Size()))
+	_, err = io.Copy(&b, file)
+	if err != nil {
+		return err
+	}
+	tmpl, err := renderer.parse("", b.String(), nil)
+	if err != nil {
+		return err
+	}
+	err = tmpl.Execute(w, nil)
+	if err != nil {
+		renderer.mu.Lock()
+		renderer.errmsgs[""] = append(renderer.errmsgs[""], err.Error())
+		renderer.mu.Unlock()
+		return RenderError(renderer.errmsgs)
+	}
 	return nil
 }
 
 func (renderer *Renderer) parse(templateName, templateText string, callers []string) (*template.Template, error) {
 	primaryTemplate, err := template.New(templateName).Funcs(renderer.funcMap).Parse(templateText)
 	if err != nil {
+		errmsg := err.Error()
+		// TODO: collect all possible error strings then use string
+		// manipulation to format the errmsg into something the user can
+		// understand. E.g. if the template name is an empty string, how to
+		// make the error more obvious?
 		renderer.mu.Lock()
-		renderer.errmsgs[templateName] = append(renderer.errmsgs[templateName], strings.TrimSpace(strings.TrimPrefix(err.Error(), "template:")))
+		renderer.errmsgs[templateName] = append(renderer.errmsgs[templateName], errmsg)
 		renderer.mu.Unlock()
 		return nil, RenderError(renderer.errmsgs)
 	}
@@ -317,4 +374,84 @@ func (renderError RenderError) Errors() []string {
 		}
 	}
 	return list
+}
+
+var gzipPool = sync.Pool{
+	New: func() any {
+		// Use compression level 4 for best balance between space and
+		// performance.
+		// https://blog.klauspost.com/gzip-performance-for-go-webservers/
+		gzipWriter, _ := gzip.NewWriterLevel(nil, 4)
+		return gzipWriter
+	},
+}
+
+var hashPool = sync.Pool{
+	New: func() any {
+		hash, err := blake2b.New256(nil)
+		if err != nil {
+			panic(err)
+		}
+		return hash
+	},
+}
+
+var bytesPool = sync.Pool{
+	New: func() any {
+		b := make([]byte, 0, 64)
+		return &b
+	},
+}
+
+func executeTemplate(w http.ResponseWriter, r *http.Request, modtime time.Time, tmpl *template.Template, data any) {
+	buf := bufPool.Get().(*bytes.Buffer)
+	buf.Reset()
+	defer bufPool.Put(buf)
+
+	hasher := hashPool.Get().(hash.Hash)
+	hasher.Reset()
+	defer hashPool.Put(hasher)
+
+	multiWriter := io.MultiWriter(buf, hasher)
+	gzipWriter := gzipPool.Get().(*gzip.Writer)
+	gzipWriter.Reset(multiWriter)
+	defer gzipPool.Put(gzipWriter)
+
+	err := tmpl.Execute(gzipWriter, data)
+	if err != nil {
+		getLogger(r.Context()).Error(err.Error(), slog.String("data", fmt.Sprintf("%#v", data)))
+		internalServerError(w, r, err)
+		return
+	}
+	err = gzipWriter.Close()
+	if err != nil {
+		getLogger(r.Context()).Error(err.Error())
+		internalServerError(w, r, err)
+		return
+	}
+
+	src := bytesPool.Get().(*[]byte)
+	*src = (*src)[:0]
+	defer bytesPool.Put(src)
+
+	dst := bytesPool.Get().(*[]byte)
+	*dst = (*dst)[:0]
+	defer bytesPool.Put(dst)
+
+	*src = hasher.Sum(*src)
+	encodedLen := hex.EncodedLen(len(*src))
+	if cap(*dst) < encodedLen {
+		*dst = make([]byte, encodedLen)
+	}
+	*dst = (*dst)[:encodedLen]
+	hex.Encode(*dst, *src)
+
+	if _, ok := w.Header()["Content-Security-Policy"]; !ok {
+		w.Header().Set("Content-Security-Policy", defaultContentSecurityPolicy)
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Content-Encoding", "gzip")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("ETag", string(*dst))
+	http.ServeContent(w, r, "", modtime, bytes.NewReader(buf.Bytes()))
 }
