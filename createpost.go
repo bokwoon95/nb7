@@ -231,9 +231,9 @@ func (nbrew *Notebrew) createpost(w http.ResponseWriter, r *http.Request, userna
 			return
 		}
 
-		var rollbackList []string
+		var rollbackItems []string
 		rollback := func() {
-			for _, item := range rollbackList {
+			for _, item := range rollbackItems {
 				err := RemoveAll(nbrew.FS, item)
 				if err != nil {
 					getLogger(r.Context()).Error(fmt.Sprintf("rollback: %v", err))
@@ -256,7 +256,7 @@ func (nbrew *Notebrew) createpost(w http.ResponseWriter, r *http.Request, userna
 			rollback()
 			return
 		}
-		rollbackList = append(rollbackList, outputPath)
+		rollbackItems = append(rollbackItems, outputPath)
 		templateParser := NewTemplateParser(r.Context(), nbrew, sitePrefix)
 
 		file, err := nbrew.FS.Open(path.Join(sitePrefix, "output/themes/post.html"))
@@ -355,7 +355,7 @@ func (nbrew *Notebrew) createpost(w http.ResponseWriter, r *http.Request, userna
 			rollback()
 			return
 		}
-		rollbackList = append(rollbackList, path.Dir(outputPath))
+		rollbackItems = append(rollbackItems, path.Dir(outputPath))
 
 		file, err = nbrew.FS.Open(path.Join(sitePrefix, "output/themes/posts.html"))
 		if err != nil {
