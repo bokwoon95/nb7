@@ -45,10 +45,17 @@ TODO: rss is in
 TODO: cut | copy | paste | rename (no need for link indexing and rewriting yet, that comes later)
 TODO: re-render the whole site whenever a html file in output/themes gets updated.
 - bonus: on the root admin page, put a button that says 'regenerate site' and does what it says on the tin (mostly for troubleshooting purposes)
+TODO: conservative rendering by default:
+- creating a post merely generates the post page plus the category list page
+- updating a post merely updates the post page
+- deleting a post merely deletes the post page plus updates the category list page
+- creating a page merely generates the page
+- updating a page merely updates the page
+- deleting a page merely deletes the page
+- updating a theme template updates the template, but also offers the user the option to regenerate the whole site (or they can surgically regenerate specific pages instead).
+- In the admin page, there is a dropdown menu next to the site that says "regenerate site" (above "delete site")
+- This is the piece de resistance: for each page, there is an item dropdown menu allowing the user to regenerate specific pages (the user can also select multiple pages and click "regenerate"). This means we can avoid whole-site rendering most of the time.
 TODO: rename all ValidationErrors fields to just Errors
-TODO: render post.html on post.md creation/update/delete. This requires implementing the default posts.html and post.html templates.
-TODO: nbrew.regenerateSite(context.Context, sitePrefix string) error
-TODO: investigate why RegenerateSite keeps throwing context cancelled (hint: create a synchronous duplicate of RegenerateSite (regensite) and test using that instead. Observe at which step the context throws up "cancelled").
 
 output folder trails pages and posts
 on page creation => generate output page
