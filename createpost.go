@@ -227,21 +227,8 @@ func (nbrew *Notebrew) createpost(w http.ResponseWriter, r *http.Request, userna
 			response.Name = prefix
 		}
 
-		readerFrom, err := nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, "posts", response.Category, response.Name+".md"), 0644)
-		if err != nil {
-			getLogger(r.Context()).Error(err.Error())
-			internalServerError(w, r, err)
-			return
-		}
-		_, err = readerFrom.ReadFrom(strings.NewReader(response.Content))
-		if err != nil {
-			getLogger(r.Context()).Error(err.Error())
-			internalServerError(w, r, err)
-			return
-		}
-
 		// Make sure the output folder exists.
-		err = MkdirAll(nbrew.FS, path.Join(sitePrefix, "output/posts", response.Category, response.Name), 0755)
+		err := MkdirAll(nbrew.FS, path.Join(sitePrefix, "output/posts", response.Category, response.Name), 0755)
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
 			internalServerError(w, r, err)
@@ -249,18 +236,29 @@ func (nbrew *Notebrew) createpost(w http.ResponseWriter, r *http.Request, userna
 		}
 
 		renderer := NewRenderer(r.Context(), nbrew, sitePrefix)
-		ch := make(chan error, 1)
-		pipeReader, pipeWriter := io.Pipe()
-		// Render post.
-		readerFrom, err = nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, "output/posts", response.Category, response.Name, "index.html"), 0644)
+		c := make(chan error, 1)
+		rollbackItems := []string{}
+		rollback := func() {
+			for _, item := range rollbackItems {
+				err := RemoveAll(nbrew.FS, item)
+				if err != nil {
+					getLogger(r.Context()).Error(err.Error())
+				}
+			}
+		}
+
+		// Render post.html.
+		readerFrom, err := nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, "output/posts", response.Category, response.Name, "index.html"), 0644)
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
 			internalServerError(w, r, err)
+			rollback()
 			return
 		}
+		pipeReader, pipeWriter := io.Pipe()
 		go func() {
 			_, err := readerFrom.ReadFrom(pipeReader)
-			ch <- err
+			c <- err
 		}()
 		err = renderer.RenderPost(pipeWriter, []byte(response.Content), now, now)
 		if err != nil {
@@ -271,29 +269,42 @@ func (nbrew *Notebrew) createpost(w http.ResponseWriter, r *http.Request, userna
 				}
 				response.Status = ErrFileGenerationFailed
 				writeResponse(w, r, response)
+				rollback()
 				return
 			}
 			getLogger(r.Context()).Error(err.Error())
 			internalServerError(w, r, err)
+			rollback()
 			return
 		}
-		pipeWriter.Close()
-		err = <-ch
+		err = pipeWriter.Close()
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
 			internalServerError(w, r, err)
+			rollback()
 			return
 		}
-		// Render post index page.
+		err = <-c
+		if err != nil {
+			getLogger(r.Context()).Error(err.Error())
+			internalServerError(w, r, err)
+			rollback()
+			return
+		}
+		rollbackItems = append(rollbackItems, path.Join(sitePrefix, "output/posts", response.Category, response.Name))
+
+		// Render posts.html.
 		readerFrom, err = nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, "output/posts/index.html"), 0644)
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
 			internalServerError(w, r, err)
+			rollback()
 			return
 		}
+		pipeReader, pipeWriter = io.Pipe()
 		go func() {
 			_, err := readerFrom.ReadFrom(pipeReader)
-			ch <- err
+			c <- err
 		}()
 		err = renderer.RenderPostIndex(pipeWriter)
 		if err != nil {
@@ -304,10 +315,42 @@ func (nbrew *Notebrew) createpost(w http.ResponseWriter, r *http.Request, userna
 				}
 				response.Status = ErrFileGenerationFailed
 				writeResponse(w, r, response)
+				rollback()
 				return
 			}
 			getLogger(r.Context()).Error(err.Error())
 			internalServerError(w, r, err)
+			rollback()
+			return
+		}
+		err = pipeWriter.Close()
+		if err != nil {
+			getLogger(r.Context()).Error(err.Error())
+			internalServerError(w, r, err)
+			rollback()
+			return
+		}
+		err = <-c
+		if err != nil {
+			getLogger(r.Context()).Error(err.Error())
+			internalServerError(w, r, err)
+			rollback()
+			return
+		}
+		rollbackItems = append(rollbackItems, path.Join(sitePrefix, "output/posts/index.html"))
+
+		readerFrom, err = nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, "posts", response.Category, response.Name+".md"), 0644)
+		if err != nil {
+			getLogger(r.Context()).Error(err.Error())
+			internalServerError(w, r, err)
+			rollback()
+			return
+		}
+		_, err = readerFrom.ReadFrom(strings.NewReader(response.Content))
+		if err != nil {
+			getLogger(r.Context()).Error(err.Error())
+			internalServerError(w, r, err)
+			rollback()
 			return
 		}
 		response.Status = CreatePostSuccess
