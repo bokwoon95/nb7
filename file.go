@@ -3,8 +3,10 @@ package nb7
 import (
 	"bytes"
 	"database/sql"
+	"encoding/binary"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"html/template"
 	"io"
 	"io/fs"
@@ -317,21 +319,124 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 			}()
 		}
 
-		head, tail, _ := strings.Cut(filePath, "/")
-
-		// If it's a note, just write it into admin/notes/*
-
-		// If it's a post, render post to output/posts/*/tmp.html then if it passes rename the tmp.html into index.html and write the content into admin/posts/*
-		if head == "posts" {
-			// TODO:
-			// - find user's post.html
-			// - if not found, use our own post.html
-			// - parseTemplate(sitePrefix, "", file("post.html")), pass in request.Content as {{ .Content }}
-			// - if any template errors, reject the update.
-		}
-
-		// If it's a page, render page to output/*/tmp.html then if it passes rename tmp.html into index.html and write the content into admin/pages/*
-		if head == "pages" && ext == ".html" {
+		segments := strings.Split(filePath, "/")
+		if segments[0] == "posts" && len(segments) <= 3 && (ext == ".md" || ext == ".txt") {
+			var category, name string
+			if len(segments) == 3 {
+				category, name = segments[1], segments[2]
+			} else {
+				name = segments[1]
+			}
+			file, err := nbrew.FS.Open(path.Join(sitePrefix, "output/themes/post.html"))
+			if err != nil {
+				if !errors.Is(err, fs.ErrNotExist) {
+					getLogger(r.Context()).Error(err.Error())
+					internalServerError(w, r, err)
+					return
+				}
+				file, err = rootFS.Open("static/post.html")
+				if err != nil {
+					getLogger(r.Context()).Error(err.Error())
+					internalServerError(w, r, err)
+					return
+				}
+			}
+			fileInfo, err := file.Stat()
+			if err != nil {
+				getLogger(r.Context()).Error(err.Error())
+				internalServerError(w, r, err)
+				return
+			}
+			var b strings.Builder
+			b.Grow(int(fileInfo.Size()))
+			_, err = io.Copy(&b, file)
+			if err != nil {
+				getLogger(r.Context()).Error(err.Error())
+				internalServerError(w, r, err)
+				return
+			}
+			// templater.generatePost(ctx, sitePrefix, buf, )
+			// templater.generatePostIndex(ctx, sitePrefix, buf, )
+			// templater.generatePage(ctx, sitePrefix, buf, )
+			tmpl, err := NewTemplateParser(r.Context(), nbrew, sitePrefix).Parse("post.html", b.String())
+			if err != nil {
+				var templateErrors TemplateErrors
+				if errors.As(err, &templateErrors) {
+					response.TemplateErrors = templateErrors.List()
+					response.Status = ErrFileGenerationFailed
+					writeResponse(w, r, response)
+					return
+				}
+				getLogger(r.Context()).Error(err.Error())
+				internalServerError(w, r, err)
+				return
+			}
+			buf := bufPool.Get().(*bytes.Buffer)
+			buf.Reset()
+			defer bufPool.Put(buf)
+			err = goldmarkMarkdown.Convert([]byte(response.Content), buf)
+			if err != nil {
+				getLogger(r.Context()).Error(err.Error())
+				internalServerError(w, r, err)
+				return
+			}
+			content := template.HTML(buf.String())
+			buf.Reset()
+			var title string
+			str := request.Content
+			for str != "" {
+				title, str, _ = strings.Cut(str, "\n")
+				title = strings.TrimSpace(title)
+				if title == "" {
+					continue
+				}
+				var b strings.Builder
+				stripMarkdownStyles(&b, []byte(title))
+				title = b.String()
+				break
+			}
+			var creationDate time.Time
+			prefix, _, ok := strings.Cut(path.Base(filePath), "-")
+			if ok && len(prefix) > 0 && len(prefix) <= 8 {
+				b, _ := base32Encoding.DecodeString(fmt.Sprintf("%08s", prefix))
+				if len(b) == 5 {
+					var timestamp [8]byte
+					copy(timestamp[len(timestamp)-5:], b)
+					creationDate = time.Unix(int64(binary.BigEndian.Uint64(timestamp[:])), 0)
+				}
+			}
+			err = tmpl.ExecuteTemplate(buf, "post.html", Post{
+				Title:        title,
+				Content:      content,
+				CreationDate: creationDate,
+				LastModified: time.Now(),
+			})
+			if err != nil {
+				response.TemplateErrors = append(response.TemplateErrors, err.Error())
+				response.Status = ErrFileGenerationFailed
+				writeResponse(w, r, response)
+				return
+			}
+			outputPath := path.Join(sitePrefix, "output/posts", category, name, "index.html")
+			err = MkdirAll(nbrew.FS, path.Dir(outputPath), 0755)
+			if err != nil {
+				getLogger(r.Context()).Error(err.Error())
+				internalServerError(w, r, err)
+				return
+			}
+			readerFrom, err := nbrew.FS.OpenReaderFrom(outputPath, 0644)
+			if err != nil {
+				getLogger(r.Context()).Error(err.Error())
+				internalServerError(w, r, err)
+				return
+			}
+			_, err = readerFrom.ReadFrom(buf)
+			if err != nil {
+				getLogger(r.Context()).Error(err.Error())
+				internalServerError(w, r, err)
+				return
+			}
+		} else if segments[0] == "pages" && ext == ".html" {
 			tmpl, err := NewTemplateParser(r.Context(), nbrew, sitePrefix).Parse(filePath, response.Content)
 			if err != nil {
 				var templateErrors TemplateErrors
@@ -359,7 +464,7 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 			if response.Path == "pages/index.html" {
 				outputFilepath = path.Join(sitePrefix, "output", "index.html")
 			} else {
-				outputFilepath = path.Join(sitePrefix, "output", strings.TrimSuffix(tail, path.Ext(tail)), "index.html")
+				outputFilepath = path.Join(sitePrefix, "output", strings.TrimSuffix(path.Join(segments[1:]...), ext), "index.html")
 			}
 			err = MkdirAll(nbrew.FS, path.Dir(outputFilepath), 0755)
 			if err != nil {
@@ -379,6 +484,21 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 				internalServerError(w, r, err)
 				return
 			}
+		} else if len(segments) > 2 && segments[0] == "output" && segments[1] == "themes" && ext == ".html" {
+			categories := []string{""}
+			dirEntries, err := nbrew.FS.ReadDir(path.Join(sitePrefix, "posts"))
+			if err != nil {
+				getLogger(r.Context()).Error(err.Error())
+				internalServerError(w, r, err)
+				return
+			}
+			for _, dirEntry := range dirEntries {
+				if dirEntry.IsDir() {
+					categories = append(categories, dirEntry.Name())
+				}
+			}
+			// generate the posts
+			// generate the pages
 		}
 
 		// If it's an image, just write the image into output/images/*

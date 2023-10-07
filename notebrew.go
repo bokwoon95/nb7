@@ -753,7 +753,7 @@ func (nbrew *Notebrew) getPosts(ctx context.Context, sitePrefix, category string
 		post := &posts[i]
 		g.Go(func() error {
 			prefix, _, ok := strings.Cut(post.Name, "-")
-			if ok && len(prefix) <= 8 {
+			if ok && len(prefix) > 0 && len(prefix) <= 8 {
 				b, _ := base32Encoding.DecodeString(fmt.Sprintf("%08s", prefix))
 				if len(b) == 5 {
 					var timestamp [8]byte

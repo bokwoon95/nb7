@@ -26,6 +26,7 @@ new.go
 Search Indexing => RSS => PWA => publish
 the last thing would probably be to make the site into a usable PWA on iOS then you're done, you can publish it to the world.
 
+TODO: should notebrew.com be the catch-all website? So people go there to browse rss stuff like they do HN, discover new posts, etc. But my main issue is that it would tread over the toes of the main site i.e. what if someone hosts notebrew on just one domain? All the dynamic stuff has to be squirrelled away into example.com/admin/, not example.com
 TODO: why does clicking a *.html.gz file hang and then 404? What's being calculated here?
 TODO: rethink error codes: I don't like how some validation errors are also standalone errors, maybe merge them together and split them by some other fault line
 TODO: what if the generated pages are compressed, does file.go still handle displaying the contents transparently? main use case are the generated index.html.gz files.
