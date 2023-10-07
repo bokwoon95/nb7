@@ -183,6 +183,20 @@ func (nbrew *Notebrew) createpost(w http.ResponseWriter, r *http.Request, userna
 			Content:  request.Content,
 			Errors:   make(map[string][]Error),
 		}
+		if response.Category != "" {
+			fileInfo, err := fs.Stat(nbrew.FS, path.Join(sitePrefix, "posts", response.Category))
+			if err != nil && !errors.Is(err, fs.ErrNotExist) {
+				getLogger(r.Context()).Error(err.Error())
+				internalServerError(w, r, err)
+				return
+			}
+			if fileInfo == nil {
+				response.Errors["category"] = append(response.Errors["category"], ErrInvalidValue)
+				response.Status = ErrValidationFailed
+				writeResponse(w, r, response)
+				return
+			}
+		}
 		var title string
 		str := request.Content
 		for str != "" {
@@ -210,22 +224,6 @@ func (nbrew *Notebrew) createpost(w http.ResponseWriter, r *http.Request, userna
 			response.Name = prefix + "-" + slug
 		} else {
 			response.Name = prefix
-		}
-		if response.Category != "" {
-			fileInfo, err := fs.Stat(nbrew.FS, path.Join(sitePrefix, "posts", response.Category))
-			if err != nil && !errors.Is(err, fs.ErrNotExist) {
-				getLogger(r.Context()).Error(err.Error())
-				internalServerError(w, r, err)
-				return
-			}
-			if fileInfo == nil {
-				response.Errors["category"] = append(response.Errors["category"], ErrInvalidValue)
-			}
-		}
-		if len(response.Errors) > 0 {
-			response.Status = ErrValidationFailed
-			writeResponse(w, r, response)
-			return
 		}
 
 		var rollbackItems []string
