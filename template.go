@@ -158,7 +158,7 @@ func (parser *TemplateParser) parse(templateName, templateText string, callers [
 		parser.mu.Lock()
 		parser.errmsgs[templateName] = append(parser.errmsgs[templateName], strings.TrimSpace(strings.TrimPrefix(err.Error(), "template:")))
 		parser.mu.Unlock()
-		return nil, TemplateErrors(parser.errmsgs)
+		return nil, TemplateError(parser.errmsgs)
 	}
 	primaryTemplates := primaryTemplate.Templates()
 	slices.SortFunc(primaryTemplates, func(t1, t2 *template.Template) int {
@@ -176,7 +176,7 @@ func (parser *TemplateParser) parse(templateName, templateText string, callers [
 	errmsgs := parser.errmsgs
 	parser.mu.RUnlock()
 	if len(errmsgs) > 0 {
-		return nil, TemplateErrors(errmsgs)
+		return nil, TemplateError(errmsgs)
 	}
 	var names []string
 	var node parse.Node
@@ -234,7 +234,7 @@ func (parser *TemplateParser) parse(templateName, templateText string, callers [
 					strings.Join(append(callers, name), " => "),
 				))
 				parser.mu.Unlock()
-				return nil, TemplateErrors(parser.errmsgs)
+				return nil, TemplateError(parser.errmsgs)
 			}
 			if err != nil {
 				return nil, fmt.Errorf("%s: open %s: %w", templateName, name, err)
@@ -276,7 +276,7 @@ func (parser *TemplateParser) parse(templateName, templateText string, callers [
 	errmsgs = parser.errmsgs
 	parser.mu.RUnlock()
 	if len(errmsgs) > 0 {
-		return nil, TemplateErrors(errmsgs)
+		return nil, TemplateError(errmsgs)
 	}
 	for _, tmpl := range primaryTemplates {
 		_, err = finalTemplate.AddParseTree(tmpl.Name(), tmpl.Tree)
@@ -284,12 +284,12 @@ func (parser *TemplateParser) parse(templateName, templateText string, callers [
 			return nil, fmt.Errorf("%s: add %s: %w", templateName, tmpl.Name(), err)
 		}
 	}
-	return finalTemplate, nil
+	return finalTemplate.Lookup(templateName), nil
 }
 
-type TemplateErrors map[string][]string
+type TemplateError map[string][]string
 
-func (templateErrors TemplateErrors) Error() string {
+func (templateErrors TemplateError) Error() string {
 	names := make([]string, 0, len(templateErrors))
 	for name := range templateErrors {
 		names = append(names, name)
@@ -297,7 +297,7 @@ func (templateErrors TemplateErrors) Error() string {
 	return fmt.Sprintf("the following templates have errors: %+v", names)
 }
 
-func (templateErrors TemplateErrors) ToList() []string {
+func (templateErrors TemplateError) ToList() []string {
 	var list []string
 	names := make([]string, 0, len(templateErrors))
 	for name := range templateErrors {
@@ -313,12 +313,17 @@ func (templateErrors TemplateErrors) ToList() []string {
 }
 
 func (nbrew *Notebrew) RegenerateSite(ctx context.Context, sitePrefix string) error {
+	startedAt := time.Now()
+	defer func() {
+		timeTaken := time.Since(startedAt)
+		fmt.Println("RegenerateSite: " + timeTaken.String())
+	}()
 	templateParser, err := NewTemplateParser(ctx, nbrew, sitePrefix)
 	if err != nil {
 		return err
 	}
 	g, ctx := errgroup.WithContext(ctx)
-	g.SetLimit(runtime.NumCPU())
+	g.SetLimit(1)
 
 	dirEntries, err := fs.ReadDir(nbrew.FS, path.Join(sitePrefix, "output"))
 	if err != nil {
@@ -402,7 +407,8 @@ func (nbrew *Notebrew) RegenerateSite(ctx context.Context, sitePrefix string) er
 			return err
 		}
 		isDir := dirEntry.IsDir()
-		segments := strings.Split(strings.Trim(filePath, "/"), "/")
+		relativePath := strings.Trim(strings.TrimPrefix(filePath, path.Join(sitePrefix, "posts")), "/")
+		segments := strings.Split(relativePath, "/")
 		var category, name string
 		if isDir {
 			if len(segments) > 1 {
@@ -436,13 +442,15 @@ func (nbrew *Notebrew) RegenerateSite(ctx context.Context, sitePrefix string) er
 					ch <- err
 				}()
 				defer pipeReader.Close()
-				err = postsTmpl.Execute(&ctxWriter{ctx: ctx, wr: pipeWriter}, struct {
+				err = postsTmpl.Execute(&ctxWriter{ctx: ctx, dest: pipeWriter}, struct {
 					Category string
 				}{
 					Category: category,
 				})
 				pipeWriter.CloseWithError(err)
 				if err != nil {
+					_, file, line, _ := runtime.Caller(0)
+					fmt.Printf("cancelled here!!! %s:%d\n", file, line)
 					return err
 				}
 				return <-ch
@@ -516,7 +524,7 @@ func (nbrew *Notebrew) RegenerateSite(ctx context.Context, sitePrefix string) er
 				ch <- err
 			}()
 			defer pipeReader.Close()
-			err = postTmpl.Execute(&ctxWriter{ctx: ctx, wr: pipeWriter}, Post{
+			err = postTmpl.Execute(&ctxWriter{ctx: ctx, dest: pipeWriter}, Post{
 				URL:          templateParser.siteURL + "/" + path.Join("posts", category, strings.TrimSuffix(name, path.Ext(name))) + "/",
 				Category:     category,
 				Name:         name,
@@ -525,10 +533,7 @@ func (nbrew *Notebrew) RegenerateSite(ctx context.Context, sitePrefix string) er
 				CreationDate: creationDate,
 				LastModified: lastModified,
 			})
-			if err != nil {
-				return err
-			}
-			err = pipeWriter.Close()
+			pipeWriter.CloseWithError(err)
 			if err != nil {
 				return err
 			}
@@ -542,15 +547,47 @@ func (nbrew *Notebrew) RegenerateSite(ctx context.Context, sitePrefix string) er
 		if err != nil {
 			return err
 		}
-		if dirEntry.IsDir() {
-		}
 		g.Go(func() error {
-			file, err := nbrew.FS.Open(path.Join(sitePrefix, "pages", filePath))
+			if dirEntry.IsDir() {
+				return nil
+			}
+			relativePath := strings.Trim(strings.TrimPrefix(filePath, path.Join(sitePrefix, "pages")), "/")
+			ext := path.Ext(relativePath)
+			if ext != ".html" {
+				return nil
+			}
+			file, err := nbrew.FS.Open(path.Join(sitePrefix, "pages", relativePath))
 			if err != nil {
 				return err
 			}
-			_ = file
-			return nil
+			var b strings.Builder
+			_, err = io.Copy(&ctxWriter{ctx: ctx, dest: &b}, file)
+			if err != nil {
+				_, file, line, _ := runtime.Caller(0)
+				fmt.Printf("cancelled here!!! %s:%d\n", file, line)
+				return err
+			}
+			tmpl, err := templateParser.Parse(b.String())
+			if err != nil {
+				return err
+			}
+			readerFrom, err := nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, "output", strings.TrimSuffix(relativePath, ext), "index.html"), 0644)
+			if err != nil {
+				return err
+			}
+			pipeReader, pipeWriter := io.Pipe()
+			ch := make(chan error, 1)
+			go func() {
+				_, err := readerFrom.ReadFrom(pipeReader)
+				ch <- err
+			}()
+			defer pipeReader.Close()
+			err = tmpl.Execute(&ctxWriter{ctx: ctx, dest: pipeWriter}, nil)
+			pipeWriter.CloseWithError(err)
+			if err != nil {
+				return err
+			}
+			return <-ch
 		})
 		return nil
 	})
@@ -558,8 +595,8 @@ func (nbrew *Notebrew) RegenerateSite(ctx context.Context, sitePrefix string) er
 }
 
 type ctxWriter struct {
-	ctx context.Context
-	wr  io.Writer
+	ctx  context.Context
+	dest io.Writer
 }
 
 func (w *ctxWriter) Write(p []byte) (n int, err error) {
@@ -567,5 +604,5 @@ func (w *ctxWriter) Write(p []byte) (n int, err error) {
 	if err != nil {
 		return 0, err
 	}
-	return w.wr.Write(p)
+	return w.dest.Write(p)
 }

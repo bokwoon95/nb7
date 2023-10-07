@@ -1,12 +1,9 @@
 package nb7
 
 import (
-	"bytes"
 	"database/sql"
-	"encoding/binary"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"html/template"
 	"io"
 	"io/fs"
@@ -319,71 +316,6 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 			}()
 		}
 
-		segments := strings.Split(filePath, "/")
-		if segments[0] == "posts" && len(segments) <= 3 && (ext == ".md" || ext == ".txt") {
-			var category, name string
-			if len(segments) == 3 {
-				category, name = segments[1], segments[2]
-			} else {
-				name = segments[1]
-			}
-			var creationDate time.Time
-			prefix, _, ok := strings.Cut(path.Base(filePath), "-")
-			if ok && len(prefix) > 0 && len(prefix) <= 8 {
-				b, _ := base32Encoding.DecodeString(fmt.Sprintf("%08s", prefix))
-				if len(b) == 5 {
-					var timestamp [8]byte
-					copy(timestamp[len(timestamp)-5:], b)
-					creationDate = time.Unix(int64(binary.BigEndian.Uint64(timestamp[:])), 0)
-				}
-			}
-			renderer := NewRenderer(r.Context(), nbrew, sitePrefix)
-			buf := bufPool.Get().(*bytes.Buffer)
-			buf.Reset()
-			defer bufPool.Put(buf)
-			err := renderer.RenderPost(buf, []byte(response.Content), creationDate, time.Now())
-			if err != nil {
-				var renderError RenderError
-				if errors.As(err, &renderError) {
-					response.TemplateErrors = renderError.ToList()
-					response.Status = ErrFileGenerationFailed
-					writeResponse(w, r, response)
-					return
-				}
-				getLogger(r.Context()).Error(err.Error())
-				internalServerError(w, r, err)
-				return
-			}
-			err = MkdirAll(nbrew.FS, path.Join(sitePrefix, "output/posts", category, name), 0755)
-			if err != nil {
-				getLogger(r.Context()).Error(err.Error())
-				internalServerError(w, r, err)
-				return
-			}
-			readerFrom, err := nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, "output/posts", category, name, "index.html"), 0644)
-			if err != nil {
-				getLogger(r.Context()).Error(err.Error())
-				internalServerError(w, r, err)
-				return
-			}
-			_, err = readerFrom.ReadFrom(buf)
-			if err != nil {
-				getLogger(r.Context()).Error(err.Error())
-				internalServerError(w, r, err)
-				return
-			}
-		} else if segments[0] == "pages" && ext == ".html" {
-		} else if len(segments) > 2 && segments[0] == "output" && segments[1] == "themes" && ext == ".html" {
-			// generate the posts
-			// generate the pages
-		}
-
-		// If it's an image, just write the image into output/images/*
-
-		// If it's a theme file that is not html, just write it into output/theme/*
-
-		// If it's a theme file that is html, find all other pages that depend on this template and render them into output/posts/*/tmp.html and output/*/tmp.html and if all succeed then start renaming all those tmp.html into index.html and write the content into output/theme/*
-
 		readerFrom, err := nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, filePath), 0644)
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
@@ -395,6 +327,23 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 			getLogger(r.Context()).Error(err.Error())
 			internalServerError(w, r, err)
 			return
+		}
+
+		segments := strings.Split(filePath, "/")
+		if segments[0] == "posts" || segments[0] == "pages" || (len(segments) > 2 && segments[0] == "output" && segments[1] == "themes") {
+			err = nbrew.RegenerateSite(r.Context(), sitePrefix)
+			if err != nil {
+				var templateError TemplateError
+				if errors.As(err, &templateError) {
+					response.TemplateErrors = templateError.ToList()
+					response.Status = ErrFileGenerationFailed
+					writeResponse(w, r, response)
+					return
+				}
+				getLogger(r.Context()).Error(err.Error())
+				internalServerError(w, r, err)
+				return
+			}
 		}
 		response.Status = UpdateSuccess
 		writeResponse(w, r, response)

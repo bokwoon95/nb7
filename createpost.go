@@ -1,7 +1,6 @@
 package nb7
 
 import (
-	"bytes"
 	"encoding/binary"
 	"encoding/json"
 	"errors"
@@ -227,81 +226,7 @@ func (nbrew *Notebrew) createpost(w http.ResponseWriter, r *http.Request, userna
 			response.Name = prefix
 		}
 
-		// Make sure the output folder exists.
-		err := MkdirAll(nbrew.FS, path.Join(sitePrefix, "output/posts", response.Category, response.Name), 0755)
-		if err != nil {
-			getLogger(r.Context()).Error(err.Error())
-			internalServerError(w, r, err)
-			return
-		}
-
-		// Render post.html.
-		buf1 := bufPool.Get().(*bytes.Buffer)
-		buf1.Reset()
-		defer bufPool.Put(buf1)
-		renderer := NewRenderer(r.Context(), nbrew, sitePrefix)
-		err = renderer.RenderPost(buf1, []byte(response.Content), now, now)
-		if err != nil {
-			var renderError RenderError
-			if errors.As(err, &renderError) {
-				for _, msg := range renderError.ToList() {
-					response.Errors["content"] = append(response.Errors["content"], Error(msg))
-				}
-				response.Status = ErrFileGenerationFailed
-				writeResponse(w, r, response)
-				return
-			}
-			getLogger(r.Context()).Error(err.Error())
-			internalServerError(w, r, err)
-			return
-		}
-
-		// Render posts.html.
-		buf2 := bufPool.Get().(*bytes.Buffer)
-		buf2.Reset()
-		defer bufPool.Put(buf2)
-		err = renderer.RenderPostIndex(buf2)
-		if err != nil {
-			var renderError RenderError
-			if errors.As(err, &renderError) {
-				for _, msg := range renderError.ToList() {
-					response.Errors["content"] = append(response.Errors["content"], Error(msg))
-				}
-				response.Status = ErrFileGenerationFailed
-				writeResponse(w, r, response)
-				return
-			}
-			getLogger(r.Context()).Error(err.Error())
-			internalServerError(w, r, err)
-			return
-		}
-
-		// NOTE: god I fucking hate Renderer so much, please do not use it anymore and remove all traces of it.
-		readerFrom, err := nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, "output/posts", response.Category, response.Name, "index.html"), 0644)
-		if err != nil {
-			getLogger(r.Context()).Error(err.Error())
-			internalServerError(w, r, err)
-			return
-		}
-		_, err = readerFrom.ReadFrom(buf1)
-		if err != nil {
-			getLogger(r.Context()).Error(err.Error())
-			internalServerError(w, r, err)
-			return
-		}
-		readerFrom, err = nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, "output/posts/index.html"), 0644)
-		if err != nil {
-			getLogger(r.Context()).Error(err.Error())
-			internalServerError(w, r, err)
-			return
-		}
-		_, err = readerFrom.ReadFrom(buf2)
-		if err != nil {
-			getLogger(r.Context()).Error(err.Error())
-			internalServerError(w, r, err)
-			return
-		}
-		readerFrom, err = nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, "posts", response.Category, response.Name+".md"), 0644)
+		readerFrom, err := nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, "posts", response.Category, response.Name+".md"), 0644)
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
 			internalServerError(w, r, err)
@@ -309,6 +234,22 @@ func (nbrew *Notebrew) createpost(w http.ResponseWriter, r *http.Request, userna
 		}
 		_, err = readerFrom.ReadFrom(strings.NewReader(response.Content))
 		if err != nil {
+			getLogger(r.Context()).Error(err.Error())
+			internalServerError(w, r, err)
+			return
+		}
+
+		err = nbrew.RegenerateSite(r.Context(), sitePrefix)
+		if err != nil {
+			var templateError TemplateError
+			if errors.As(err, &templateError) {
+				for _, msg := range templateError.ToList() {
+					response.Errors["content"] = append(response.Errors["content"], Error(msg))
+				}
+				response.Status = ErrFileGenerationFailed
+				writeResponse(w, r, response)
+				return
+			}
 			getLogger(r.Context()).Error(err.Error())
 			internalServerError(w, r, err)
 			return
