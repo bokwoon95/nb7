@@ -230,12 +230,11 @@ func (nbrew *Notebrew) createpage(w http.ResponseWriter, r *http.Request, userna
 		buf := bufPool.Get().(*bytes.Buffer)
 		buf.Reset()
 		defer bufPool.Put(buf)
-		renderer := NewRenderer(r.Context(), nbrew, sitePrefix)
-		err = renderer.Render(buf, response.Content)
+		err = NewRenderer(r.Context(), nbrew, sitePrefix).Render(buf, response.Content)
 		if err != nil {
 			var renderError RenderError
 			if errors.As(err, &renderError) {
-				for _, msg := range renderError.Errors() {
+				for _, msg := range renderError.ToList() {
 					response.ValidationErrors["content"] = append(response.ValidationErrors["content"], Error(msg))
 				}
 				response.Status = ErrValidationFailed

@@ -244,7 +244,7 @@ func (nbrew *Notebrew) createpost(w http.ResponseWriter, r *http.Request, userna
 		if err != nil {
 			var renderError RenderError
 			if errors.As(err, &renderError) {
-				for _, msg := range renderError.Errors() {
+				for _, msg := range renderError.ToList() {
 					response.Errors["content"] = append(response.Errors["content"], Error(msg))
 				}
 				response.Status = ErrFileGenerationFailed
@@ -264,7 +264,7 @@ func (nbrew *Notebrew) createpost(w http.ResponseWriter, r *http.Request, userna
 		if err != nil {
 			var renderError RenderError
 			if errors.As(err, &renderError) {
-				for _, msg := range renderError.Errors() {
+				for _, msg := range renderError.ToList() {
 					response.Errors["content"] = append(response.Errors["content"], Error(msg))
 				}
 				response.Status = ErrFileGenerationFailed

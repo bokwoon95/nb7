@@ -345,7 +345,7 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 			if err != nil {
 				var renderError RenderError
 				if errors.As(err, &renderError) {
-					response.TemplateErrors = renderError.Errors()
+					response.TemplateErrors = renderError.ToList()
 					response.Status = ErrFileGenerationFailed
 					writeResponse(w, r, response)
 					return

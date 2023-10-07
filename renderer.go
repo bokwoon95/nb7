@@ -361,7 +361,7 @@ func (renderError RenderError) Error() string {
 	return fmt.Sprintf("the following templates have errors: %+v", names)
 }
 
-func (renderError RenderError) Errors() []string {
+func (renderError RenderError) ToList() []string {
 	var list []string
 	names := make([]string, 0, len(renderError))
 	for name := range renderError {
