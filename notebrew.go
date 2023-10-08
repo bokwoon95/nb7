@@ -475,6 +475,8 @@ func serveFile(w http.ResponseWriter, r *http.Request, fsys fs.FS, name string, 
 		isGzippable = true
 	case ".jpeg", ".jpg", ".png", ".gif", ".woff", ".woff2":
 		isGzippable = false
+	case ".webmanifest":
+		isGzippable = true
 	default:
 		notFound(w, r)
 		return
@@ -588,6 +590,9 @@ func serveFile(w http.ResponseWriter, r *http.Request, fsys fs.FS, name string, 
 	*dst = (*dst)[:encodedLen]
 	hex.Encode(*dst, *src)
 
+	if ext == ".webmanifest" {
+		w.Header().Set("Content-Type", "application/manifest+json")
+	}
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Content-Encoding", "gzip")
 	w.Header().Set("ETag", string(*dst))
