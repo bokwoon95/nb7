@@ -36,7 +36,7 @@ func (nbrew *Notebrew) login(w http.ResponseWriter, r *http.Request, ip string) 
 		Username            string             `json:"username,omitempty"` // could be username -or- email, check sitePrefix for username instead
 		RequireCaptcha      bool               `json:"requireCaptcha,omitempty"`
 		CaptchaSiteKey      string             `json:"captchaSiteKey,omitempty"`
-		ValidationErrors    map[string][]Error `json:"validationErrors,omitempty"`
+		Errors              map[string][]Error `json:"errors,omitempty"`
 		AuthenticationToken string             `json:"authenticationToken,omitempty"`
 		Redirect            string             `json:"redirect,omitempty"`
 		SitePrefix          string             `json:"sitePrefix,omitempty"`
@@ -364,9 +364,9 @@ func (nbrew *Notebrew) login(w http.ResponseWriter, r *http.Request, ip string) 
 		}
 
 		response := Response{
-			Username:         strings.TrimPrefix(request.Username, "@"),
-			ValidationErrors: make(map[string][]Error),
-			Redirect:         sanitizeRedirect(redirect),
+			Username: strings.TrimPrefix(request.Username, "@"),
+			Errors:   make(map[string][]Error),
+			Redirect: sanitizeRedirect(redirect),
 		}
 		if isAuthenticated() {
 			response.Status = ErrAlreadyAuthenticated
@@ -375,12 +375,12 @@ func (nbrew *Notebrew) login(w http.ResponseWriter, r *http.Request, ip string) 
 		}
 
 		if response.Username == "" {
-			response.ValidationErrors["username"] = append(response.ValidationErrors["username"], ErrRequired)
+			response.Errors["username"] = append(response.Errors["username"], ErrRequired)
 		}
 		if request.Password == "" {
-			response.ValidationErrors["password"] = append(response.ValidationErrors["password"], ErrRequired)
+			response.Errors["password"] = append(response.Errors["password"], ErrRequired)
 		}
-		if len(response.ValidationErrors) > 0 {
+		if len(response.Errors) > 0 {
 			response.Status = ErrValidationFailed
 			writeResponse(w, r, response)
 			return

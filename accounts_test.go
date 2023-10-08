@@ -28,7 +28,7 @@ func Test_login(t *testing.T) {
 	type Response struct {
 		Status              Error              `json:"status"`
 		Username            string             `json:"username,omitempty"`
-		ValidationErrors    map[string][]Error `json:"validationErrors,omitempty"`
+		Errors              map[string][]Error `json:"errors,omitempty"`
 		AuthenticationToken string             `json:"authenticationToken,omitempty"`
 		Redirect            string             `json:"redirect,omitempty"`
 	}
@@ -135,7 +135,7 @@ func Test_login(t *testing.T) {
 		},
 		wantResponse: Response{
 			Status: ErrValidationFailed,
-			ValidationErrors: map[string][]Error{
+			Errors: map[string][]Error{
 				"username": {ErrRequired},
 				"password": {ErrRequired},
 			},
@@ -383,7 +383,7 @@ func Test_resetpassword_invalidTokenBadRequest(t *testing.T) {
 
 func Test_resetpassword(t *testing.T) {
 	type Response struct {
-		ValidationErrors url.Values `json:"validationErrors,omitempty"`
+		Errors url.Values `json:"errors,omitempty"`
 	}
 	type TestTable struct {
 		description  string
@@ -404,7 +404,7 @@ func Test_resetpassword(t *testing.T) {
 			return r
 		},
 		wantResponse: Response{
-			ValidationErrors: url.Values{
+			Errors: url.Values{
 				"": []string{"Password must be at least 8 characters"},
 			},
 		},
@@ -421,7 +421,7 @@ func Test_resetpassword(t *testing.T) {
 			return r
 		},
 		wantResponse: Response{
-			ValidationErrors: url.Values{
+			Errors: url.Values{
 				"": []string{"Password is too common."},
 			},
 		},
@@ -438,7 +438,7 @@ func Test_resetpassword(t *testing.T) {
 			return r
 		},
 		wantResponse: Response{
-			ValidationErrors: url.Values{
+			Errors: url.Values{
 				"": []string{"Passwords do not match"},
 			},
 		},

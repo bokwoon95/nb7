@@ -53,9 +53,9 @@
 
     <div class="mv3">
         <div><label for="username" class="b">Username or Email:</label></div>
-        <input id="username" name="username" value="{{ $.Username }}" class="pv1 ph2 br2 ba w-100{{ if index $.ValidationErrors `username` }} b--invalid-red{{ end }}" autocomplete="on" required{{ if eq $.Status.Code `NB-00050` }} autofocus{{ end }}>
+        <input id="username" name="username" value="{{ $.Username }}" class="pv1 ph2 br2 ba w-100{{ if index $.Errors `username` }} b--invalid-red{{ end }}" autocomplete="on" required{{ if eq $.Status.Code `NB-00050` }} autofocus{{ end }}>
         <ul>
-            {{- range $i, $error := index $.ValidationErrors "username" }}
+            {{- range $i, $error := index $.Errors "username" }}
             <li class="f6 invalid-red list-style-disc">{{ $error.Message }}</li>
             {{- end }}
         </ul>
@@ -63,9 +63,9 @@
 
     <div class="mv3">
         <div><label for="password" class="b">Password:</label></div>
-        <input id="password" type="password" name="password" class="w-100 pv1 ph2 br2 ba w-100{{ if index $.ValidationErrors `password` }} b--invalid-red{{ end }}" autocomplete="on" required{{ if eq $.Status.Code `NB-00010` `NB-03050` }} autofocus{{ end }}>
+        <input id="password" type="password" name="password" class="w-100 pv1 ph2 br2 ba w-100{{ if index $.Errors `password` }} b--invalid-red{{ end }}" autocomplete="on" required{{ if eq $.Status.Code `NB-00010` `NB-03050` }} autofocus{{ end }}>
         <ul>
-            {{- range $i, $error := index $.ValidationErrors "password" }}
+            {{- range $i, $error := index $.Errors "password" }}
             <li class="f6 invalid-red list-style-disc">{{ $error.Message }}</li>
             {{- end }}
         </ul>

@@ -194,7 +194,7 @@ func (cmd *ResetpasswordCmd) Run() error {
 		values := make(url.Values)
 		values.Set("token", strings.TrimLeft(hex.EncodeToString(resetToken[:]), "0"))
 		fmt.Fprintf(os.Stderr, "Password reset link generated for %s:\n", name)
-		_, err = fmt.Fprintln(cmd.Stdout, cmd.Notebrew.Scheme + cmd.Notebrew.AdminDomain + "/admin/resetpassword/?" + values.Encode())
+		_, err = fmt.Fprintln(cmd.Stdout, cmd.Notebrew.Scheme+cmd.Notebrew.AdminDomain+"/admin/resetpassword/?"+values.Encode())
 		return err
 	}
 	tx, err := cmd.Notebrew.DB.Begin()

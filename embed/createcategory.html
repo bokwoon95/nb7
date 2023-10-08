@@ -18,7 +18,7 @@
     <a href="" class="ma2">{{ if username }}@{{ username }}{{ else }}user{{ end }}</a>
     <a href="/admin/logout/" class="ma2">logout</a>
 </nav>
-{{- if containsError (index $.ValidationErrors "type") "NB-05000" "NB-05010" }}
+{{- if containsError (index $.Errors "type") "NB-05000" "NB-05010" }}
 <ul class="mv5 w-80 w-70-m w-60-l center">
     {{- if referer }}
     <div><a href="{{ referer }}" class="linktext" data-go-back>&larr; back</a></div>
@@ -40,9 +40,9 @@
     <input type="hidden" name="type" value="{{ $.Type }}">
     <div class="mv3">
         <div><label for="category" class="b">Category:</label></div>
-        <input id="category" name="category" value="{{ $.Category }}" class="pv1 ph2 br2 ba w-100{{ if index $.ValidationErrors `category` }} b--invalid-red{{ end }}" autocomplete="on" required>
+        <input id="category" name="category" value="{{ $.Category }}" class="pv1 ph2 br2 ba w-100{{ if index $.Errors `category` }} b--invalid-red{{ end }}" autocomplete="on" required>
         <ul>
-            {{- range $i, $error := index $.ValidationErrors "category" }}
+            {{- range $i, $error := index $.Errors "category" }}
             <li class="f6 invalid-red list-style-disc">{{ $error.Message }}</li>
             {{- end }}
         </ul>

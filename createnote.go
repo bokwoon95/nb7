@@ -23,13 +23,13 @@ func (nbrew *Notebrew) createnote(w http.ResponseWriter, r *http.Request, userna
 		Content  string `json:"content,omitempty"`
 	}
 	type Response struct {
-		Status           Error              `json:"status"`
-		ContentSiteURL   string             `json:"contentSiteURL,omitempty"`
-		Name             string             `json:"name,omitempty"`
-		Category         string             `json:"category,omitempty"`
-		Content          string             `json:"content,omitempty"`
-		Categories       []string           `json:"categories,omitempty"`
-		ValidationErrors map[string][]Error `json:"validationErrors,omitempty"`
+		Status         Error              `json:"status"`
+		ContentSiteURL string             `json:"contentSiteURL,omitempty"`
+		Name           string             `json:"name,omitempty"`
+		Category       string             `json:"category,omitempty"`
+		Content        string             `json:"content,omitempty"`
+		Categories     []string           `json:"categories,omitempty"`
+		Errors         map[string][]Error `json:"errors,omitempty"`
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 2<<20 /* 2MB */)
@@ -220,10 +220,10 @@ func (nbrew *Notebrew) createnote(w http.ResponseWriter, r *http.Request, userna
 				return
 			}
 			if fileInfo == nil {
-				response.ValidationErrors["category"] = append(response.ValidationErrors["category"], ErrInvalidValue)
+				response.Errors["category"] = append(response.Errors["category"], ErrInvalidValue)
 			}
 		}
-		if len(response.ValidationErrors) > 0 {
+		if len(response.Errors) > 0 {
 			response.Status = ErrValidationFailed
 			writeResponse(w, r, response)
 			return

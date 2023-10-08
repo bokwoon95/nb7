@@ -17,11 +17,11 @@
 </nav>
 {{- if eq $.Status.Code "NB-03000" }}
 <div class="mv5 w-80 w-70-m w-60-l center">
-    <div class="f4">You are already logged in, <a href="/admin/" class="linktext">click here.</a></div>
+    <div class="f4 tc">You are already logged in, <a href="/admin/" class="linktext">click here.</a></div>
 </div>
 {{- else if eq $.Status.Code "NB-03010" }}
 <div class="mv5 w-80 w-70-m w-60-l center">
-    <div class="f3 mb4 b">Signups are currently invite-only</div>
+    <div class="f3 mb4 b tc">Signups are currently invite-only</div>
 </div>
 {{- else if eq $.Status.Code "NB-03020" }}
 {{- if isInviteLink }}
@@ -55,9 +55,9 @@
 
     <div class="mv3">
         <div><label for="username" class="b">Username:</label></div>
-        <input id="username" type="text" name="username" value="{{ $.Username }}" class="w-100 pv1 ph2 br2 ba w-100{{ if index $.ValidationErrors `username` }} b--invalid-red{{ end }}" autocomplete="on" required>
+        <input id="username" type="text" name="username" value="{{ $.Username }}" class="w-100 pv1 ph2 br2 ba w-100{{ if index $.Errors `username` }} b--invalid-red{{ end }}" autocomplete="on" required>
         <ul data-validation-errors="username">
-            {{- range $i, $error := index $.ValidationErrors "username" }}
+            {{- range $i, $error := index $.Errors "username" }}
             <li class="f6 invalid-red list-style-disc">{{ $error.Message }}</li>
             {{- end }}
         </ul>
@@ -65,9 +65,9 @@
 
     <div class="mv3">
         <div><label for="email" class="b">Email:</label></div>
-        <input id="email" type="email" name="email" value="{{ $.Email }}" class="w-100 pv1 ph2 br2 ba w-100{{ if index $.ValidationErrors `email` }} b--invalid-red{{ end }}" autocomplete="on" required>
+        <input id="email" type="email" name="email" value="{{ $.Email }}" class="w-100 pv1 ph2 br2 ba w-100{{ if index $.Errors `email` }} b--invalid-red{{ end }}" autocomplete="on" required>
         <ul data-validation-errors="email">
-            {{- range $i, $error := index $.ValidationErrors "email" }}
+            {{- range $i, $error := index $.Errors "email" }}
             <li class="f6 invalid-red list-style-disc">{{ $error.Message }}</li>
             {{- end }}
         </ul>
@@ -75,9 +75,9 @@
 
     <div class="mv3">
         <div><label for="password" class="b">Password:</label></div>
-        <input id="password" type="password" name="password" class="w-100 pv1 ph2 br2 ba w-100{{ if index $.ValidationErrors `password` }} b--invalid-red{{ end }}" autocomplete="on" required>
+        <input id="password" type="password" name="password" class="w-100 pv1 ph2 br2 ba w-100{{ if index $.Errors `password` }} b--invalid-red{{ end }}" autocomplete="on" required>
         <ul data-validation-errors="password">
-            {{- range $i, $error := index $.ValidationErrors "password" }}
+            {{- range $i, $error := index $.Errors "password" }}
             <li class="f6 invalid-red list-style-disc">{{ $error.Message }}</li>
             {{- end }}
         </ul>
@@ -85,9 +85,9 @@
 
     <div class="mv3">
         <div><label for="confirmPassword" class="b">Confirm password:</label></div>
-        <input id="confirmPassword" type="password" name="confirmPassword" class="w-100 pv1 ph2 br2 ba w-100{{ if index $.ValidationErrors `confirmPassword` }} b--invalid-red{{ end }}" autocomplete="on" required>
+        <input id="confirmPassword" type="password" name="confirmPassword" class="w-100 pv1 ph2 br2 ba w-100{{ if index $.Errors `confirmPassword` }} b--invalid-red{{ end }}" autocomplete="on" required>
         <ul data-validation-errors="confirmPassword">
-            {{- range $i, $error := index $.ValidationErrors "confirmPassword" }}
+            {{- range $i, $error := index $.Errors "confirmPassword" }}
             <li class="f6 invalid-red list-style-disc">{{ $error.Message }}</li>
             {{- end }}
         </ul>

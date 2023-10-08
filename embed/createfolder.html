@@ -18,7 +18,7 @@
     <a href="" class="ma2">{{ if username }}@{{ username }}{{ else }}user{{ end }}</a>
     <a href="/admin/logout/" class="ma2">logout</a>
 </nav>
-{{- if containsError (index $.ValidationErrors "parentFolder") "NB-05000" "NB-05010" }}
+{{- if containsError (index $.Errors "parentFolder") "NB-05000" "NB-05010" }}
 <div class="mv5 w-80 w-70-m w-60-l center">
     {{- if referer }}
     <div><a href="{{ referer }}" class="linktext" data-go-back>&larr; back</a></div>
@@ -34,9 +34,9 @@
     <input type="hidden" name="parentFolder" value="{{ $.ParentFolder }}">
     <div class="mv3">
         <div><label for="name" class="b">Name:</label></div>
-        <input id="name" name="name" value="{{ $.Name }}" class="pv1 ph2 br2 ba w-100{{ if index $.ValidationErrors `name` }} b--invalid-red{{ end }}" autocomplete="on" required autofocus>
+        <input id="name" name="name" value="{{ $.Name }}" class="pv1 ph2 br2 ba w-100{{ if index $.Errors `name` }} b--invalid-red{{ end }}" autocomplete="on" required autofocus>
         <ul>
-            {{- range $i, $error := index $.ValidationErrors "name" }}
+            {{- range $i, $error := index $.Errors "name" }}
             <li class="f6 invalid-red list-style-disc">{{ $error.Message }}</li>
             {{- end }}
         </ul>

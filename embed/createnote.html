@@ -71,14 +71,14 @@ my day trip to hokkaido =&gt; https://example.com/notes/my-day-trip-to-hokkaido/
     </div>
     <div class="mv2">
         <div><label for="category" class="b">Category</label></div>
-        <select id="category" name="category" class="pv1 br2 ba w-100{{ if index $.ValidationErrors `category` }} b--invalid-red{{ end }}">
+        <select id="category" name="category" class="pv1 br2 ba w-100{{ if index $.Errors `category` }} b--invalid-red{{ end }}">
             <option value="">&lt;default&gt;</option>
             {{- range $category := $.Categories }}
             <option value="{{ $category }}"{{ if eq $category $.Category }} selected{{ end }}>{{ $category }}</option>
             {{- end }}
         </select>
         <ul>
-            {{- range $i, $error := index $.ValidationErrors "category" }}
+            {{- range $i, $error := index $.Errors "category" }}
             <li class="f6 invalid-red list-style-disc">{{ $error.Message }}</li>
             {{- end }}
         </ul>

@@ -37,7 +37,7 @@ func (nbrew *Notebrew) resetpassword(w http.ResponseWriter, r *http.Request, ip 
 		Status           Error              `json:"status,omitempty"`
 		Email            string             `json:"email,omitempty"`
 		ResetToken       string             `json:"resetToken,omitempty"`
-		ValidationErrors map[string][]Error `json:"validationErrors,omitempty"`
+		Errors           map[string][]Error `json:"errors,omitempty"`
 		MailSendingError string             `json:"mailSendingError,omitempty"`
 	}
 	type SmtpSettings struct {
@@ -311,9 +311,9 @@ func (nbrew *Notebrew) resetpassword(w http.ResponseWriter, r *http.Request, ip 
 		}
 
 		response := Response{
-			Email:            request.Email,
-			ResetToken:       request.ResetToken,
-			ValidationErrors: make(map[string][]Error),
+			Email:      request.Email,
+			ResetToken: request.ResetToken,
+			Errors:     make(map[string][]Error),
 		}
 		if isAuthenticated() {
 			response.Status = ErrAlreadyAuthenticated
@@ -344,14 +344,14 @@ func (nbrew *Notebrew) resetpassword(w http.ResponseWriter, r *http.Request, ip 
 
 		if resetTokenHash == nil {
 			if request.Email == "" {
-				response.ValidationErrors["email"] = append(response.ValidationErrors["email"], ErrRequired)
+				response.Errors["email"] = append(response.Errors["email"], ErrRequired)
 			} else {
 				_, err := mail.ParseAddress(request.Email)
 				if err != nil {
-					response.ValidationErrors["email"] = append(response.ValidationErrors["email"], ErrInvalidEmail)
+					response.Errors["email"] = append(response.Errors["email"], ErrInvalidEmail)
 				}
 			}
-			if len(response.ValidationErrors["email"]) == 0 {
+			if len(response.Errors["email"]) == 0 {
 				exists, err := sq.FetchExistsContext(r.Context(), nbrew.DB, sq.CustomQuery{
 					Dialect: nbrew.Dialect,
 					Format:  "SELECT 1 FROM users WHERE email = {email}",
@@ -365,31 +365,31 @@ func (nbrew *Notebrew) resetpassword(w http.ResponseWriter, r *http.Request, ip 
 					return
 				}
 				if !exists {
-					response.ValidationErrors["email"] = append(response.ValidationErrors["email"], ErrUserNotFound)
+					response.Errors["email"] = append(response.Errors["email"], ErrUserNotFound)
 				}
 			}
 		} else {
 			if request.Password == "" {
-				response.ValidationErrors["password"] = append(response.ValidationErrors["password"], ErrRequired)
+				response.Errors["password"] = append(response.Errors["password"], ErrRequired)
 			} else {
 				if utf8.RuneCountInString(request.Password) < 8 {
-					response.ValidationErrors["password"] = append(response.ValidationErrors["password"], Error(fmt.Sprintf("%s - minimum 8 characters", ErrTooShort)))
+					response.Errors["password"] = append(response.Errors["password"], Error(fmt.Sprintf("%s - minimum 8 characters", ErrTooShort)))
 				}
 				if IsCommonPassword([]byte(request.Password)) {
-					response.ValidationErrors["password"] = append(response.ValidationErrors["password"], ErrPasswordTooCommon)
+					response.Errors["password"] = append(response.Errors["password"], ErrPasswordTooCommon)
 				}
 			}
-			if len(response.ValidationErrors["password"]) == 0 {
+			if len(response.Errors["password"]) == 0 {
 				if request.ConfirmPassword == "" {
-					response.ValidationErrors["confirmPassword"] = append(response.ValidationErrors["confirmPassword"], ErrRequired)
+					response.Errors["confirmPassword"] = append(response.Errors["confirmPassword"], ErrRequired)
 				} else {
 					if request.Password != request.ConfirmPassword {
-						response.ValidationErrors["confirmPassword"] = append(response.ValidationErrors["confirmPassword"], ErrPasswordNotMatch)
+						response.Errors["confirmPassword"] = append(response.Errors["confirmPassword"], ErrPasswordNotMatch)
 					}
 				}
 			}
 		}
-		if len(response.ValidationErrors) > 0 {
+		if len(response.Errors) > 0 {
 			response.Status = ErrValidationFailed
 			writeResponse(w, r, response)
 			return

@@ -20,9 +20,9 @@ func (nbrew *Notebrew) createsite(w http.ResponseWriter, r *http.Request, userna
 		SiteName string `json:"siteName,omitempty"`
 	}
 	type Response struct {
-		Status           Error              `json:"status"`
-		SiteName         string             `json:"siteName,omitempty"`
-		ValidationErrors map[string][]Error `json:"validationErrors,omitempty"`
+		Status   Error              `json:"status"`
+		SiteName string             `json:"siteName,omitempty"`
+		Errors   map[string][]Error `json:"errors,omitempty"`
 	}
 
 	getNumSites := func() (int, error) {
@@ -178,8 +178,8 @@ func (nbrew *Notebrew) createsite(w http.ResponseWriter, r *http.Request, userna
 
 		var err error
 		response := Response{
-			SiteName:         request.SiteName,
-			ValidationErrors: make(map[string][]Error),
+			SiteName: request.SiteName,
+			Errors:   make(map[string][]Error),
 		}
 
 		numSites, err := getNumSites()
@@ -195,7 +195,7 @@ func (nbrew *Notebrew) createsite(w http.ResponseWriter, r *http.Request, userna
 		}
 
 		if response.SiteName == "" {
-			response.ValidationErrors["siteName"] = append(response.ValidationErrors["siteName"], ErrRequired)
+			response.Errors["siteName"] = append(response.Errors["siteName"], ErrRequired)
 		} else {
 			hasForbiddenCharacters := false
 			digitCount := 0
@@ -208,10 +208,10 @@ func (nbrew *Notebrew) createsite(w http.ResponseWriter, r *http.Request, userna
 				}
 			}
 			if hasForbiddenCharacters {
-				response.ValidationErrors["siteName"] = append(response.ValidationErrors["siteName"], Error(string(ErrForbiddenCharacters)+" - only lowercase letters, numbers and hyphen allowed"))
+				response.Errors["siteName"] = append(response.Errors["siteName"], Error(string(ErrForbiddenCharacters)+" - only lowercase letters, numbers and hyphen allowed"))
 			}
 			if len(response.SiteName) > 30 {
-				response.ValidationErrors["siteName"] = append(response.ValidationErrors["siteName"], Error(string(ErrTooLong)+" - cannot exceed 30 characters"))
+				response.Errors["siteName"] = append(response.Errors["siteName"], Error(string(ErrTooLong)+" - cannot exceed 30 characters"))
 			}
 		}
 		var sitePrefix string
@@ -221,8 +221,8 @@ func (nbrew *Notebrew) createsite(w http.ResponseWriter, r *http.Request, userna
 			sitePrefix = "@" + response.SiteName
 		}
 		if response.SiteName == "www" {
-			response.ValidationErrors["siteName"] = append(response.ValidationErrors["siteName"], ErrUnavailable)
-		} else if len(response.ValidationErrors["siteName"]) == 0 {
+			response.Errors["siteName"] = append(response.Errors["siteName"], ErrUnavailable)
+		} else if len(response.Errors["siteName"]) == 0 {
 			_, err := fs.Stat(nbrew.FS, sitePrefix)
 			if err != nil {
 				if !errors.Is(err, fs.ErrNotExist) {
@@ -243,13 +243,13 @@ func (nbrew *Notebrew) createsite(w http.ResponseWriter, r *http.Request, userna
 					return
 				}
 				if exists {
-					response.ValidationErrors["siteName"] = append(response.ValidationErrors["siteName"], ErrUnavailable)
+					response.Errors["siteName"] = append(response.Errors["siteName"], ErrUnavailable)
 				}
 			} else {
-				response.ValidationErrors["siteName"] = append(response.ValidationErrors["siteName"], ErrUnavailable)
+				response.Errors["siteName"] = append(response.Errors["siteName"], ErrUnavailable)
 			}
 		}
-		if len(response.ValidationErrors) > 0 {
+		if len(response.Errors) > 0 {
 			response.Status = ErrValidationFailed
 			writeResponse(w, r, response)
 			return

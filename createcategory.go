@@ -20,11 +20,11 @@ func (nbrew *Notebrew) createcategory(w http.ResponseWriter, r *http.Request, us
 		Category string `json:"category,omitempty"`
 	}
 	type Response struct {
-		Status           Error              `json:"status"`
-		ContentSiteURL   string             `json:"contentSiteURL,omitempty"`
-		Type             string             `json:"type,omitempty"`
-		Category         string             `json:"category,omitempty"`
-		ValidationErrors map[string][]Error `json:"validationErrors,omitempty"`
+		Status         Error              `json:"status"`
+		ContentSiteURL string             `json:"contentSiteURL,omitempty"`
+		Type           string             `json:"type,omitempty"`
+		Category       string             `json:"category,omitempty"`
+		Errors         map[string][]Error `json:"errors,omitempty"`
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 2<<20 /* 2MB */)
@@ -82,13 +82,13 @@ func (nbrew *Notebrew) createcategory(w http.ResponseWriter, r *http.Request, us
 			writeResponse(w, r, response)
 			return
 		}
-		response.ValidationErrors = make(map[string][]Error)
+		response.Errors = make(map[string][]Error)
 		response.Type = r.Form.Get("type")
 		switch response.Type {
 		case "note", "post":
 			break
 		default:
-			response.ValidationErrors["type"] = append(response.ValidationErrors["type"], ErrInvalidValue)
+			response.Errors["type"] = append(response.Errors["type"], ErrInvalidValue)
 			response.Status = ErrValidationFailed
 			writeResponse(w, r, response)
 			return
@@ -175,23 +175,23 @@ func (nbrew *Notebrew) createcategory(w http.ResponseWriter, r *http.Request, us
 		}
 
 		response := Response{
-			Type:             request.Type,
-			Category:         urlSafe(request.Category),
-			ValidationErrors: make(map[string][]Error),
+			Type:     request.Type,
+			Category: urlSafe(request.Category),
+			Errors:   make(map[string][]Error),
 		}
 		if response.Category == "" {
-			response.ValidationErrors["category"] = append(response.ValidationErrors["category"], ErrFieldRequired)
+			response.Errors["category"] = append(response.Errors["category"], ErrFieldRequired)
 		}
 		var resource string
 		switch response.Type {
 		case "":
-			response.ValidationErrors["type"] = append(response.ValidationErrors["type"], ErrFieldRequired)
+			response.Errors["type"] = append(response.Errors["type"], ErrFieldRequired)
 		case "note":
 			resource = "notes"
 		case "post":
 			resource = "posts"
 		default:
-			response.ValidationErrors["type"] = append(response.ValidationErrors["type"], ErrInvalidValue)
+			response.Errors["type"] = append(response.Errors["type"], ErrInvalidValue)
 		}
 		fileInfo, err := fs.Stat(nbrew.FS, path.Join(sitePrefix, resource, response.Category))
 		if err != nil && !errors.Is(err, fs.ErrNotExist) {
@@ -200,9 +200,9 @@ func (nbrew *Notebrew) createcategory(w http.ResponseWriter, r *http.Request, us
 			return
 		}
 		if fileInfo != nil {
-			response.ValidationErrors["category"] = append(response.ValidationErrors["category"], ErrItemAlreadyExists)
+			response.Errors["category"] = append(response.Errors["category"], ErrItemAlreadyExists)
 		}
-		if len(response.ValidationErrors) > 0 {
+		if len(response.Errors) > 0 {
 			response.Status = ErrValidationFailed
 			writeResponse(w, r, response)
 			return
@@ -211,7 +211,7 @@ func (nbrew *Notebrew) createcategory(w http.ResponseWriter, r *http.Request, us
 		err = nbrew.FS.Mkdir(path.Join(sitePrefix, resource, response.Category), 0755)
 		if err != nil {
 			if errors.Is(err, fs.ErrExist) {
-				response.ValidationErrors["category"] = append(response.ValidationErrors["category"], ErrItemAlreadyExists)
+				response.Errors["category"] = append(response.Errors["category"], ErrItemAlreadyExists)
 				response.Status = ErrValidationFailed
 				writeResponse(w, r, response)
 				return

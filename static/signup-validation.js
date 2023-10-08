@@ -53,7 +53,7 @@ if (form) {
             form.submit();
             return;
         }
-        for (const [name, values] of Object.entries(result.validationErrors)) {
+        for (const [name, values] of Object.entries(result.errors)) {
             const insertionNode = insertionNodes[name];
             if (!insertionNode) {
                 console.log(name, values);

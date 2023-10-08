@@ -34,13 +34,13 @@ func (nbrew *Notebrew) signup(w http.ResponseWriter, r *http.Request, ip string)
 		DryRun          bool   `json:"dryRun,omitempty"`
 	}
 	type Response struct {
-		Status           Error              `json:"status"`
-		SignupToken      string             `json:"signupToken,omitempty"`
-		Username         string             `json:"username,omitempty"`
-		Email            string             `json:"email,omitempty"`
-		RequireCaptcha   bool               `json:"requireCaptcha,omitempty"`
-		CaptchaSiteKey   string             `json:"captchaSiteKey,omitempty"`
-		ValidationErrors map[string][]Error `json:"validationErrors,omitempty"`
+		Status         Error              `json:"status"`
+		SignupToken    string             `json:"signupToken,omitempty"`
+		Username       string             `json:"username,omitempty"`
+		Email          string             `json:"email,omitempty"`
+		RequireCaptcha bool               `json:"requireCaptcha,omitempty"`
+		CaptchaSiteKey string             `json:"captchaSiteKey,omitempty"`
+		Errors         map[string][]Error `json:"errors,omitempty"`
 	}
 
 	if nbrew.DB == nil {
@@ -283,10 +283,10 @@ func (nbrew *Notebrew) signup(w http.ResponseWriter, r *http.Request, ip string)
 		}
 
 		response := Response{
-			SignupToken:      request.SignupToken,
-			Username:         request.Username,
-			Email:            request.Email,
-			ValidationErrors: make(map[string][]Error),
+			SignupToken: request.SignupToken,
+			Username:    request.Username,
+			Email:       request.Email,
+			Errors:      make(map[string][]Error),
 		}
 		if isAuthenticated() {
 			response.Status = ErrAlreadyAuthenticated
@@ -380,17 +380,17 @@ func (nbrew *Notebrew) signup(w http.ResponseWriter, r *http.Request, ip string)
 		}
 
 		if request.Username == "" {
-			response.ValidationErrors["username"] = append(response.ValidationErrors["username"], ErrRequired)
+			response.Errors["username"] = append(response.Errors["username"], ErrRequired)
 		} else {
 			for _, char := range request.Username {
 				if (char >= 'a' && char <= 'z') || (char >= '0' && char <= '9') || char == '-' {
 					continue
 				}
-				response.ValidationErrors["username"] = append(response.ValidationErrors["username"], Error(string(ErrForbiddenCharacters)+" - only lowercase letters, numbers and hyphen allowed"))
+				response.Errors["username"] = append(response.Errors["username"], Error(string(ErrForbiddenCharacters)+" - only lowercase letters, numbers and hyphen allowed"))
 				break
 			}
 		}
-		if len(response.ValidationErrors["username"]) == 0 {
+		if len(response.Errors["username"]) == 0 {
 			fileInfo, err := fs.Stat(nbrew.FS, "@"+request.Username)
 			if err != nil && !errors.Is(err, fs.ErrNotExist) {
 				getLogger(r.Context()).Error(err.Error())
@@ -398,7 +398,7 @@ func (nbrew *Notebrew) signup(w http.ResponseWriter, r *http.Request, ip string)
 				return
 			}
 			if fileInfo != nil {
-				response.ValidationErrors["username"] = append(response.ValidationErrors["username"], ErrUnavailable)
+				response.Errors["username"] = append(response.Errors["username"], ErrUnavailable)
 			} else {
 				exists, err := sq.FetchExistsContext(r.Context(), nbrew.DB, sq.CustomQuery{
 					Dialect: nbrew.Dialect,
@@ -413,20 +413,20 @@ func (nbrew *Notebrew) signup(w http.ResponseWriter, r *http.Request, ip string)
 					return
 				}
 				if exists {
-					response.ValidationErrors["username"] = append(response.ValidationErrors["username"], ErrUnavailable)
+					response.Errors["username"] = append(response.Errors["username"], ErrUnavailable)
 				}
 			}
 		}
 
 		if request.Email == "" {
-			response.ValidationErrors["email"] = append(response.ValidationErrors["email"], ErrRequired)
+			response.Errors["email"] = append(response.Errors["email"], ErrRequired)
 		} else {
 			_, err = mail.ParseAddress(request.Email)
 			if err != nil {
-				response.ValidationErrors["email"] = append(response.ValidationErrors["email"], ErrInvalidEmail)
+				response.Errors["email"] = append(response.Errors["email"], ErrInvalidEmail)
 			}
 		}
-		if len(response.ValidationErrors["email"]) == 0 {
+		if len(response.Errors["email"]) == 0 {
 			exists, err := sq.FetchExistsContext(r.Context(), nbrew.DB, sq.CustomQuery{
 				Dialect: nbrew.Dialect,
 				Format:  "SELECT 1 FROM users WHERE email = {email}",
@@ -440,31 +440,31 @@ func (nbrew *Notebrew) signup(w http.ResponseWriter, r *http.Request, ip string)
 				return
 			}
 			if exists {
-				response.ValidationErrors["email"] = append(response.ValidationErrors["email"], ErrEmailAlreadyUsed)
+				response.Errors["email"] = append(response.Errors["email"], ErrEmailAlreadyUsed)
 			}
 		}
 
 		if request.Password == "" {
-			response.ValidationErrors["password"] = append(response.ValidationErrors["password"], ErrRequired)
+			response.Errors["password"] = append(response.Errors["password"], ErrRequired)
 		} else {
 			if utf8.RuneCountInString(request.Password) < 8 {
-				response.ValidationErrors["password"] = append(response.ValidationErrors["password"], Error(string(ErrTooShort)+" - minimum 8 characters"))
+				response.Errors["password"] = append(response.Errors["password"], Error(string(ErrTooShort)+" - minimum 8 characters"))
 			}
 			if IsCommonPassword([]byte(request.Password)) {
-				response.ValidationErrors["password"] = append(response.ValidationErrors["password"], ErrPasswordTooCommon)
+				response.Errors["password"] = append(response.Errors["password"], ErrPasswordTooCommon)
 			}
 		}
-		if len(response.ValidationErrors["password"]) == 0 {
+		if len(response.Errors["password"]) == 0 {
 			if request.ConfirmPassword == "" {
-				response.ValidationErrors["confirmPassword"] = append(response.ValidationErrors["confirmPassword"], ErrRequired)
+				response.Errors["confirmPassword"] = append(response.Errors["confirmPassword"], ErrRequired)
 			} else {
 				if request.Password != request.ConfirmPassword {
-					response.ValidationErrors["confirmPassword"] = append(response.ValidationErrors["confirmPassword"], ErrPasswordNotMatch)
+					response.Errors["confirmPassword"] = append(response.Errors["confirmPassword"], ErrPasswordNotMatch)
 				}
 			}
 		}
 
-		if len(response.ValidationErrors) > 0 {
+		if len(response.Errors) > 0 {
 			response.Status = ErrValidationFailed
 			writeResponse(w, r, response)
 			return
@@ -521,7 +521,7 @@ func (nbrew *Notebrew) signup(w http.ResponseWriter, r *http.Request, ip string)
 		})
 		if err != nil {
 			if nbrew.IsKeyViolation(err) {
-				response.ValidationErrors["username"] = append(response.ValidationErrors["username"], ErrUnavailable)
+				response.Errors["username"] = append(response.Errors["username"], ErrUnavailable)
 				response.Status = ErrValidationFailed
 				writeResponse(w, r, response)
 				return
@@ -543,7 +543,7 @@ func (nbrew *Notebrew) signup(w http.ResponseWriter, r *http.Request, ip string)
 		})
 		if err != nil {
 			if nbrew.IsKeyViolation(err) {
-				response.ValidationErrors["email"] = append(response.ValidationErrors["email"], ErrEmailAlreadyUsed)
+				response.Errors["email"] = append(response.Errors["email"], ErrEmailAlreadyUsed)
 				response.Status = ErrValidationFailed
 				writeResponse(w, r, response)
 				return

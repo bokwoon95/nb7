@@ -20,14 +20,14 @@
     <a href="" class="ma2">{{ if username }}@{{ username }}{{ else }}user{{ end }}</a>
     <a href="/admin/logout/" class="ma2">logout</a>
 </nav>
-{{- if containsError (index $.ValidationErrors "parentFolder") "NB-05000" "NB-05010" }}
+{{- if containsError (index $.Errors "parentFolder") "NB-05000" "NB-05010" }}
 <div class="mv5 w-80 w-70-m w-60-l center">
     {{- if referer }}
     <div><a href="{{ referer }}" class="linktext" data-go-back>&larr; back</a></div>
     {{- end }}
     <div class="mv3 b tc">Can't create a file here.</div>
 </div>
-{{- else if containsError (index $.ValidationErrors "ext") "NB-05000" "NB-05010" }}
+{{- else if containsError (index $.Errors "ext") "NB-05000" "NB-05010" }}
 <ul class="mv5 w-80 w-70-m w-60-l center">
     {{- if referer }}
     <div><a href="{{ referer }}" class="linktext" data-go-back>&larr; back</a></div>
@@ -66,11 +66,11 @@
     <div class="mv2">
         <div><label for="name" class="b">Name:</label></div>
         <div class="flex items-center">
-            <input id="name" name="name" value="{{ $.Name }}" class="pv1 ph2 br2 ba flex-grow-1{{ if index $.ValidationErrors `category` }} b--invalid-red{{ end }}" autofocus required>
+            <input id="name" name="name" value="{{ $.Name }}" class="pv1 ph2 br2 ba flex-grow-1{{ if index $.Errors `category` }} b--invalid-red{{ end }}" autofocus required>
             <span class="mh1">.{{ $.Ext }}</span>
         </div>
         <ul>
-            {{- range $i, $error := index $.ValidationErrors "name" }}
+            {{- range $i, $error := index $.Errors "name" }}
             <li class="f6 invalid-red list-style-disc">{{ $error.Message }}</li>
             {{- end }}
         </ul>
@@ -81,7 +81,7 @@
             <textarea id="content" name="content" dir="auto" class="w-100 pa2 min-h5 h6 resize-vertical code">{{ $.Content }}</textarea>
         </div>
         <ul>
-            {{- range $i, $error := index $.ValidationErrors "content" }}
+            {{- range $i, $error := index $.Errors "content" }}
             <li class="f6 invalid-red list-style-disc">{{ $error }}</li>
             {{- end }}
         </ul>

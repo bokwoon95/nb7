@@ -23,13 +23,13 @@ func (nbrew *Notebrew) createfile(w http.ResponseWriter, r *http.Request, userna
 		Content      string `json:"content,omitempty"`
 	}
 	type Response struct {
-		Status           Error              `json:"status"`
-		ContentSiteURL   string             `json:"contentSiteURL,omitempty"`
-		ParentFolder     string             `json:"parentFolder,omitempty"`
-		Ext              string             `json:"ext,omitempty"`
-		Name             string             `json:"name,omitempty"`
-		Content          string             `json:"content,omitempty"`
-		ValidationErrors map[string][]Error `json:"validationErrors,omitempty"`
+		Status         Error              `json:"status"`
+		ContentSiteURL string             `json:"contentSiteURL,omitempty"`
+		ParentFolder   string             `json:"parentFolder,omitempty"`
+		Ext            string             `json:"ext,omitempty"`
+		Name           string             `json:"name,omitempty"`
+		Content        string             `json:"content,omitempty"`
+		Errors         map[string][]Error `json:"errors,omitempty"`
 	}
 
 	isValidParentFolder := func(parentFolder string) bool {
@@ -98,26 +98,26 @@ func (nbrew *Notebrew) createfile(w http.ResponseWriter, r *http.Request, userna
 			writeResponse(w, r, response)
 			return
 		}
-		response.ValidationErrors = make(map[string][]Error)
+		response.Errors = make(map[string][]Error)
 		response.ParentFolder = r.Form.Get("parent")
 		if response.ParentFolder == "" {
-			response.ValidationErrors["parentFolder"] = append(response.ValidationErrors["parentFolder"], ErrFieldRequired)
+			response.Errors["parentFolder"] = append(response.Errors["parentFolder"], ErrFieldRequired)
 		} else {
 			response.ParentFolder = path.Clean(strings.Trim(response.ParentFolder, "/"))
 			if !isValidParentFolder(response.ParentFolder) {
-				response.ValidationErrors["parentFolder"] = append(response.ValidationErrors["parentFolder"], ErrInvalidValue)
+				response.Errors["parentFolder"] = append(response.Errors["parentFolder"], ErrInvalidValue)
 			}
 		}
 		response.Ext = r.Form.Get("ext")
 		switch response.Ext {
 		case "":
-			response.ValidationErrors["ext"] = append(response.ValidationErrors["ext"], ErrFieldRequired)
+			response.Errors["ext"] = append(response.Errors["ext"], ErrFieldRequired)
 		case "html", "css", "js":
 			break
 		default:
-			response.ValidationErrors["ext"] = append(response.ValidationErrors["ext"], ErrInvalidValue)
+			response.Errors["ext"] = append(response.Errors["ext"], ErrInvalidValue)
 		}
-		if len(response.ValidationErrors) > 0 {
+		if len(response.Errors) > 0 {
 			response.Status = ErrValidationFailed
 			writeResponse(w, r, response)
 			return
@@ -196,29 +196,29 @@ func (nbrew *Notebrew) createfile(w http.ResponseWriter, r *http.Request, userna
 		}
 
 		response := Response{
-			ParentFolder:     request.ParentFolder,
-			Ext:              request.Ext,
-			Name:             urlSafe(request.Name),
-			Content:          request.Content,
-			ValidationErrors: make(map[string][]Error),
+			ParentFolder: request.ParentFolder,
+			Ext:          request.Ext,
+			Name:         urlSafe(request.Name),
+			Content:      request.Content,
+			Errors:       make(map[string][]Error),
 		}
 		if response.ParentFolder == "" {
-			response.ValidationErrors["parentFolder"] = append(response.ValidationErrors["parentFolder"], ErrFieldRequired)
+			response.Errors["parentFolder"] = append(response.Errors["parentFolder"], ErrFieldRequired)
 		} else {
 			response.ParentFolder = path.Clean(strings.Trim(response.ParentFolder, "/"))
 			if !isValidParentFolder(response.ParentFolder) {
-				response.ValidationErrors["parentFolder"] = append(response.ValidationErrors["parentFolder"], ErrInvalidValue)
+				response.Errors["parentFolder"] = append(response.Errors["parentFolder"], ErrInvalidValue)
 			}
 		}
 		switch response.Ext {
 		case "":
-			response.ValidationErrors["ext"] = append(response.ValidationErrors["ext"], ErrFieldRequired)
+			response.Errors["ext"] = append(response.Errors["ext"], ErrFieldRequired)
 		case "html", "css", "js":
 			break
 		default:
-			response.ValidationErrors["ext"] = append(response.ValidationErrors["ext"], ErrInvalidValue)
+			response.Errors["ext"] = append(response.Errors["ext"], ErrInvalidValue)
 		}
-		if len(response.ValidationErrors) > 0 {
+		if len(response.Errors) > 0 {
 			response.Status = ErrValidationFailed
 			writeResponse(w, r, response)
 			return
@@ -231,7 +231,7 @@ func (nbrew *Notebrew) createfile(w http.ResponseWriter, r *http.Request, userna
 			return
 		}
 		if fileInfo != nil {
-			response.ValidationErrors["name"] = append(response.ValidationErrors["name"], ErrItemAlreadyExists)
+			response.Errors["name"] = append(response.Errors["name"], ErrItemAlreadyExists)
 			response.Status = ErrValidationFailed
 			writeResponse(w, r, response)
 			return
