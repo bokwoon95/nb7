@@ -27,13 +27,13 @@ new.go
 Search Indexing => RSS => PWA => publish
 the last thing would probably be to make the site into a usable PWA on iOS then you're done, you can publish it to the world.
 
+TODO: rss reader (notebrew.com/admin/rss)
 TODO: should notebrew.com be the catch-all website? So people go there to browse rss stuff like they do HN, discover new posts, etc. But my main issue is that it would tread over the toes of the main site i.e. what if someone hosts notebrew on just one domain? All the dynamic stuff has to be squirrelled away into example.com/admin/, not example.com
 TODO: why does clicking a *.html.gz file hang and then 404? What's being calculated here?
 TODO: rethink error codes: I don't like how some validation errors are also standalone errors, maybe merge them together and split them by some other fault line
 TODO: what if the generated pages are compressed, does file.go still handle displaying the contents transparently? main use case are the generated index.html.gz files.
-TODO: notebrew createpost, notebrew createnote "this is a new note" -site bokwoon -category breh -slug "weegee"
+TODO: CLI usage: notebrew createpost, notebrew createnote "this is a new note" -site bokwoon -category breh -slug "weegee"
 TODO: allow users to update their email address, but whenever that happens send a message to the old email with a password reset link (add new columns: users.old_email, users.old_email_reset_token_hash) that is invalidated after like 30 days. So if the user has their email changed by an attacker they have up to 30 days to take back control. Once a new password is set, the email reverts back to the old one. Actually maybe leave it valid permamently.
-TODO: notebrew can publish an rss feed, but it can also consume it. It's both an rss producer and rss reader.
 TODO: upload files, download themes from github
 - output/themes dropdown > download theme > enter URL > uses go-git to clone a repo from github.
 - downloadtheme.go/downloadtheme.html
@@ -53,7 +53,6 @@ TODO: conservative rendering by default:
 - This is the piece de resistance: for each page, there is an item dropdown menu allowing the user to regenerate specific pages (the user can also select multiple pages and click "regenerate"). This means we can avoid whole-site rendering most of the time.
 TODO: top left corner now links to the admin domain, followed by the relevant ContentSiteURL is present.
 TODO: notebrew.com/admin/journal/
-TODO: rss is in (notebrew.com/admin/rss)
 TODO: cut | copy | paste | rename (no need for link indexing and rewriting yet, that comes later)
 TODO: notes/posts/pages/themes search indexing
 

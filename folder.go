@@ -113,11 +113,11 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 	var fileEntries []Entry
 
 	var notAuthorizedForRootSite bool
+	// If folderPath empty, show notes/, pages/, posts/, output/ folders.
 	if folderPath == "" {
-		// If folderPath empty, show notes/, pages/, posts/, output/ folders.
+		// If database is present and sitePrefix is empty, show site
+		// folders the user is authorized for.
 		if nbrew.DB != nil && sitePrefix == "" {
-			// If database is present and sitePrefix is empty, show site
-			// folders the user is authorized for.
 			type RootFolder struct {
 				Name   string
 				IsUser bool
@@ -494,5 +494,6 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 		internalServerError(w, r, err)
 		return
 	}
+	w.Header().Set("Content-Security-Policy", defaultContentSecurityPolicy+" manifest-src "+nbrew.Scheme+nbrew.AdminDomain+";")
 	executeTemplate(w, r, fileInfo.ModTime(), tmpl, &response)
 }
