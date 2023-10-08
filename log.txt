@@ -63,6 +63,8 @@ TOFIX:
 - Hm I really do want some site availibility metrics, bare minimum being how many requests in a time period and stuff.
     - I need a metric for traffic but I also need a metric for latency per request (so I can compare the before and after of upgrading the server to a more powerful CPU or something).
 - For the output folder, auto-collapse all folder/index.html entries into an "folder/index.html" entry.
+- we might be able to tweak the site generation code such that both abcd/index.html and abcd.html generate the same path, with precedence given to abcd.html.
+
 
 output folder trails pages and posts
 on page creation => generate output page
