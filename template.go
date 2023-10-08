@@ -489,23 +489,23 @@ func (nbrew *Notebrew) RegenerateSite(ctx context.Context, sitePrefix string) er
 				return err
 			}
 			content := template.HTML(b.String())
-			// creationDate
-			var creationDate time.Time
+			// createdAt
+			var createdAt time.Time
 			prefix, _, ok := strings.Cut(name, "-")
 			if ok && len(prefix) > 0 && len(prefix) <= 8 {
 				b, _ := base32Encoding.DecodeString(fmt.Sprintf("%08s", prefix))
 				if len(b) == 5 {
 					var timestamp [8]byte
 					copy(timestamp[len(timestamp)-5:], b)
-					creationDate = time.Unix(int64(binary.BigEndian.Uint64(timestamp[:])), 0)
+					createdAt = time.Unix(int64(binary.BigEndian.Uint64(timestamp[:])), 0)
 				}
 			}
-			// lastModified
+			// UpdatedAt
 			fileInfo, err := dirEntry.Info()
 			if err != nil {
 				return err
 			}
-			lastModified := fileInfo.ModTime()
+			updatedAt := fileInfo.ModTime()
 			err = MkdirAll(nbrew.FS, path.Join(sitePrefix, "output/posts", category, strings.TrimSuffix(name, ext)), 0755)
 			if err != nil {
 				return err
@@ -522,13 +522,13 @@ func (nbrew *Notebrew) RegenerateSite(ctx context.Context, sitePrefix string) er
 			}()
 			defer pipeReader.Close()
 			err = postTmpl.Execute(&ctxWriter{ctx: ctx, dest: pipeWriter}, Post{
-				URL:          templateParser.siteURL + "/" + path.Join("posts", category, strings.TrimSuffix(name, path.Ext(name))) + "/",
-				Category:     category,
-				Name:         name,
-				Title:        title,
-				Content:      content,
-				CreationDate: creationDate,
-				LastModified: lastModified,
+				URL:       templateParser.siteURL + "/" + path.Join("posts", category, strings.TrimSuffix(name, path.Ext(name))) + "/",
+				Category:  category,
+				Name:      name,
+				Title:     title,
+				Content:   content,
+				CreatedAt: createdAt,
+				UpdatedAt: updatedAt,
 			})
 			pipeWriter.CloseWithError(err)
 			if err != nil {

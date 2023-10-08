@@ -58,6 +58,8 @@ type USERS struct {
 	FAILED_LOGINS    sq.NumberField
 }
 
+// journal_entry ( journal_entry_id UUID, user_id UUID, content TEXT )
+
 type IP_LOGIN struct {
 	sq.TableStruct
 	IP            sq.StringField `ddl:"primarykey len=500"`

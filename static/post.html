@@ -9,10 +9,10 @@
 
 <hr>
 
-<div class="f6 mid-gray">{{ $.CreationDate.Format "2006-01-02" }}</div>
+<div class="f6 mid-gray">{{ $.CreatedAt.Format "2006-01-02" }}</div>
 
 {{ $.Content }}
 
 <hr>
 
-<div class="f6 mid-gray">modified {{ $.LastModified.Format "2006-01-02 15:04:05 UTC" }}</div>
+<div class="f6 mid-gray">updated {{ $.UpdatedAt.Format "2006-01-02 15:04:05 UTC" }}</div>

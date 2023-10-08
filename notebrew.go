@@ -708,14 +708,14 @@ func neatenURL(s string) string {
 }
 
 type Post = struct {
-	URL          string
-	Category     string
-	Name         string
-	Title        string
-	Preview      string
-	Content      template.HTML
-	CreationDate time.Time
-	LastModified time.Time
+	URL       string
+	Category  string
+	Name      string
+	Title     string
+	Preview   string
+	Content   template.HTML
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 func (nbrew *Notebrew) getPosts(ctx context.Context, sitePrefix, category string) ([]Post, error) {
@@ -762,30 +762,30 @@ func (nbrew *Notebrew) getPosts(ctx context.Context, sitePrefix, category string
 		if err != nil {
 			return nil, err
 		}
-		var creationDate time.Time
+		var createdAt time.Time
 		prefix, _, ok := strings.Cut(name, "-")
 		if ok && len(prefix) > 0 && len(prefix) <= 8 {
 			b, _ := base32Encoding.DecodeString(fmt.Sprintf("%08s", prefix))
 			if len(b) == 5 {
 				var timestamp [8]byte
 				copy(timestamp[len(timestamp)-5:], b)
-				creationDate = time.Unix(int64(binary.BigEndian.Uint64(timestamp[:])), 0)
+				createdAt = time.Unix(int64(binary.BigEndian.Uint64(timestamp[:])), 0)
 			}
 		}
 		post := Post{
-			URL:          siteURL + "/" + path.Join("posts", category, strings.TrimSuffix(name, path.Ext(name))) + "/",
-			Category:     category,
-			Name:         name,
-			CreationDate: creationDate,
-			LastModified: fileInfo.ModTime(),
+			URL:       siteURL + "/" + path.Join("posts", category, strings.TrimSuffix(name, path.Ext(name))) + "/",
+			Category:  category,
+			Name:      name,
+			CreatedAt: createdAt,
+			UpdatedAt: fileInfo.ModTime(),
 		}
 		posts = append(posts, post)
 	}
 	slices.SortFunc(posts, func(p1, p2 Post) int {
-		if p1.CreationDate.Equal(p2.CreationDate) {
+		if p1.CreatedAt.Equal(p2.CreatedAt) {
 			return 0
 		}
-		if p1.CreationDate.Before(p2.CreationDate) {
+		if p1.CreatedAt.Before(p2.CreatedAt) {
 			return 1
 		}
 		return -1
