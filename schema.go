@@ -66,9 +66,6 @@ type JOURNAL_ENTRY struct {
 	UPDATED_AT       sq.TimeField
 }
 
-// journal_entry ( journal_entry_id UUID, user_id UUID, content TEXT, updated_at DATETIME )
-// journal_entry_fts ( )
-
 type IP_LOGIN struct {
 	sq.TableStruct
 	IP            sq.StringField `ddl:"primarykey len=500"`
