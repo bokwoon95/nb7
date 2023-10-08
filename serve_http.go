@@ -1,16 +1,21 @@
 package nb7
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"io"
 	"io/fs"
 	"log/slog"
 	"net/http"
 	"os"
 	"path"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/bokwoon95/sq"
 )
@@ -50,6 +55,24 @@ func (nbrew *Notebrew) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		slog.String("ip", ip),
 	)
 	r = r.WithContext(context.WithValue(r.Context(), loggerKey, logger))
+
+	file, err := nbrew.FS.Open("config/show-latency.txt")
+	if err != nil {
+		return
+	}
+	defer file.Close()
+	reader := bufio.NewReader(file)
+	b, _ := reader.Peek(6)
+	if len(b) > 0 {
+		ok, _ := strconv.ParseBool(string(bytes.TrimSpace(b)))
+		if ok {
+			startedAt := time.Now()
+			defer func() {
+				timeTaken := time.Since(startedAt)
+				fmt.Printf("%s %s %s\n", r.Method, r.URL.RequestURI(), timeTaken.String())
+			}()
+		}
+	}
 
 	// https://cheatsheetseries.owasp.org/cheatsheets/HTTP_Headers_Cheat_Sheet.html
 	w.Header().Add("X-Frame-Options", "DENY")
