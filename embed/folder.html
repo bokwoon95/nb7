@@ -86,11 +86,12 @@
             </summary>
             <div class="absolute bg-white br2" style="top: calc(2rem + 4px); right: 0px; z-index: 1000; border: 1px solid black;">
                 {{- if and (eq sitePrefix "") (eq $.Path "") }}
-                <div class="tr ma2"><a href="/admin/createsite/" class="linktext tr nowrap dib w-100 h-100">create site</a></div>
                 {{- if authorizedForRootSite }}
                 <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createnote` }}/" class="linktext tr nowrap dib w-100 h-100">create note</a></div>
                 <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createpost` }}/" class="linktext tr nowrap dib w-100 h-100">create post</a></div>
+                <hr>
                 {{- end }}
+                <div class="tr ma2"><a href="/admin/createsite/" class="linktext tr nowrap dib w-100 h-100">create site</a></div>
                 {{- else if eq (head $.Path) "notes" }}
                 <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createnote` }}/{{ if tail $.Path }}?category={{ head (tail $.Path) }}{{ end }}" class="linktext tr nowrap dib w-100 h-100">create note</a></div>
                 {{- else if eq (head $.Path) "posts" }}

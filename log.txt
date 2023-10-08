@@ -57,6 +57,9 @@ TODO: conservative rendering by default:
 - This is the piece de resistance: for each page, there is an item dropdown menu allowing the user to regenerate specific pages (the user can also select multiple pages and click "regenerate"). This means we can avoid whole-site rendering most of the time.
 TODO: rename all ValidationErrors fields to just Errors
 
+TOFIX:
+- for each js script loaded, add a top level comment explaining what it does so it doesn't seem like you are loading in a bunch of scripts for nothing like a filthy js dev.
+
 output folder trails pages and posts
 on page creation => generate output page
 on page update => update output output
