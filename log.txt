@@ -79,3 +79,7 @@ on theme template update => update *all* pages, update *all* posts
 TODO: we need cross-handler tests to check for nil DB == 404, Content-Type headers are all set appropriately, etc.
 
 TODO: S3FS with an optional CDN cache in front of it for everything inside a site/ directory. What happens is that after a site html file is generated, an extra CDN URL rewriting layer crawls the HTML and rewrites all content links to CDN links instead. The user can enable/disable this automatic postprocessing step anytime, and they can also visit any page and toggle CDN links/server links on a per-page basis. And whenever a new copy of the html file is generated to s3, notebrew also cache-busts the CDN link.
+
+192x192
+512x512
+180x180 <link rel="apple-touch-icon" href="/apple-touch-icon.png">

@@ -63,6 +63,15 @@ func (nbrew *Notebrew) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload")
 	}
 
+	switch strings.Trim(r.URL.Path, "/") {
+	case "manifest.json":
+		serveFile(w, r, rootFS, "static/manifest.json", false)
+		return
+	case "apple-touch-icon.png":
+		serveFile(w, r, rootFS, "static/icons/apple-touch-icon.png", false)
+		return
+	}
+
 	host := getHost(r)
 	head, tail, _ := strings.Cut(strings.Trim(r.URL.Path, "/"), "/")
 	if host == nbrew.AdminDomain && head == "admin" {
