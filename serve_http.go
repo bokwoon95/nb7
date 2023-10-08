@@ -64,8 +64,8 @@ func (nbrew *Notebrew) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	switch strings.Trim(r.URL.Path, "/") {
-	case "manifest.json":
-		serveFile(w, r, rootFS, "static/manifest.json", false)
+	case "app.webmanifest":
+		serveFile(w, r, rootFS, "static/app.webmanifest", false)
 		return
 	case "apple-touch-icon.png":
 		serveFile(w, r, rootFS, "static/icons/apple-touch-icon.png", false)
