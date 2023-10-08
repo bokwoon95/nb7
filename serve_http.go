@@ -56,24 +56,6 @@ func (nbrew *Notebrew) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	)
 	r = r.WithContext(context.WithValue(r.Context(), loggerKey, logger))
 
-	file, err := nbrew.FS.Open("config/show-latency.txt")
-	if err != nil {
-		return
-	}
-	defer file.Close()
-	reader := bufio.NewReader(file)
-	b, _ := reader.Peek(6)
-	if len(b) > 0 {
-		ok, _ := strconv.ParseBool(string(bytes.TrimSpace(b)))
-		if ok {
-			startedAt := time.Now()
-			defer func() {
-				timeTaken := time.Since(startedAt)
-				fmt.Printf("%s %s %s\n", r.Method, r.URL.RequestURI(), timeTaken.String())
-			}()
-		}
-	}
-
 	// https://cheatsheetseries.owasp.org/cheatsheets/HTTP_Headers_Cheat_Sheet.html
 	w.Header().Add("X-Frame-Options", "DENY")
 	w.Header().Add("X-Content-Type-Options", "nosniff")
@@ -93,6 +75,27 @@ func (nbrew *Notebrew) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case "apple-touch-icon.png":
 		serveFile(w, r, rootFS, "static/icons/apple-touch-icon.png", false)
 		return
+	}
+
+	segments := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
+	if len(segments) < 2 || segments[0] != "admin" || segments[1] != "static" {
+		file, err := nbrew.FS.Open("config/show-latency.txt")
+		if err != nil {
+			return
+		}
+		defer file.Close()
+		reader := bufio.NewReader(file)
+		b, _ := reader.Peek(6)
+		if len(b) > 0 {
+			ok, _ := strconv.ParseBool(string(bytes.TrimSpace(b)))
+			if ok {
+				startedAt := time.Now()
+				defer func() {
+					timeTaken := time.Since(startedAt)
+					fmt.Printf("%s %s %s\n", r.Method, r.URL.RequestURI(), timeTaken.String())
+				}()
+			}
+		}
 	}
 
 	host := getHost(r)
