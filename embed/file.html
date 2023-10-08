@@ -63,21 +63,21 @@
     <div class="mv2 tc">choose to <a href="" class="linktext">download</a> it instead.</div>
 </div>
 {{- else if hasPrefix $.Type "text" }}
+{{ $parentDir := dir $.Path }}
+{{ $head := head $.Path }}
+{{ $readOnly := and (eq (head $.Path) "output") (ne (head (tail $.Path)) "themes") (ne (head (tail $.Path)) "images") }}
 <div>
     {{- if and referer (ne $.Status.Code "NB-00060") }}
     <a href="{{ referer }}" class="linktext" data-go-back>&larr; back</a>
     <span>&boxv;</span>
     {{- end }}
-    {{ $parentDir := dir $.Path }}
-    {{ $head := head $.Path }}
-    {{ $readOnly := and (eq (head $.Path) "output") (ne (head (tail $.Path)) "themes") (ne (head (tail $.Path)) "images") }}
-    {{- if ne $parentDir $head }}
-    <a href="/{{ join `admin` sitePrefix $parentDir }}/" class="linktext">{{ base $parentDir }}</a>
-    <span>&boxv;</span>
-    {{- end }}
-    <a href="/{{ join `admin` sitePrefix $head }}/" class="linktext">{{ $head }}</a>
-    <span>&boxv;</span>
     <a href="/{{ join `admin` sitePrefix }}/" class="linktext">admin</a>
+    <span>&boxv;</span>
+    <a href="/{{ join `admin` sitePrefix $head }}/" class="linktext">{{ $head }}</a>
+    {{- if ne $parentDir $head }}
+    <span>&boxv;</span>
+    <a href="/{{ join `admin` sitePrefix $parentDir }}/" class="linktext">{{ base $parentDir }}</a>
+    {{- end }}
 </div>
 <hr>
 <div class="mv2 flex items-center">

@@ -35,13 +35,13 @@
     <a href="{{ referer }}" class="linktext" data-go-back>&larr; back</a>
     <span>&boxv;</span>
     {{- end }}
-    {{- if ne $.ParentFolder "pages" }}
-    <a href="/{{ join `admin` sitePrefix $.ParentFolder }}/" class="linktext">{{ base $.ParentFolder }}</a>
-    <span>&boxv;</span>
-    {{- end }}
-    <a href="/{{ join `admin` sitePrefix `pages` }}/" class="linktext">pages</a>
-    <span>&boxv;</span>
     <a href="/{{ join `admin` sitePrefix }}/" class="linktext">admin</a>
+    <span>&boxv;</span>
+    <a href="/{{ join `admin` sitePrefix `pages` }}/" class="linktext">pages</a>
+    {{- if ne $.ParentFolder "pages" }}
+    <span>&boxv;</span>
+    <a href="/{{ join `admin` sitePrefix $.ParentFolder }}/" class="linktext">{{ base $.ParentFolder }}</a>
+    {{- end }}
 </div>
 <hr>
 <h1 class="f3 mv2 b">Create page</h1>

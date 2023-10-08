@@ -24,8 +24,7 @@ rename.go
 serve_http.go
 new.go
 
-Search Indexing => RSS => PWA => publish
-the last thing would probably be to make the site into a usable PWA on iOS then you're done, you can publish it to the world.
+Search Indexing => RSS => publish
 
 TODO: rss reader (notebrew.com/admin/rss)
 TODO: should notebrew.com be the catch-all website? So people go there to browse rss stuff like they do HN, discover new posts, etc. But my main issue is that it would tread over the toes of the main site i.e. what if someone hosts notebrew on just one domain? All the dynamic stuff has to be squirrelled away into example.com/admin/, not example.com
@@ -52,9 +51,14 @@ TODO: conservative rendering by default:
 - In the admin page, there is a dropdown menu next to the site that says "regenerate site" (above "delete site")
 - This is the piece de resistance: for each page, there is an item dropdown menu allowing the user to regenerate specific pages (the user can also select multiple pages and click "regenerate"). This means we can avoid whole-site rendering most of the time.
 TODO: top left corner now links to the admin domain, followed by the relevant ContentSiteURL is present.
-TODO: notebrew.com/admin/journal/
 TODO: cut | copy | paste | rename (no need for link indexing and rewriting yet, that comes later)
 TODO: notes/posts/pages/themes search indexing
+TODO: notebrew.com/a/journal/
+
+TODO: notebrew.com/a/notes/
+TODO: notebrew.com/a/notes/
+
+notebrew.com/a/
 
 TOFIX:
 - for each js script loaded, add a top level comment explaining what it does so it doesn't seem like you are loading in a bunch of scripts for nothing like a filthy js dev.
