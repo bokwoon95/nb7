@@ -53,12 +53,7 @@ TODO: conservative rendering by default:
 TODO: top left corner now links to the admin domain, followed by the relevant ContentSiteURL is present.
 TODO: cut | copy | paste | rename (no need for link indexing and rewriting yet, that comes later)
 TODO: notes/posts/pages/themes search indexing
-TODO: notebrew.com/a/journal/
-
-TODO: notebrew.com/a/notes/
-TODO: notebrew.com/a/notes/
-
-notebrew.com/a/
+TODO: notebrew.com/admin/journal/
 
 TOFIX:
 - for each js script loaded, add a top level comment explaining what it does so it doesn't seem like you are loading in a bunch of scripts for nothing like a filthy js dev.
