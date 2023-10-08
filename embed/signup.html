@@ -7,6 +7,11 @@
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="stylesheet" href="/admin/static/tachyons.min.css">
 <link rel="stylesheet" href="/admin/static/styles.css">
+<script type="module" src="/admin/static/dismiss-alert.js"></script>
+{{- if $.RequireCaptcha }}
+<script src="https://js.hcaptcha.com/1/api.js" async defer></script>
+<script type="module" src="/admin/static/signup-validation.js"></script>
+{{- end }}
 <title>Signup</title>
 <body class="centered-body">
 <nav class="mv2 bg-dark-cyan white flex justify-between items-center">
@@ -111,9 +116,4 @@
         Have an account? <a href="/admin/login/" class="linktext">Log in</a> here.
     </div>
 </form>
-{{- end }}
-<script type="module" src="/admin/static/dismiss-alert.js"></script>
-{{- if $.RequireCaptcha }}
-<script src="https://js.hcaptcha.com/1/api.js" async defer></script>
-<script type="module" src="/admin/static/signup-validation.js"></script>
 {{- end }}

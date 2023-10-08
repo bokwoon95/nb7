@@ -7,6 +7,7 @@
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="stylesheet" href="/admin/static/tachyons.min.css">
 <link rel="stylesheet" href="/admin/static/styles.css">
+<script type="module" src="/admin/static/login-validation.js"></script>
 {{- if $.RequireCaptcha }}
 <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
 {{- end }}
@@ -92,4 +93,3 @@
     </div>
     {{- end }}
 </form>
-<script type="module" src="/admin/static/login-validation.js"></script>
