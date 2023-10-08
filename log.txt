@@ -60,6 +60,7 @@ TODO: rename all ValidationErrors fields to just Errors
 TOFIX:
 - for each js script loaded, add a top level comment explaining what it does so it doesn't seem like you are loading in a bunch of scripts for nothing like a filthy js dev.
 - use a sort svg icon for "sort by", and instead of "5 cut items" show 5 and a scissors icon or a clipboard icon depending on whether the items were cut or copied.
+- Hm I really do want some site availibility metrics, bare minimum being how many requests in a time period and stuff.
 
 output folder trails pages and posts
 on page creation => generate output page
