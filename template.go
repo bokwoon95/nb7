@@ -156,6 +156,10 @@ func (parser *TemplateParser) parse(templateName, templateText string, callers [
 	primaryTemplate, err := template.New(templateName).Funcs(parser.funcMap).Parse(templateText)
 	if err != nil {
 		parser.mu.Lock()
+		// TODO: collect all possible error strings then use string
+		// manipulation to format the errmsg into something the user can
+		// understand. E.g. if the template name is an empty string, how to
+		// make the error more obvious?
 		parser.errmsgs[templateName] = append(parser.errmsgs[templateName], strings.TrimSpace(strings.TrimPrefix(err.Error(), "template:")))
 		parser.mu.Unlock()
 		return nil, TemplateError(parser.errmsgs)

@@ -40,6 +40,7 @@ TODO: coalesce the following into a single "site" tab in the menu bar
 - the link to the content site
 - the storage used and storage breakdown
 - site-wide search
+TODO: regenerate.go
 TODO: conservative rendering by default:
 - creating a post merely generates the post page plus the category list page
 - updating a post merely updates the post page
