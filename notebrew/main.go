@@ -33,10 +33,8 @@ func main() {
 		var dir, addr, multisite, db, showQueries string
 		flagset := flag.NewFlagSet("", flag.ContinueOnError)
 		flagset.StringVar(&dir, "dir", "", "")
-		flagset.StringVar(&addr, "addr", "", "") // TODO: rename to -address
 		flagset.StringVar(&addr, "address", "", "")
 		flagset.StringVar(&multisite, "multisite", "", "")
-		flagset.StringVar(&db, "db", "", "") // TODO: rename to -database
 		flagset.StringVar(&db, "database", "", "")
 		flagset.StringVar(&showQueries, "show-queries", "", "")
 		err := flagset.Parse(os.Args[1:])

@@ -55,7 +55,6 @@ TODO: conservative rendering by default:
 - updating a theme template updates the template, but also offers the user the option to regenerate the whole site (or they can surgically regenerate specific pages instead).
 - In the admin page, there is a dropdown menu next to the site that says "regenerate site" (above "delete site")
 - This is the piece de resistance: for each page, there is an item dropdown menu allowing the user to regenerate specific pages (the user can also select multiple pages and click "regenerate"). This means we can avoid whole-site rendering most of the time.
-TODO: rename all Errors fields to just Errors
 
 TOFIX:
 - for each js script loaded, add a top level comment explaining what it does so it doesn't seem like you are loading in a bunch of scripts for nothing like a filthy js dev.
