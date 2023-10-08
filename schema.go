@@ -58,7 +58,16 @@ type USERS struct {
 	FAILED_LOGINS    sq.NumberField
 }
 
-// journal_entry ( journal_entry_id UUID, user_id UUID, content TEXT )
+type JOURNAL_ENTRY struct {
+	sq.TableStruct
+	JOURNAL_ENTRY_ID sq.UUIDField   `ddl:"primarykey"`
+	USER_ID          sq.UUIDField   `ddl:"notnull references={users onupdate=cascade index}"`
+	CONTENT          sq.StringField `ddl:"len=100000"`
+	UPDATED_AT       sq.TimeField
+}
+
+// journal_entry ( journal_entry_id UUID, user_id UUID, content TEXT, updated_at DATETIME )
+// journal_entry_fts ( )
 
 type IP_LOGIN struct {
 	sq.TableStruct
