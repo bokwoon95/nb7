@@ -7,12 +7,6 @@
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="stylesheet" href="/admin/static/tachyons.min.css">
 <link rel="stylesheet" href="/admin/static/styles.css">
-<script type="module" src="/admin/static/autoclose-details.js"></script>
-<script type="module" src="/admin/static/codemirror.js"></script>
-<script type="module" src="/admin/static/disable-after-submit.js"></script>
-<script type="module" src="/admin/static/disable-click-selection.js"></script>
-<script type="module" src="/admin/static/dismiss-alert.js"></script>
-<script type="module" src="/admin/static/go-back.js"></script>
 <title>
     {{- if or (eq (head $.Path) "") (eq (head $.Path) "") }}
     {{ if title }}{{ title }}{{ else }}Untitled{{ end }}
@@ -113,3 +107,9 @@
     <div class="mv2 tc">unknown file type</div>
 </div>
 {{- end }}
+<script type="module" src="/admin/static/autoclose-details.js"></script>
+<script type="module" src="/admin/static/codemirror.js"></script>
+<script type="module" src="/admin/static/disable-after-submit.js"></script>
+<script type="module" src="/admin/static/disable-click-selection.js"></script>
+<script type="module" src="/admin/static/dismiss-alert.js"></script>
+<script type="module" src="/admin/static/go-back.js"></script>
