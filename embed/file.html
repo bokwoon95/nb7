@@ -13,6 +13,8 @@
 <script type="module" src="/admin/static/codemirror-css.js"></script>
 {{- else if eq (base $.Type) "javascript" }}
 <script type="module" src="/admin/static/codemirror-javascript.js"></script>
+{{- else if eq (base $.Type) "markdown" }}
+<script type="module" src="/admin/static/codemirror-markdown.js"></script>
 {{- end }}
 <title>
     {{- if or (eq (head $.Path) "") (eq (head $.Path) "") }}
