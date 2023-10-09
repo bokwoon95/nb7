@@ -1,17 +1,9 @@
-// To build this file:
-// - Navigate to the project root where package.json is located.
-// - Run npm install
-// - Run ./node_modules/.bin/esbuild ./static/codemirror.ts --outfile=./static/codemirror.js --bundle --minify
 import { EditorState, Prec } from '@codemirror/state';
 import { EditorView, lineNumbers, keymap } from '@codemirror/view';
 import { indentWithTab, history, defaultKeymap, historyKeymap } from '@codemirror/commands';
 import { indentOnInput, indentUnit, syntaxHighlighting, defaultHighlightStyle } from '@codemirror/language';
 import { autocompletion, completionKeymap } from '@codemirror/autocomplete';
-import { html } from "@codemirror/lang-html";
-import { css } from "@codemirror/lang-css";
 import { javascript } from "@codemirror/lang-javascript";
-import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
-// import { languages } from '@codemirror/language-data'
 
 for (const [index, dataCodemirror] of document.querySelectorAll<HTMLElement>("[data-codemirror]").entries()) {
     // The textarea we are overriding.
@@ -50,6 +42,7 @@ for (const [index, dataCodemirror] of document.querySelectorAll<HTMLElement>("[d
         ]),
         syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
         EditorView.lineWrapping,
+        javascript(),
         // Custom theme.
         EditorView.theme({
             "&": {
@@ -84,21 +77,6 @@ for (const [index, dataCodemirror] of document.querySelectorAll<HTMLElement>("[d
             },
         ])),
     ];
-
-    // Add the language extension.
-    const ext = dataCodemirror.getAttribute("data-codemirror");
-    if (ext == "html") {
-        extensions.push(html());
-    } else if (ext == "css") {
-        extensions.push(css());
-    } else if (ext == "javascript") {
-        extensions.push(javascript());
-    } else if (ext == "markdown") {
-        extensions.push(markdown({
-            base: markdownLanguage,
-            // codeLanguages: languages,
-        }));
-    }
 
     // Create the codemirror editor.
     const editorView = new EditorView({

@@ -7,7 +7,13 @@
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="stylesheet" href="/admin/static/styles.css">
 <script type="module" src="/admin/static/baseline.js"></script>
-<script type="module" src="/admin/static/codemirror.js"></script>
+{{- if eq (base $.Type) "html" }}
+<script type="module" src="/admin/static/codemirror-html.js"></script>
+{{- else if eq (base $.Type) "css" }}
+<script type="module" src="/admin/static/codemirror-css.js"></script>
+{{- else if eq (base $.Type) "javascript" }}
+<script type="module" src="/admin/static/codemirror-javascript.js"></script>
+{{- end }}
 <title>
     {{- if or (eq (head $.Path) "") (eq (head $.Path) "") }}
     {{ if title }}{{ title }}{{ else }}Untitled{{ end }}
