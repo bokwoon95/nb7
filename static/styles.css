@@ -34,6 +34,7 @@ summary { display: list-item; }
 template { display: none; }
 [hidden] { display: none; }
 
+*, *::before, *::after { box-sizing: border-box; }
 body { background-color: #fafafa; font-family: Helvetica, Arial, sans-serif; line-height: 1.5; }
 a { text-decoration: none; cursor: pointer; color: inherit; }
 a:hover, a:focus { text-decoration: underline; }
