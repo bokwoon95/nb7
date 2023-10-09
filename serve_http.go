@@ -80,20 +80,21 @@ func (nbrew *Notebrew) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	segments := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
 	if len(segments) < 2 || segments[0] != "admin" || segments[1] != "static" {
 		file, err := nbrew.FS.Open("config/show-latency.txt")
-		if err != nil {
-			return
-		}
-		defer file.Close()
-		reader := bufio.NewReader(file)
-		b, _ := reader.Peek(6)
-		if len(b) > 0 {
-			ok, _ := strconv.ParseBool(string(bytes.TrimSpace(b)))
-			if ok {
-				startedAt := time.Now()
-				defer func() {
-					timeTaken := time.Since(startedAt)
-					fmt.Printf("%s %s %s\n", r.Method, r.URL.RequestURI(), timeTaken.String())
-				}()
+		if err != nil && !errors.Is(err, fs.ErrNotExist) {
+			logger.Error(err.Error())
+		} else {
+			defer file.Close()
+			reader := bufio.NewReader(file)
+			b, _ := reader.Peek(6)
+			if len(b) > 0 {
+				ok, _ := strconv.ParseBool(string(bytes.TrimSpace(b)))
+				if ok {
+					startedAt := time.Now()
+					defer func() {
+						timeTaken := time.Since(startedAt)
+						fmt.Printf("%s %s %s\n", r.Method, r.URL.RequestURI(), timeTaken.String())
+					}()
+				}
 			}
 		}
 	}
