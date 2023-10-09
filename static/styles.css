@@ -56,8 +56,11 @@ ul { margin: 0; padding: 0; }
 /* margin bottom */
 .mb4 { margin-bottom: 2rem; }
 
-/* margin left */
+/* margin right */
 .ml1 { margin-left: .25rem; }
+
+/* margin left */
+.mr2 { margin-right: .5rem; }
 
 /* padding all */
 .pa2 { padding: .5rem; }
