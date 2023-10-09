@@ -168,6 +168,10 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 		if !modTime.IsZero() {
 			response.ModTime = &modTime
 		}
+		if response.Status != "" {
+			writeResponse(w, r, response)
+			return
+		}
 		if strings.HasPrefix(response.Type, "image") || strings.HasPrefix(response.Type, "font") || response.Type == "gzip" {
 			response.Location = nbrew.Scheme + nbrew.AdminDomain + "/" + path.Join("admin", sitePrefix, tail)
 		} else if strings.HasPrefix(response.Type, "text") {
