@@ -252,7 +252,7 @@ func (nbrew *Notebrew) createpost(w http.ResponseWriter, r *http.Request, userna
 				for _, msg := range templateError.ToList() {
 					response.Errors["content"] = append(response.Errors["content"], Error(msg))
 				}
-				response.Status = ErrFileGenerationFailed
+				response.Status = ErrGenerateFailed
 				writeResponse(w, r, response)
 				return
 			}
