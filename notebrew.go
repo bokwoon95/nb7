@@ -910,6 +910,6 @@ func executeTemplate(w http.ResponseWriter, r *http.Request, modtime time.Time, 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Content-Encoding", "gzip")
 	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("ETag", string(*dst))
+	w.Header().Set("ETag", `"`+string(*dst)+`"`)
 	http.ServeContent(w, r, "", modtime, bytes.NewReader(buf.Bytes()))
 }
