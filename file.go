@@ -331,6 +331,12 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 
 		segments := strings.Split(filePath, "/")
 		if segments[0] == "posts" || segments[0] == "pages" || (len(segments) > 2 && segments[0] == "output" && segments[1] == "themes") {
+			err = http.NewResponseController(w).SetWriteDeadline(time.Now().Add(3 * time.Minute))
+			if err != nil {
+				getLogger(r.Context()).Error(err.Error())
+				internalServerError(w, r, err)
+				return
+			}
 			err = nbrew.RegenerateSite(r.Context(), sitePrefix)
 			if err != nil {
 				var templateError TemplateError

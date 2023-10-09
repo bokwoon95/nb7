@@ -300,6 +300,12 @@ func (nbrew *Notebrew) delet(w http.ResponseWriter, r *http.Request, username, s
 			b.WriteString(" (" + strconv.Itoa(len(response.Errors)) + " items failed)")
 		}
 
+		err = http.NewResponseController(w).SetWriteDeadline(time.Now().Add(3 * time.Minute))
+		if err != nil {
+			getLogger(r.Context()).Error(err.Error())
+			internalServerError(w, r, err)
+			return
+		}
 		err := nbrew.RegenerateSite(r.Context(), sitePrefix)
 		if err != nil {
 			var templateError TemplateError

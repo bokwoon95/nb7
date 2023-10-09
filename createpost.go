@@ -239,6 +239,12 @@ func (nbrew *Notebrew) createpost(w http.ResponseWriter, r *http.Request, userna
 			return
 		}
 
+		err = http.NewResponseController(w).SetWriteDeadline(time.Now().Add(3 * time.Minute))
+		if err != nil {
+			getLogger(r.Context()).Error(err.Error())
+			internalServerError(w, r, err)
+			return
+		}
 		err = nbrew.RegenerateSite(r.Context(), sitePrefix)
 		if err != nil {
 			var templateError TemplateError
