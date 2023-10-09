@@ -35,6 +35,9 @@ template { display: none; }
 [hidden] { display: none; }
 
 body { background-color: #fafafa; font-family: Helvetica, Arial, sans-serif; line-height: 1.5; }
+a { text-decoration: none; cursor: pointer; color: inherit; }
+a:hover, a:focus { text-decoration: underline; }
+button { cursor: pointer; }
 ul { margin: 0; padding: 0; }
 
 /* margin all */
@@ -101,8 +104,6 @@ ul { margin: 0; padding: 0; }
 .transparent-button:active { background-color: #fafafa; }
 
 /* links */
-a { text-decoration: none; cursor: pointer; color: inherit; }
-a:hover, a:focus { text-decoration: underline; }
 .linktext { color: LinkText; }
 .link { background: none; border: none; padding: 0; text-decoration: none; }
 .link:hover, link:focus { text-decoration: underline; }

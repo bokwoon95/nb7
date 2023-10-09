@@ -133,6 +133,10 @@ func (nbrew *Notebrew) createpage(w http.ResponseWriter, r *http.Request, userna
 					internalServerError(w, r, err)
 					return
 				}
+				if response.Status == ErrFileGenerationFailed {
+					http.Redirect(w, r, nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix, response.ParentFolder, response.Name+".html"), http.StatusFound)
+					return
+				}
 				http.Redirect(w, r, nbrew.Scheme+nbrew.AdminDomain+"/"+path.Join("admin", sitePrefix, "createpage")+"/?parent="+url.QueryEscape(response.ParentFolder), http.StatusFound)
 				return
 			}

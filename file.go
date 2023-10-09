@@ -47,17 +47,17 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 		Content string `json:"content"`
 	}
 	type Response struct {
-		Status         Error      `json:"status"`
-		ContentSiteURL string     `json:"contentSiteURL,omitempty"`
-		Path           string     `json:"path"`
-		IsDir          bool       `json:"isDir,omitempty"`
-		ModTime        *time.Time `json:"modTime,omitempty"`
-		Type           string     `json:"type,omitempty"`
-		Content        string     `json:"content,omitempty"`
-		Location       string     `json:"location,omitempty"`
-		TemplateErrors []string   `json:"templateErrors,omitempty"`
-		StorageUsed    int64      `json:"storageUsed,omitempty"`
-		StorageLimit   int64      `json:"storageLimit,omitempty"`
+		Status         Error              `json:"status"`
+		ContentSiteURL string             `json:"contentSiteURL,omitempty"`
+		Path           string             `json:"path"`
+		IsDir          bool               `json:"isDir,omitempty"`
+		ModTime        *time.Time         `json:"modTime,omitempty"`
+		Type           string             `json:"type,omitempty"`
+		Content        string             `json:"content,omitempty"`
+		Location       string             `json:"location,omitempty"`
+		Errors         map[string][]Error `json:"errors,omitempty"`
+		StorageUsed    int64              `json:"storageUsed,omitempty"`
+		StorageLimit   int64              `json:"storageLimit,omitempty"`
 	}
 
 	ext := path.Ext(filePath)
@@ -161,10 +161,6 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 			getLogger(r.Context()).Error(err.Error())
 		}
 		nbrew.clearSession(w, r, "flash")
-		if response.Status != "" {
-			writeResponse(w, r, response)
-			return
-		}
 		response.Path = filePath
 		response.Type = typ
 		response.IsDir = fileInfo.IsDir()
@@ -261,6 +257,7 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 			IsDir:   fileInfo.IsDir(),
 			Type:    typ,
 			Content: request.Content,
+			Errors:  make(map[string][]Error),
 		}
 		modTime := fileInfo.ModTime()
 		if !modTime.IsZero() {
@@ -341,7 +338,9 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 			if err != nil {
 				var templateError TemplateError
 				if errors.As(err, &templateError) {
-					response.TemplateErrors = templateError.ToList()
+					for _, msg := range templateError.ToList() {
+						response.Errors["content"] = append(response.Errors["content"], Error(msg))
+					}
 					response.Status = ErrFileGenerationFailed
 					writeResponse(w, r, response)
 					return

@@ -85,10 +85,14 @@ my day trip to hokkaido =&gt; https://example.com/notes/my-day-trip-to-hokkaido/
         <div class="f6"><a href="/{{ join `admin` sitePrefix `createcategory` }}/?type=note" class="linktext">&plus; create category</a></div>
     </div>
     <div class="mv2">
-        <div><label for="content" class="b">Content:</label></div>
+        <div class="flex mv2">
+            <label for="content" class="b">Content:</label>
+            <div class="flex-grow-1"></div>
+            <button id="bottom" type="submit" class="button ba br2">Create note</button>
+        </div>
         <div data-codemirror="markdown">
             <textarea id="content" name="content" dir="auto" class="w-100 pa2 min-h5 h6 resize-vertical code" autofocus>{{ $.Content }}</textarea>
         </div>
     </div>
-    <button type="submit" class="button ba br2 pa2 mv3 w-100">Create note</button>
+    <button type="submit" class="button ba br2 pa2 mv2 w-100">Create note</button>
 </form>
