@@ -1,0 +1,160 @@
+/****** Elad Shechter's RESET *******/
+/* https://elad.medium.com/normalize-css-or-css-reset-9d75175c5d1e */
+*,
+*::before,
+*::after{box-sizing:border-box;}
+a{text-decoration:none; color:inherit; cursor:pointer;}
+button{background-color:transparent; color:inherit; border-width:0; padding:0; cursor:pointer;}
+figure{margin:0;}
+input::-moz-focus-inner{border:0; padding:0; margin:0;}
+ul, ol, dd{margin:0; padding:0; list-style:none;}
+h1, h2, h3, h4, h5, h6{margin:0; font-size:inherit; font-weight:inherit;}
+p{margin:0;}
+cite {font-style:normal;}
+fieldset{border-width:0; padding:0; margin:0;}
+
+body {
+    background-color: #fafafa;
+    font-family: Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+}
+
+.centered-body {
+    max-width: 100ch;
+    padding: 0 0.5rem 0 0.5rem;
+    margin: 0.5rem auto;
+}
+
+a, a:visited {
+    text-decoration: none;
+}
+
+a:hover, a:focus {
+    text-decoration: underline;
+}
+
+.link {
+    background: none;
+    border: none;
+    padding: 0;
+    text-decoration: none;
+}
+
+.link:hover, link:focus {
+    text-decoration: underline;
+}
+
+.linktext {
+    color: LinkText;
+}
+
+.button {
+    background-color: #e2e2e2;
+}
+
+.button:hover, .button:focus {
+    background-color: #eaeaea;
+}
+
+.button:active {
+    background-color: #fafafa;
+}
+
+.transparent-button {
+    background-color: inherit;
+}
+
+.transparent-button:hover, .transparent-button:focus {
+    background-color: #eaeaea;
+}
+
+.transparent-button:active {
+    background-color: #fafafa;
+}
+
+.button-danger {
+    color: white;
+    background-color: #dc3545;
+}
+
+.button-danger:hover, .button-danger:focus {
+    background-color: #c82333;
+}
+
+.button-danger:active {
+    background-color: #e04b59;
+}
+
+.bg-dark-cyan {
+    background-color: #007d9c;
+}
+
+.invalid-red {
+    color: #dc3545;
+}
+
+.b--invalid-red {
+    border-color: #dc3545;
+}
+
+.alert {
+    color: #004085;
+    background-color: #cce5ff;
+    border-color: #b8daff;
+}
+
+.alert-success {
+    color: #155724;
+    background-color: #d4edda;
+    border-color: #c3e6cb;
+}
+
+.color-success {
+    color: #155724;
+}
+
+.alert-danger {
+    color: #721c24;
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
+}
+
+.alert-warning {
+    color: #856404;
+    background-color: #fff3cd;
+    border-color: #ffeeba;
+}
+
+.resize-vertical {
+    resize: vertical;
+}
+
+.min-h5 {
+    min-height: 16rem;
+}
+
+.dashed-border {
+    border: 1px dashed #0c0c0c;
+}
+
+.bg-lighter-gray {
+    background: #ededed;
+}
+
+.bg-mostly-white {
+    background: #fafafa;
+}
+
+.arrow-before:before {
+    content: '> ';
+    font-weight: bold;
+}
+
+details > summary.hide-marker::marker, /* Latest Chrome, Edge, Firefox */
+details > summary.hide-marker::-webkit-details-marker /* Safari */ {
+    display: none;
+}
+
+.list-style-disc {
+    list-style: disc;
+}
