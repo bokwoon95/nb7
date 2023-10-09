@@ -523,7 +523,6 @@ func serveFile(w http.ResponseWriter, r *http.Request, fsys fs.FS, name string, 
 	if !isGzippable {
 		fileSeeker, ok := file.(io.ReadSeeker)
 		if ok {
-			w.Header().Set("Cache-Control", "no-cache")
 			http.ServeContent(w, r, name, fileInfo.ModTime(), fileSeeker)
 			return
 		}
@@ -536,7 +535,6 @@ func serveFile(w http.ResponseWriter, r *http.Request, fsys fs.FS, name string, 
 			internalServerError(w, r, err)
 			return
 		}
-		w.Header().Set("Cache-Control", "no-cache")
 		http.ServeContent(w, r, name, fileInfo.ModTime(), bytes.NewReader(buf.Bytes()))
 		return
 	}
@@ -594,7 +592,6 @@ func serveFile(w http.ResponseWriter, r *http.Request, fsys fs.FS, name string, 
 	if ext == ".webmanifest" {
 		w.Header().Set("Content-Type", "application/manifest+json")
 	}
-	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Content-Encoding", "gzip")
 	w.Header().Set("ETag", string(*dst))
 	http.ServeContent(w, r, name, fileInfo.ModTime(), bytes.NewReader(buf.Bytes()))
