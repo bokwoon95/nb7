@@ -13,8 +13,7 @@ document.body.parentElement.addEventListener('click', (ev) => {
         (details) => details.open && details !== detailsClickedWithin && !details.hasAttribute("data-dont-autoclose-details")
     ).forEach(details => details.open = false);
 });
-const elements = document.querySelectorAll("[data-dismiss-alert]");
-for (const element of elements) {
+for (const element of document.querySelectorAll("[data-dismiss-alert]")) {
     element.addEventListener("click", function() {
         let parentElement = element.parentElement;
         while (parentElement != null) {
@@ -41,9 +40,8 @@ if (element && element.tagName == "A") {
         }
     });
 }
-const elements = document.querySelectorAll("[data-disable-click-selection]");
-for (let i = 0; i < elements.length; i++) {
-    elements[i].addEventListener('mousedown', function(event) {
+for (const element of document.querySelectorAll("[data-disable-click-selection]")) {
+    element.addEventListener("mousedown", function(event) {
         // https://stackoverflow.com/a/43321596
         if (event.detail > 1) {
             event.preventDefault();

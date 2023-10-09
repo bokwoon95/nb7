@@ -10,10 +10,10 @@
 <title>{{ if $.Path }}{{ base $.Path }}{{ else }}admin{{ end }}</title>
 <body class="centered-body">
 <nav class="mv2 bg-dark-cyan white flex flex-wrap items-center">
+    <a href="/admin/" class="ma2">notebrew🖋️☕</a>
     {{- if $.ContentSiteURL }}
-    <a href="{{ $.ContentSiteURL }}" class="ma2">{{ neatenURL $.ContentSiteURL }}🖋️☕</a>
-    {{- else }}
-    <a href="https://notebrew.com/" class="ma2">notebrew🖋️☕</a>
+    &boxv;
+    <a href="{{ $.ContentSiteURL }}" class="ma2">{{ neatenURL $.ContentSiteURL }}</a>
     {{- end }}
     <span class="flex-grow-1"></span>
     <a href="" class="ma2">{{ if username }}@{{ username }}{{ else }}user{{ end }}</a>
