@@ -347,8 +347,8 @@ func New(fsys FS) (*Notebrew, error) {
 }
 
 var (
-	readTimeout  time.Duration = 5 * time.Second
-	writeTimeout time.Duration = 5 * time.Second
+	readTimeout  time.Duration = 30 * time.Second
+	writeTimeout time.Duration = 30 * time.Second
 	idleTimeout  time.Duration = 120 * time.Second
 )
 
