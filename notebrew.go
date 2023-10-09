@@ -593,7 +593,7 @@ func serveFile(w http.ResponseWriter, r *http.Request, fsys fs.FS, name string, 
 		w.Header().Set("Content-Type", "application/manifest+json")
 	}
 	w.Header().Set("Content-Encoding", "gzip")
-	w.Header().Set("ETag", string(*dst))
+	w.Header().Set("ETag", `"`+string(*dst)+`"`)
 	http.ServeContent(w, r, name, fileInfo.ModTime(), bytes.NewReader(buf.Bytes()))
 }
 
