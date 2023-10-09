@@ -10,9 +10,8 @@
 <title>{{ if $.Path }}{{ base $.Path }}{{ else }}admin{{ end }}</title>
 <body class="centered-body">
 <nav class="mv2 bg-dark-cyan white flex flex-wrap items-center">
-    <a href="/admin/" class="ma2">notebrew🖋️☕</a>
+    <a href="/admin/" class="ma2">🖋️☕</a>
     {{- if $.ContentSiteURL }}
-    &boxv;
     <a href="{{ $.ContentSiteURL }}" class="ma2">{{ neatenURL $.ContentSiteURL }}</a>
     {{- end }}
     <span class="flex-grow-1"></span>
@@ -222,7 +221,7 @@
                 <summary role="button" title="More actions" class="flex items-center button ba br2 b--black h2 hide-marker ph1 pointer">
                     {{ template "octicon-triangle-down" }}
                 </summary>
-                <div class="absolute bg-white br2" style="top: calc(2rem + 2px); right: 0px; z-index: 1000; border: 1px solid black;">
+                <div class="absolute bg-white br2" style="top: calc(2rem + 4px); right: 0px; z-index: 1000; border: 1px solid black;">
                     <div class="tr ma2"><a href="/admin/deletesite/?name={{ trimPrefix $entry.Name `@` }}" class="link dark-red tr nowrap dib w-100 h-100">delete site</a></div>
                 </div>
             </details>
@@ -267,7 +266,7 @@
                 <summary role="button" title="More actions" class="flex items-center button ba br2 b--black h2 hide-marker ph1">
                     {{ template "octicon-triangle-down" }}
                 </summary>
-                <div class="absolute bg-white br2" style="top: calc(2rem + 2px); right: 0px; z-index: 1000; border: 1px solid black;">
+                <div class="absolute bg-white br2" style="top: calc(2rem + 4px); right: 0px; z-index: 1000; border: 1px solid black;">
                     {{ $head := head $.Path }}
                     {{ $ext := ext $entry.Name }}
                     {{- if or (and (eq $head "pages") (eq $ext ".html")) (and (eq $head "posts") (or (eq $ext ".md" ".txt"))) }}

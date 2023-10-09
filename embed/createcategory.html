@@ -10,10 +10,9 @@
 <title>Create category</title>
 <body class="centered-body">
 <nav class="mv2 bg-dark-cyan white flex justify-between items-center">
+    <a href="/admin/" class="ma2">🖋️☕</a>
     {{- if $.ContentSiteURL }}
-    <a href="{{ $.ContentSiteURL }}" class="ma2">{{ neatenURL $.ContentSiteURL }}🖋️☕</a>
-    {{- else }}
-    <a href="https://notebrew.com/" class="ma2">notebrew🖋️☕</a>
+    <a href="{{ $.ContentSiteURL }}" class="ma2">{{ neatenURL $.ContentSiteURL }}</a>
     {{- end }}
     <span class="flex-grow-1"></span>
     <a href="" class="ma2">{{ if username }}@{{ username }}{{ else }}user{{ end }}</a>

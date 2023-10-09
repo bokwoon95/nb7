@@ -690,11 +690,13 @@ func contentSiteURL(nbrew *Notebrew, sitePrefix string) string {
 		return "https://" + sitePrefix + "/"
 	}
 	if sitePrefix != "" {
-		if nbrew.MultisiteMode == "subdomain" {
+		switch nbrew.MultisiteMode {
+		case "subdomain":
 			return nbrew.Scheme + strings.TrimPrefix(sitePrefix, "@") + "." + nbrew.ContentDomain + "/"
-		}
-		if nbrew.MultisiteMode == "subdirectory" {
+		case "subdirectory":
 			return nbrew.Scheme + nbrew.ContentDomain + "/" + sitePrefix + "/"
+		default:
+			return ""
 		}
 	}
 	return nbrew.Scheme + nbrew.ContentDomain + "/"
