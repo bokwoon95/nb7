@@ -11,7 +11,6 @@ import { html } from "@codemirror/lang-html";
 import { css } from "@codemirror/lang-css";
 import { javascript } from "@codemirror/lang-javascript";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
-// import { languages } from '@codemirror/language-data'
 
 for (const [index, dataCodemirror] of document.querySelectorAll<HTMLElement>("[data-codemirror]").entries()) {
     // The textarea we are overriding.
@@ -49,7 +48,6 @@ for (const [index, dataCodemirror] of document.querySelectorAll<HTMLElement>("[d
             ...completionKeymap,
         ]),
         syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
-        EditorView.lineWrapping,
         // Custom theme.
         EditorView.theme({
             "&": {
@@ -94,10 +92,7 @@ for (const [index, dataCodemirror] of document.querySelectorAll<HTMLElement>("[d
     } else if (ext == "javascript") {
         extensions.push(javascript());
     } else if (ext == "markdown") {
-        extensions.push(markdown({
-            base: markdownLanguage,
-            // codeLanguages: languages,
-        }));
+        extensions.push(markdown({ base: markdownLanguage }));
     }
 
     // Create the codemirror editor.

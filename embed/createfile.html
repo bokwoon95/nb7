@@ -7,13 +7,7 @@
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="stylesheet" href="/admin/static/styles.css">
 <script type="module" src="/admin/static/baseline.js"></script>
-{{- if eq $.Ext "html" }}
-<script type="module" src="/admin/static/codemirror-html.js"></script>
-{{- else if eq $.Ext "css" }}
-<script type="module" src="/admin/static/codemirror-css.js"></script>
-{{- else if eq $.Ext "js" }}
-<script type="module" src="/admin/static/codemirror-javascript.js"></script>
-{{- end }}
+<script type="module" src="/admin/static/codemirror.js"></script>
 <title>Create file</title>
 <body class="centered-body">
 <nav class="mv2 bg-dark-cyan white flex justify-between items-center">
