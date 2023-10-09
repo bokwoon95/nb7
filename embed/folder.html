@@ -193,7 +193,7 @@
                 </span>
             </summary>
             <div class="ph1 mid-gray f6">
-                Pages are public and can be viewed at <a href="{{ $.ContentSiteURL }}" class="linktext">{{ neatenURL $.ContentSiteURL }}</a>. Pages may invoke other HTML templates defined in the <a href="output/themes/" class="linktext">themes</a> folder
+                Pages are public{{ if $.ContentSiteURL }} and can be viewed at <a href="{{ $.ContentSiteURL }}" class="linktext">{{ neatenURL $.ContentSiteURL }}</a>{{ end }}. Pages may invoke other HTML templates defined in the <a href="output/themes/" class="linktext">themes</a> folder
                 <br><br>
                 More info: <a href="" class="linktext">The Definitive Guide to Writing HTML Pages in Notebrew</a>.
             </div>
@@ -210,7 +210,7 @@
                 </span>
             </summary>
             <div class="ph1 mid-gray f6">
-                Posts are public and can be viewed at <a href="{{ $.ContentSiteURL }}posts/" class="linktext">{{ neatenURL $.ContentSiteURL }}/posts</a>.
+                Posts are public{{ if $.ContentSiteURL }} and can be viewed at <a href="{{ $.ContentSiteURL }}posts/" class="linktext">{{ neatenURL $.ContentSiteURL }}/posts</a>{{ end }}.
             </div>
         </details>
         {{- else if $entry.IsSite }}
