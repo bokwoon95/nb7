@@ -56,6 +56,7 @@ TODO: cut | copy | paste | rename (no need for link indexing and rewriting yet, 
 TODO: notes/posts/pages/themes search indexing
 TODO: notebrew.com/admin/journal/
 TODO: time to clone and get your hands dirty with https://github.com/blugelabs/bluge_examples/, I think.
+TODO: get bluge's filesystem implementation working with those three txt files, then use a shortcut: if we can fmt.Sprintf the FS into on an existing directory on disk, use the filesystem implementation directly. Otherwise, dip into the database-backed filesystem instead.
 
 TOFIX:
 - for each js script loaded, add a top level comment explaining what it does so it doesn't seem like you are loading in a bunch of scripts for nothing like a filthy js dev.
