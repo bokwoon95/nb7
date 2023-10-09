@@ -311,7 +311,7 @@ func (nbrew *Notebrew) delet(w http.ResponseWriter, r *http.Request, username, s
 			var templateError TemplateError
 			if errors.As(err, &templateError) {
 				response.Errors = templateError.ToList()
-				response.Status = ErrGenerateFailed
+				response.Status = ErrFileGenerationFailed
 				writeResponse(w, r, response)
 				return
 			}
