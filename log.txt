@@ -69,6 +69,7 @@ TOFIX:
 - We might make (TemplateError).ToList() return []Error instead, and maybe rename it to .Errors() []Error.
 - the navbar is broken on mobile on small screens.
 - also etag pictures and fonts, even if you dont gzip
+- the alert x button in folder.html is off center/unbalanced compared to the text on the other side.
 
 
 
