@@ -55,6 +55,12 @@ TODO: top left corner now links to the admin domain, followed by the relevant Co
 TODO: cut | copy | paste | rename (no need for link indexing and rewriting yet, that comes later)
 TODO: notes/posts/pages/themes search indexing
 TODO: notebrew.com/admin/journal/
+    - system/indexes/journal
+    - system/indexes/notes
+    - system/indexes/pages
+    - system/indexes/posts
+    - system/indexes/themes
+    AHA: If the database is present, we will use the database for locking. Otherwise, we will fall back to an in-memory RWMutex.
 TODO: time to clone and get your hands dirty with https://github.com/blugelabs/bluge_examples/, I think.
 TODO: get bluge's filesystem implementation working with those three txt files, then use a shortcut: if we can fmt.Sprintf the FS into on an existing directory on disk, use the filesystem implementation directly. Otherwise, dip into the database-backed filesystem instead. (actually, you can refer to online examples of how people use s3/minio as the backing storage).
 TODO: forbidden technique: if we inline styles.css and baseline.js we can get screaming fast speeds by making only one trip to the server. codemirror.js still has to be loaded separately because it's too big to be loaded over and over again whenever a page changes (styles.css and baseline.js literally only add a few bytes to the final payload)
