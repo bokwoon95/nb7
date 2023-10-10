@@ -159,6 +159,7 @@ func (nbrew *Notebrew) signup(w http.ResponseWriter, r *http.Request, ip string)
 				" style-src 'self' 'unsafe-inline' https://hcaptcha.com https://*.hcaptcha.com;"+
 				" base-uri 'self';"+
 				" form-action 'self';"+
+				" media-src 'self';"+
 				" manifest-src 'self';"+
 				" frame-src https://hcaptcha.com https://*.hcaptcha.com;")
 			executeTemplate(w, r, time.Time{}, tmpl, &response)

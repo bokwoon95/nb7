@@ -57,6 +57,7 @@ TODO: notes/posts/pages/themes search indexing
 TODO: notebrew.com/admin/journal/
 TODO: time to clone and get your hands dirty with https://github.com/blugelabs/bluge_examples/, I think.
 TODO: get bluge's filesystem implementation working with those three txt files, then use a shortcut: if we can fmt.Sprintf the FS into on an existing directory on disk, use the filesystem implementation directly. Otherwise, dip into the database-backed filesystem instead. (actually, you can refer to online examples of how people use s3/minio as the backing storage).
+TODO: extract the setting of Content-Security-Policy in executeTemplate (and all error handlers) into a separate function where cdn sources will be dynamically added to script-src, img-src, style-src, font-src and media-src if provided.
 
 TOFIX:
 - for each js script loaded, add a top level comment explaining what it does so it doesn't seem like you are loading in a bunch of scripts for nothing like a filthy js dev.
@@ -70,8 +71,7 @@ TOFIX:
 - the navbar is broken on mobile on small screens.
 - also etag pictures and fonts, even if you dont gzip
 - the alert x button in folder.html is off center/unbalanced compared to the text on the other side.
-
-
+- don't truncate the title for posts/notes in the folder page, just wrap (safe? good idea?)
 
 output folder trails pages and posts
 on page creation => generate output page

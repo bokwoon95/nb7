@@ -49,6 +49,7 @@ const defaultContentSecurityPolicy = "default-src 'none';" +
 	" style-src 'self' 'unsafe-inline';" +
 	" base-uri 'self';" +
 	" form-action 'self';" +
+	" media-src 'self';" +
 	" manifest-src 'self';"
 
 //go:embed embed static
