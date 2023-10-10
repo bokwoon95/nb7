@@ -57,6 +57,8 @@ TODO: notes/posts/pages/themes search indexing
 TODO: notebrew.com/admin/journal/
 TODO: time to clone and get your hands dirty with https://github.com/blugelabs/bluge_examples/, I think.
 TODO: get bluge's filesystem implementation working with those three txt files, then use a shortcut: if we can fmt.Sprintf the FS into on an existing directory on disk, use the filesystem implementation directly. Otherwise, dip into the database-backed filesystem instead. (actually, you can refer to online examples of how people use s3/minio as the backing storage).
+TODO: forbidden technique: if we inline styles.css and baseline.js we can get screaming fast speeds by making only one trip to the server. codemirror.js still has to be loaded separately because it's too big to be loaded over and over again whenever a page changes (styles.css and baseline.js literally only add a few bytes to the final payload)
+    - For maxxx speed, we can calculate the hash of styles.css and baseline.js once on startup in an init function and store the result in a global variable, then subsequent calls will all use those variables.
 TODO: extract the setting of Content-Security-Policy in executeTemplate (and all error handlers) into a separate function where cdn sources will be dynamically added to script-src, img-src, style-src, font-src and media-src if provided.
 
 TOFIX:

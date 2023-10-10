@@ -96,5 +96,3 @@ func main() {
 		log.Fatalf("error iterator document matches: %v", err)
 	}
 }
-
-// 1Euro/month, 1GB storage
