@@ -13,6 +13,7 @@ document.body.parentElement.addEventListener('click', (ev) => {
         (details) => details.open && details !== detailsClickedWithin && !details.hasAttribute("data-dont-autoclose-details")
     ).forEach(details => details.open = false);
 });
+
 for (const element of document.querySelectorAll("[data-dismiss-alert]")) {
     element.addEventListener("click", function() {
         let parentElement = element.parentElement;
@@ -31,6 +32,7 @@ for (const element of document.querySelectorAll("[data-dismiss-alert]")) {
         }
     });
 }
+
 const element = document.querySelector("[data-go-back]");
 if (element && element.tagName == "A") {
     element.addEventListener("click", function(event) {
@@ -40,6 +42,7 @@ if (element && element.tagName == "A") {
         }
     });
 }
+
 for (const element of document.querySelectorAll("[data-disable-click-selection]")) {
     element.addEventListener("mousedown", function(event) {
         // https://stackoverflow.com/a/43321596
