@@ -63,14 +63,13 @@ TODO: extract the setting of Content-Security-Policy in executeTemplate (and all
 
 TOFIX:
 - for each js script loaded, add a top level comment explaining what it does so it doesn't seem like you are loading in a bunch of scripts for nothing like a filthy js dev.
-- use a sort svg icon for "sort by", and instead of "5 cut items" show 5 and a scissors icon or a clipboard icon depending on whether the items were cut or copied.
 - Hm I really do want some site availibility metrics, bare minimum being how many requests in a time period and stuff.
     - I need a metric for traffic but I also need a metric for latency per request (so I can compare the before and after of upgrading the server to a more powerful CPU or something).
 - For the output folder, auto-collapse all folder/index.html entries into an "folder/index.html" entry.
 - we might be able to tweak the site generation code such that both abcd/index.html and abcd.html generate the same path, with precedence given to abcd.html.
 - Don't calculate the number of folders and files for anything in the output folder (other than themes)
 - We might make (TemplateError).ToList() return []Error instead, and maybe rename it to .Errors() []Error.
-- the navbar is broken on mobile on small screens.
+- the navbar for createcategory/createsite/etc is broken on mobile on small screens.
 - also etag pictures and fonts, even if you dont gzip
 - the alert x button in folder.html is off center/unbalanced compared to the text on the other side.
 - don't truncate the title for posts/notes in the folder page, just wrap (safe? good idea?)
