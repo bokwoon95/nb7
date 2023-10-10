@@ -6,7 +6,7 @@ document.body.parentElement.addEventListener('click', (ev) => {
     while (target && target.tagName !== 'DETAILS') {
         target = target.parentNode;
     }
-    if (target && target.tagName === 'DETAILS') {
+    if (target && target.tagName == 'DETAILS') {
         detailsClickedWithin = target;
     }
     Array.from(document.getElementsByTagName('details')).filter(

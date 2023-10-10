@@ -29,11 +29,11 @@ if (form) {
         console.log(result);
         if (result.status.length > 8
             && result.status.startsWith("NB-")
-            && result.status.charAt(8) === " "
-            && result.status.charAt(3) === "0"
-            && result.status.charAt(4) === "0") {
+            && result.status.charAt(8) == " "
+            && result.status.charAt(3) == "0"
+            && result.status.charAt(4) == "0") {
             if (formData.has("h-captcha-response")) {
-                if (formData.get("h-captcha-response") === "") {
+                if (formData.get("h-captcha-response") == "") {
                     const insertionNode = document.querySelector("[data-validation-status]");
                     if (insertionNode) {
                         insertionNode.innerHTML = "NOTE: Solve the captcha";
@@ -61,7 +61,7 @@ if (form) {
             }
             for (const value of values) {
                 let message = value;
-                if (value.length > 8 && value.startsWith("NB-") && value[8] === " ") {
+                if (value.length > 8 && value.startsWith("NB-") && value[8] == " ") {
                     message = value.slice(8, value.length).trim();
                 }
                 const li = document.createElement("li");

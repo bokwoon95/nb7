@@ -4,7 +4,7 @@ if (form) {
         event.preventDefault();
         const formData = new FormData(form);
         if (formData.has("h-captcha-response")) {
-            if (formData.get("h-captcha-response") === "") {
+            if (formData.get("h-captcha-response") == "") {
                 const insertionNode = document.querySelector("[data-validation-status]");
                 if (insertionNode) {
                     insertionNode.innerHTML = "NOTE: Solve the captcha";
