@@ -35,7 +35,7 @@ func (blugeFTS *BlugeFTS) Index(contentID, content string) error {
 	return nil
 }
 
-func (blugFTS *BlugeFTS) Match(term string) (contentIDs []string, err error) {
+func (blugeFTS *BlugeFTS) Match(term string) (contentIDs []string, err error) {
 	return contentIDs, nil
 }
 
