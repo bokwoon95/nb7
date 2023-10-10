@@ -67,6 +67,11 @@ TODO: forbidden technique: if we inline styles.css and baseline.js we can get sc
     - For maxxx speed, we can calculate the hash of styles.css and baseline.js once on startup in an init function and store the result in a global variable, then subsequent calls will all use those variables.
 TODO: extract the setting of Content-Security-Policy in executeTemplate (and all error handlers) into a separate function where cdn sources will be dynamically added to script-src, img-src, style-src, font-src and media-src if provided.
 
+BlugeFTS
+SQLiteFTS
+PostgresFTS
+MySQLFTS
+
 free user only gets text and 1 site.
 paid user gets text + images + fonts and multiple sites (up to 10 per day).
 
