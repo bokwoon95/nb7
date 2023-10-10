@@ -5,28 +5,25 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
+	"runtime"
 
 	"github.com/blugelabs/bluge"
 )
 
+var cwd string = func() string {
+	_, filename, _, _ := runtime.Caller(0)
+	return filepath.Dir(filename)
+}()
+
 func main() {
-	// create a temp directory to store the index
-	tmpDir, err := os.MkdirTemp("", "quickstart.bluge")
+	err := os.RemoveAll(filepath.Join(cwd, "index"))
 	if err != nil {
-		log.Fatalf("error creating temp directory: %v", err)
+		log.Fatal(err)
 	}
 
-	// by default this index will be removed after execution
-	defer func() {
-		_ = os.RemoveAll(tmpDir)
-	}()
-
-	// create a default configuration for working with an index
-	// that will be stored on disk in the temp directory we created
-	config := bluge.DefaultConfig(tmpDir)
-
 	// open an index writer using the configuration
-	writer, err := bluge.OpenWriter(config)
+	writer, err := bluge.OpenWriter(bluge.DefaultConfig(filepath.Join(cwd, "index")))
 	if err != nil {
 		log.Fatalf("error opening writer: %v", err)
 	}
