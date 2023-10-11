@@ -16,7 +16,7 @@ type FTS struct {
 	Dialect  string
 }
 
-func (fts *FTS) Index(ctx context.Context, sitePrefix, resource, name, content string) error {
+func (fts *FTS) Index(ctx context.Context, sitePrefix, resource, key, value string) error {
 	if fts.DB == nil || (fts.LocalDir != "" && (resource == "notes" || resource == "pages" || resource == "posts" || resource == "themes")) {
 		dir := filepath.Join(fts.LocalDir, sitePrefix, "system", "bluge", resource)
 		writer, err := bluge.OpenWriter(bluge.DefaultConfig(dir))
@@ -24,11 +24,8 @@ func (fts *FTS) Index(ctx context.Context, sitePrefix, resource, name, content s
 			return err
 		}
 		defer writer.Close()
-		nameField := bluge.NewKeywordField("name", name).StoreValue().Sortable()
-		contentField := bluge.NewTextField("content", content)
-		err = writer.Update(bluge.Identifier(nameField.Value()), &bluge.Document{
-			nameField,
-			contentField,
+		err = writer.Update(bluge.Identifier("key"), &bluge.Document{
+			bluge.NewTextField("value", value),
 		})
 		if err != nil {
 			return err
@@ -49,7 +46,7 @@ func (fts *FTS) Index(ctx context.Context, sitePrefix, resource, name, content s
 	return nil
 }
 
-func (fts *FTS) Match(ctx context.Context, sitePrefix, resource, term string) (names []string, err error) {
+func (fts *FTS) Match(ctx context.Context, sitePrefix, resource, term string) (keys []string, err error) {
 	if fts.DB == nil || (fts.LocalDir != "" && (resource == "notes" || resource == "pages" || resource == "posts" || resource == "themes")) {
 		dir := filepath.Join(fts.LocalDir, sitePrefix, "system", "bluge", resource)
 		reader, err := bluge.OpenReader(bluge.DefaultConfig(dir))
@@ -57,9 +54,8 @@ func (fts *FTS) Match(ctx context.Context, sitePrefix, resource, term string) (n
 			return nil, fmt.Errorf("open reader: %w", err)
 		}
 		defer reader.Close()
-		query := bluge.NewMatchQuery(term).SetField("content")
-		request := bluge.NewAllMatches(query)
-		documentMatchIterator, err := reader.Search(context.Background(), request)
+		query := bluge.NewMatchQuery(term).SetField("value")
+		documentMatchIterator, err := reader.Search(context.Background(), bluge.NewAllMatches(query))
 		if err != nil {
 			return nil, err
 		}
@@ -72,21 +68,21 @@ func (fts *FTS) Match(ctx context.Context, sitePrefix, resource, term string) (n
 				break
 			}
 			err = match.VisitStoredFields(func(field string, value []byte) bool {
-				if field != "name" {
-					return true
+				if field == "key" {
+					keys = append(keys, string(value))
+					return false
 				}
-				names = append(names, field)
-				return false
+				return true
 			})
 			if err != nil {
 				return nil, err
 			}
 		}
-		return names, nil
+		return keys, nil
 	}
-	return names, err
+	return keys, err
 }
 
-func (fts *FTS) Delete(ctx context.Context, sitePrefix, resource, names []string) error {
+func (fts *FTS) Delete(ctx context.Context, sitePrefix, resource, keys []string) error {
 	return nil
 }
