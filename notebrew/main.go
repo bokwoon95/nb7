@@ -238,6 +238,27 @@ func main() {
 		}
 		wait := make(chan os.Signal, 1)
 		signal.Notify(wait, syscall.SIGINT, syscall.SIGTERM)
+		listener, err := net.Listen("tcp", server.Addr)
+		if err != nil {
+			var errno syscall.Errno
+			if !errors.As(err, &errno) {
+				return err
+			}
+			// WSAEADDRINUSE copied from
+			// https://cs.opensource.google/go/x/sys/+/refs/tags/v0.6.0:windows/zerrors_windows.go;l=2680
+			// To avoid importing an entire 3rd party library just to use a constant.
+			const WSAEADDRINUSE = syscall.Errno(10048)
+			if errno == syscall.EADDRINUSE || runtime.GOOS == "windows" && errno == WSAEADDRINUSE {
+				if nbrew.Scheme == "https://" {
+					fmt.Println(server.Addr + " already in use")
+				} else {
+					fmt.Println("http://" + server.Addr)
+					open("http://" + server.Addr)
+				}
+			} else {
+				return err
+			}
+		}
 		if nbrew.Scheme == "https://" {
 			go http.ListenAndServe(":80", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if r.Method != "GET" && r.Method != "HEAD" {
@@ -253,24 +274,8 @@ func main() {
 				http.Redirect(w, r, "https://"+host+r.URL.RequestURI(), http.StatusFound)
 			}))
 			fmt.Println("Listening on " + server.Addr)
-			go server.ListenAndServeTLS("", "")
+			go server.ServeTLS(listener, "", "")
 		} else {
-			listener, err := net.Listen("tcp", server.Addr)
-			if err != nil {
-				var errno syscall.Errno
-				if !errors.As(err, &errno) {
-					return err
-				}
-				// WSAEADDRINUSE copied from
-				// https://cs.opensource.google/go/x/sys/+/refs/tags/v0.6.0:windows/zerrors_windows.go;l=2680
-				// To avoid importing an entire 3rd party library just to use a constant.
-				const WSAEADDRINUSE = syscall.Errno(10048)
-				if errno == syscall.EADDRINUSE || runtime.GOOS == "windows" && errno == WSAEADDRINUSE {
-					fmt.Println("http://" + server.Addr)
-					open("http://" + server.Addr)
-				}
-				return nil
-			}
 			open("http://" + server.Addr)
 			// NOTE: We may need to give a more intricate ASCII header in order for the
 			// GUI double clickers to realize that the terminal window is important, so
