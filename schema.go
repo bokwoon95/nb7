@@ -62,7 +62,7 @@ type JOURNAL_ENTRY struct {
 	sq.TableStruct
 	JOURNAL_ENTRY_ID sq.UUIDField   `ddl:"primarykey"`
 	USER_ID          sq.UUIDField   `ddl:"notnull references={users onupdate=cascade index}"`
-	CONTENT          sq.StringField `ddl:"len=5000"`
+	VALUE            sq.StringField `ddl:"len=5000"`
 	UPDATED_AT       sq.TimeField
 }
 

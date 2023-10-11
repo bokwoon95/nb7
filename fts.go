@@ -25,6 +25,7 @@ func (fts *FTS) Index(ctx context.Context, sitePrefix, resource, key, value stri
 		}
 		defer writer.Close()
 		err = writer.Update(bluge.Identifier("key"), &bluge.Document{
+			bluge.NewKeywordField("key", key).StoreValue().Sortable(), // TODO: note sure if this is needed, remove it and try if it still works.
 			bluge.NewTextField("value", value),
 		})
 		if err != nil {
@@ -36,14 +37,76 @@ func (fts *FTS) Index(ctx context.Context, sitePrefix, resource, key, value stri
 		}
 		return nil
 	}
+	if resource == "journal" {
+		journalEntryID, err := base32Encoding.DecodeString(key)
+		if err != nil {
+		}
+		_ = journalEntryID // TODO: is this how you derive the UUID from the journal entry key? Does base32 map cleanly to 5 + 11 bytes?
+	}
 	switch fts.Dialect {
 	case "sqlite":
-		sq.ExecContext(ctx, fts.DB, sq.CustomQuery{
+		if resource == "journal" {
+			_, err := sq.ExecContext(ctx, fts.DB, sq.CustomQuery{
+				Dialect: fts.Dialect,
+				Format: "INSERT INTO journal_entry_index (rowid, value)" +
+					" VALUES ((SELECT rowid FROM journal_entry WHERE journal_entry_id = {journalEntryID}), {value})" +
+					" ON CONFLICT DO UPDATE SET value = EXCLUDED.value WHERE rowid = EXCLUDED.rowid",
+				Values: []any{
+					sq.UUIDParam("journalEntryID", nil),
+					sq.StringParam("value", value),
+				},
+			})
+			if err != nil {
+				return err
+			}
+			return nil
+		}
+		tx, err := fts.DB.Begin()
+		if err != nil {
+			return err
+		}
+		defer tx.Rollback()
+		_, err = sq.ExecContext(ctx, tx, sq.CustomQuery{
 			Dialect: fts.Dialect,
-			Format:  "INSERT INTO ",
+			Format: "INSERT INTO files (site_prefix, resource, key)" +
+				" VALUES ({sitePrefix}, {resource}, {key})" +
+				" ON CONFLICT DO NOTHING",
+			Values: []any{
+				sq.StringParam("sitePrefix", sitePrefix),
+				sq.StringParam("resource", resource),
+				sq.StringParam("key", key),
+			},
 		})
+		if err != nil {
+			return err
+		}
+		_, err = sq.ExecContext(ctx, tx, sq.CustomQuery{
+			Dialect: fts.Dialect,
+			Format: "INSERT INTO files_index (rowid, value)" +
+				" VALUES ((SELECT rowid FROM files WHERE site_prefix = {sitePrefix} AND resource = {resource} AND key = {key}), {value})" +
+				" ON CONFLICT DO NOTHING",
+			Values: []any{
+				sq.StringParam("sitePrefix", sitePrefix),
+				sq.StringParam("resource", resource),
+				sq.StringParam("key", key),
+				sq.StringParam("value", value),
+			},
+		})
+		if err != nil {
+			return err
+		}
+		err = tx.Commit()
+		if err != nil {
+			return err
+		}
+		return nil
+	case "postgres":
+		return nil // TODO:
+	case "mysql":
+		return nil // TODO:
+	default:
+		return fmt.Errorf("unknown database dialect %q", fts.Dialect)
 	}
-	return nil
 }
 
 func (fts *FTS) Match(ctx context.Context, sitePrefix, resource, term string) (keys []string, err error) {
@@ -80,7 +143,23 @@ func (fts *FTS) Match(ctx context.Context, sitePrefix, resource, term string) (k
 		}
 		return keys, nil
 	}
-	return keys, err
+	switch fts.Dialect {
+	case "sqlite":
+		if resource == "journal" {
+			return keys, nil
+		}
+		sq.ExecContext(ctx, fts.DB, sq.CustomQuery{
+			Dialect: fts.Dialect,
+			Format:  "SELECT key FROM ",
+		})
+		return keys, nil
+	case "postgres":
+		return keys, nil // TODO:
+	case "mysql":
+		return keys, nil // TODO:
+	default:
+		return nil, fmt.Errorf("unknown database dialect %q", fts.Dialect)
+	}
 }
 
 func (fts *FTS) Delete(ctx context.Context, sitePrefix, resource, keys []string) error {
