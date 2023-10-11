@@ -35,24 +35,6 @@ type BlugeFTS struct {
 	LocalDir string
 }
 
-func parseName(name string) (sitePrefix, resource string) {
-	segments := strings.Split(name, "/")
-	if strings.HasPrefix(segments[0], "@") || strings.Contains(segments[0], ".") {
-		sitePrefix = segments[0]
-		if len(segments) > 1 {
-			resource = segments[1]
-		}
-	} else {
-		resource = segments[0]
-	}
-	switch resource {
-	case "journal", "notes", "pages", "posts", "themes":
-		return sitePrefix, resource
-	default:
-		return "", ""
-	}
-}
-
 func (blugeFTS *BlugeFTS) Index(name, content string) error {
 	var sitePrefix, resource string
 	segments := strings.Split(name, "/")
