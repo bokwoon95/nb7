@@ -18,6 +18,9 @@ type FTS struct {
 
 func (fts *FTS) Index(ctx context.Context, sitePrefix, resource, key, value string) error {
 	if fts.DB == nil || (fts.LocalDir != "" && (resource == "notes" || resource == "pages" || resource == "posts" || resource == "themes")) {
+		// TODO: consider persisting to the DB if it is present (and isn't
+		// SQLite) because that users are less likely to fuck up their data by
+		// copying bluge index files in an incomplete state.
 		dir := filepath.Join(fts.LocalDir, sitePrefix, "system", "bluge", resource)
 		writer, err := bluge.OpenWriter(bluge.DefaultConfig(dir))
 		if err != nil {
