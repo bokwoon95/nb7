@@ -238,6 +238,9 @@ func main() {
 		}
 		wait := make(chan os.Signal, 1)
 		signal.Notify(wait, syscall.SIGINT, syscall.SIGTERM)
+		// Don't use ListenAndServe, try to acquire a listener on the port
+		// first. That way we can report back to the user if the port is
+		// already in user.
 		listener, err := net.Listen("tcp", server.Addr)
 		if err != nil {
 			var errno syscall.Errno
