@@ -1,12 +1,13 @@
 package nb7
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"path/filepath"
-	"strings"
 
 	"github.com/blugelabs/bluge"
+	"github.com/bokwoon95/sq"
 )
 
 type FTS struct {
@@ -15,87 +16,77 @@ type FTS struct {
 	Dialect  string
 }
 
-func (fts *FTS) Index(sitePrefix, resource, name, content string) error {
+func (fts *FTS) Index(ctx context.Context, sitePrefix, resource, name, content string) error {
+	if fts.DB == nil || (fts.LocalDir != "" && (resource == "notes" || resource == "pages" || resource == "posts" || resource == "themes")) {
+		dir := filepath.Join(fts.LocalDir, sitePrefix, "system", "bluge", resource)
+		writer, err := bluge.OpenWriter(bluge.DefaultConfig(dir))
+		if err != nil {
+			return err
+		}
+		defer writer.Close()
+		nameField := bluge.NewKeywordField("name", name).StoreValue().Sortable()
+		contentField := bluge.NewTextField("content", content)
+		err = writer.Update(bluge.Identifier(nameField.Value()), &bluge.Document{
+			nameField,
+			contentField,
+		})
+		if err != nil {
+			return err
+		}
+		err = writer.Close()
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+	switch fts.Dialect {
+	case "sqlite":
+		sq.ExecContext(ctx, fts.DB, sq.CustomQuery{
+			Dialect: fts.Dialect,
+			Format:  "INSERT INTO ",
+		})
+	}
 	return nil
 }
 
-func (fts *FTS) Match(sitePrefix, resource, term string) (names []string, err error) {
+func (fts *FTS) Match(ctx context.Context, sitePrefix, resource, term string) (names []string, err error) {
+	if fts.DB == nil || (fts.LocalDir != "" && (resource == "notes" || resource == "pages" || resource == "posts" || resource == "themes")) {
+		dir := filepath.Join(fts.LocalDir, sitePrefix, "system", "bluge", resource)
+		reader, err := bluge.OpenReader(bluge.DefaultConfig(dir))
+		if err != nil {
+			return nil, fmt.Errorf("open reader: %w", err)
+		}
+		defer reader.Close()
+		query := bluge.NewMatchQuery(term).SetField("content")
+		request := bluge.NewAllMatches(query)
+		documentMatchIterator, err := reader.Search(context.Background(), request)
+		if err != nil {
+			return nil, err
+		}
+		for {
+			match, err := documentMatchIterator.Next()
+			if err != nil {
+				return nil, err
+			}
+			if match == nil {
+				break
+			}
+			err = match.VisitStoredFields(func(field string, value []byte) bool {
+				if field != "name" {
+					return true
+				}
+				names = append(names, field)
+				return false
+			})
+			if err != nil {
+				return nil, err
+			}
+		}
+		return names, nil
+	}
 	return names, err
 }
 
-func (fts *FTS) Delete(sitePrefix, resource, contentID string) error {
+func (fts *FTS) Delete(ctx context.Context, sitePrefix, resource, names []string) error {
 	return nil
-}
-
-func (fts *FTS) DeleteAll(sitePrefix, resource string) error {
-	return nil
-}
-
-type BlugeFTS struct {
-	LocalDir string
-}
-
-func (blugeFTS *BlugeFTS) Index(name, content string) error {
-	var sitePrefix, resource string
-	segments := strings.Split(name, "/")
-	if strings.HasPrefix(segments[0], "@") || strings.Contains(segments[0], ".") {
-		sitePrefix = segments[0]
-		if len(segments) > 1 {
-			resource = segments[1]
-		}
-	} else {
-		resource = segments[0]
-	}
-	switch resource {
-	case "journal", "notes", "pages", "posts", "themes":
-		break
-	default:
-		return fmt.Errorf("invalid name %q", name)
-	}
-	config := bluge.DefaultConfig(filepath.Join(blugeFTS.LocalDir, sitePrefix, "system", "bluge", resource))
-	writer, err := bluge.OpenWriter(config)
-	if err != nil {
-		return fmt.Errorf("open writer: %w", err)
-	}
-	defer writer.Close()
-	nameField := bluge.NewKeywordField("name", name)
-	nameField.StoreValue() // no idea what this does, copied from bluge.NewDocument
-	nameField.Sortable()   // no idea what this does, copied from bluge.NewDocument
-	contentField := bluge.NewTextField("content", content)
-	err = writer.Update(bluge.Identifier(nameField.Value()), &bluge.Document{
-		nameField,
-		contentField,
-	})
-	if err != nil {
-		return fmt.Errorf("update writer: %w", err)
-	}
-	err = writer.Close()
-	if err != nil {
-		return fmt.Errorf("close writer: %w", err)
-	}
-	return nil
-}
-
-func (blugeFTS *BlugeFTS) Match(term string) (contentIDs []string, err error) {
-	return contentIDs, nil
-}
-
-type SQLiteFTS struct {
-	DB *sql.DB
-}
-
-func (sqliteFTS *SQLiteFTS) Index(contentID, content string) error {
-	return nil
-}
-
-func (sqliteFTS *SQLiteFTS) Match(term string) (contentIDs []string, err error) {
-	return contentIDs, nil
-}
-
-type PostgresFTS struct {
-	DB *sql.DB
-}
-
-type MySQLFTS struct {
-	DB *sql.DB
 }
