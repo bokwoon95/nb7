@@ -7,9 +7,9 @@ CREATE TABLE files (
     ,CONSTRAINT files_site_prefix_resource_key_pkey PRIMARY KEY (site_prefix, resource, key)
 );
 
-CREATE VIRTUAL TABLE files_index USING fts5 (value, content = '', contentless_delete = 1);
+CREATE VIRTUAL TABLE files_index USING fts5 (value, content = ''/*, contentless_delete = 1 */);
 
-CREATE VIRTUAL TABLE journal_entry_index USING fts5 (value, content = 'journal_entry', contentless_delete = 1);
+CREATE VIRTUAL TABLE journal_entry_index USING fts5 (value, content = 'journal_entry'/* , contentless_delete = 1 */);
 
 -- Postgres
 CREATE TABLE files_index (
