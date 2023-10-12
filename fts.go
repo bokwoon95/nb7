@@ -48,6 +48,11 @@ func (fts *FTS) Index(ctx context.Context, sitePrefix, resource, key, value stri
 	}
 	switch fts.Dialect {
 	case "sqlite":
+		tx, err := fts.DB.Begin()
+		if err != nil {
+			return err
+		}
+		defer tx.Rollback()
 		if resource == "journal" {
 			_, err := sq.ExecContext(ctx, fts.DB, sq.CustomQuery{
 				Dialect: fts.Dialect,
@@ -62,41 +67,36 @@ func (fts *FTS) Index(ctx context.Context, sitePrefix, resource, key, value stri
 			if err != nil {
 				return err
 			}
-			return nil
-		}
-		tx, err := fts.DB.Begin()
-		if err != nil {
-			return err
-		}
-		defer tx.Rollback()
-		_, err = sq.ExecContext(ctx, tx, sq.CustomQuery{
-			Dialect: fts.Dialect,
-			Format: "INSERT INTO files (site_prefix, resource, key)" +
-				" VALUES ({sitePrefix}, {resource}, {key})" +
-				" ON CONFLICT DO NOTHING",
-			Values: []any{
-				sq.StringParam("sitePrefix", sitePrefix),
-				sq.StringParam("resource", resource),
-				sq.StringParam("key", key),
-			},
-		})
-		if err != nil {
-			return err
-		}
-		_, err = sq.ExecContext(ctx, tx, sq.CustomQuery{
-			Dialect: fts.Dialect,
-			Format: "INSERT INTO files_index (rowid, value)" +
-				" VALUES ((SELECT rowid FROM files WHERE site_prefix = {sitePrefix} AND resource = {resource} AND key = {key}), {value})" +
-				" ON CONFLICT DO NOTHING",
-			Values: []any{
-				sq.StringParam("sitePrefix", sitePrefix),
-				sq.StringParam("resource", resource),
-				sq.StringParam("key", key),
-				sq.StringParam("value", value),
-			},
-		})
-		if err != nil {
-			return err
+		} else {
+			_, err = sq.ExecContext(ctx, tx, sq.CustomQuery{
+				Dialect: fts.Dialect,
+				Format: "INSERT INTO files (site_prefix, resource, key)" +
+					" VALUES ({sitePrefix}, {resource}, {key})" +
+					" ON CONFLICT DO NOTHING",
+				Values: []any{
+					sq.StringParam("sitePrefix", sitePrefix),
+					sq.StringParam("resource", resource),
+					sq.StringParam("key", key),
+				},
+			})
+			if err != nil {
+				return err
+			}
+			_, err = sq.ExecContext(ctx, tx, sq.CustomQuery{
+				Dialect: fts.Dialect,
+				Format: "INSERT INTO files_index (rowid, value)" +
+					" VALUES ((SELECT rowid FROM files WHERE site_prefix = {sitePrefix} AND resource = {resource} AND key = {key}), {value})" +
+					" ON CONFLICT DO NOTHING",
+				Values: []any{
+					sq.StringParam("sitePrefix", sitePrefix),
+					sq.StringParam("resource", resource),
+					sq.StringParam("key", key),
+					sq.StringParam("value", value),
+				},
+			})
+			if err != nil {
+				return err
+			}
 		}
 		err = tx.Commit()
 		if err != nil {
