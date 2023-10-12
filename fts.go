@@ -34,13 +34,8 @@ func (fts *FTS) Index(ctx context.Context, sitePrefix, resource, key, value stri
 		return err
 	}
 	defer writer.Close()
-	// TODO: just revert back to doc.ID() instead, I feel like I'm
-	// fundamentally misunderstanding something here (bluge identifiers aren't
-	// just keys, they're name-value pairs and the name is always _id).
-	err = writer.Update(bluge.Identifier("key"), &bluge.Document{
-		bluge.NewKeywordField("key", key).StoreValue().Sortable(), // TODO: note sure if this is needed, remove it and try if it still works.
-		bluge.NewTextField("value", value),
-	})
+	document := bluge.NewDocument(key).AddField(bluge.NewTextField("value", value))
+	err = writer.Update(document.ID(), document)
 	if err != nil {
 		return err
 	}
