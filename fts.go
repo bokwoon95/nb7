@@ -2,169 +2,92 @@ package nb7
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"path/filepath"
 
 	"github.com/blugelabs/bluge"
-	"github.com/bokwoon95/sq"
 )
 
 type FTS struct {
+	// TODO: Once mattn/sqlite3 and modernc.org/sqlite update their SQLite
+	// version up to 3.43.1 (2023-09-11), we can implement full text search
+	// built on SQLite's native FTS5 extension. We really want to use FTS
+	// contentless-delete tables and not just FTS contentless tables in order
+	// to avoid the pitfalls of the 'delete' command as documented in
+	// https://www.sqlite.org/fts5.html#the_delete_command (namely we need to
+	// provide the exact same content to the delete command or the database
+	// will become corrupted with 'database disk image is malformed'). We do
+	// NOT want to keep track of the old values just to delete it from the
+	// index, ideally we just need to provide the rowid in order to delete an
+	// entry (that's what contentless-delete tables offer).
 	LocalDir string
-	DB       *sql.DB
-	Dialect  string
+}
+
+func (fts *FTS) Setup() error {
+	return nil
 }
 
 func (fts *FTS) Index(ctx context.Context, sitePrefix, resource, key, value string) error {
-	if fts.DB == nil || (fts.LocalDir != "" && (resource == "notes" || resource == "pages" || resource == "posts" || resource == "themes")) {
-		// TODO: consider persisting to the DB if it is present (and isn't
-		// SQLite) because that users are less likely to fuck up their data by
-		// copying bluge index files in an incomplete state.
-		dir := filepath.Join(fts.LocalDir, sitePrefix, "system", "bluge", resource)
-		writer, err := bluge.OpenWriter(bluge.DefaultConfig(dir))
-		if err != nil {
-			return err
-		}
-		defer writer.Close()
-		err = writer.Update(bluge.Identifier("key"), &bluge.Document{
-			bluge.NewKeywordField("key", key).StoreValue().Sortable(), // TODO: note sure if this is needed, remove it and try if it still works.
-			bluge.NewTextField("value", value),
-		})
-		if err != nil {
-			return err
-		}
-		err = writer.Close()
-		if err != nil {
-			return err
-		}
-		return nil
+	dir := filepath.Join(fts.LocalDir, sitePrefix, "system", "bluge", resource)
+	writer, err := bluge.OpenWriter(bluge.DefaultConfig(dir))
+	if err != nil {
+		return err
 	}
-	if resource == "journal" {
-		journalEntryID, err := base32Encoding.DecodeString(key)
-		if err != nil {
-		}
-		_ = journalEntryID // TODO: is this how you derive the UUID from the journal entry key? Does base32 map cleanly to 5 + 11 bytes?
+	defer writer.Close()
+	err = writer.Update(bluge.Identifier("key"), &bluge.Document{
+		bluge.NewKeywordField("key", key).StoreValue().Sortable(), // TODO: note sure if this is needed, remove it and try if it still works.
+		bluge.NewTextField("value", value),
+	})
+	if err != nil {
+		return err
 	}
-	switch fts.Dialect {
-	case "sqlite":
-		tx, err := fts.DB.Begin()
-		if err != nil {
-			return err
-		}
-		defer tx.Rollback()
-		if resource == "journal" {
-			_, err := sq.ExecContext(ctx, fts.DB, sq.CustomQuery{
-				Dialect: fts.Dialect,
-				Format: "INSERT INTO journal_entry_index (rowid, value)" +
-					" VALUES ((SELECT rowid FROM journal_entry WHERE journal_entry_id = {journalEntryID}), {value})" +
-					" ON CONFLICT DO UPDATE SET value = EXCLUDED.value WHERE rowid = EXCLUDED.rowid",
-				Values: []any{
-					sq.UUIDParam("journalEntryID", nil),
-					sq.StringParam("value", value),
-				},
-			})
-			if err != nil {
-				return err
-			}
-		} else {
-			_, err = sq.ExecContext(ctx, tx, sq.CustomQuery{
-				Dialect: fts.Dialect,
-				Format: "INSERT INTO files (site_prefix, resource, key)" +
-					" VALUES ({sitePrefix}, {resource}, {key})" +
-					" ON CONFLICT DO NOTHING",
-				Values: []any{
-					sq.StringParam("sitePrefix", sitePrefix),
-					sq.StringParam("resource", resource),
-					sq.StringParam("key", key),
-				},
-			})
-			if err != nil {
-				return err
-			}
-			_, err = sq.ExecContext(ctx, tx, sq.CustomQuery{
-				Dialect: fts.Dialect,
-				Format: "INSERT INTO files_index (rowid, value)" +
-					" VALUES ((SELECT rowid FROM files WHERE site_prefix = {sitePrefix} AND resource = {resource} AND key = {key}), {value})" +
-					" ON CONFLICT DO NOTHING",
-				Values: []any{
-					sq.StringParam("sitePrefix", sitePrefix),
-					sq.StringParam("resource", resource),
-					sq.StringParam("key", key),
-					sq.StringParam("value", value),
-				},
-			})
-			if err != nil {
-				return err
-			}
-		}
-		err = tx.Commit()
-		if err != nil {
-			return err
-		}
-		return nil
-	case "postgres":
-		return nil // TODO:
-	case "mysql":
-		return nil // TODO:
-	default:
-		return fmt.Errorf("unknown database dialect %q", fts.Dialect)
+	err = writer.Close()
+	if err != nil {
+		return err
 	}
+	return nil
 }
 
 func (fts *FTS) Match(ctx context.Context, sitePrefix, resource, term string) (keys []string, err error) {
-	if fts.DB == nil || (fts.LocalDir != "" && (resource == "notes" || resource == "pages" || resource == "posts" || resource == "themes")) {
-		dir := filepath.Join(fts.LocalDir, sitePrefix, "system", "bluge", resource)
-		reader, err := bluge.OpenReader(bluge.DefaultConfig(dir))
-		if err != nil {
-			return nil, fmt.Errorf("open reader: %w", err)
-		}
-		defer reader.Close()
-		query := bluge.NewMatchQuery(term).SetField("value")
-		documentMatchIterator, err := reader.Search(context.Background(), bluge.NewAllMatches(query))
+	dir := filepath.Join(fts.LocalDir, sitePrefix, "system", "bluge", resource)
+	reader, err := bluge.OpenReader(bluge.DefaultConfig(dir))
+	if err != nil {
+		return nil, fmt.Errorf("open reader: %w", err)
+	}
+	defer reader.Close()
+	query := bluge.NewMatchQuery(term).SetField("value")
+	documentMatchIterator, err := reader.Search(context.Background(), bluge.NewAllMatches(query))
+	if err != nil {
+		return nil, err
+	}
+	for {
+		match, err := documentMatchIterator.Next()
 		if err != nil {
 			return nil, err
 		}
-		for {
-			match, err := documentMatchIterator.Next()
-			if err != nil {
-				return nil, err
-			}
-			if match == nil {
-				break
-			}
-			err = match.VisitStoredFields(func(field string, value []byte) bool {
-				if field == "key" {
-					keys = append(keys, string(value))
-					return false
-				}
-				return true
-			})
-			if err != nil {
-				return nil, err
-			}
+		if match == nil {
+			break
 		}
-		return keys, nil
-	}
-	switch fts.Dialect {
-	case "sqlite":
-		if resource == "journal" {
-			return keys, nil
-		}
-		sq.ExecContext(ctx, fts.DB, sq.CustomQuery{
-			Dialect: fts.Dialect,
-			Format:  "SELECT key FROM ",
+		err = match.VisitStoredFields(func(field string, value []byte) bool {
+			if field == "key" {
+				keys = append(keys, string(value))
+				return false
+			}
+			return true
 		})
-		return keys, nil
-	case "postgres":
-		return keys, nil // TODO:
-	case "mysql":
-		return keys, nil // TODO:
-	default:
-		return nil, fmt.Errorf("unknown database dialect %q", fts.Dialect)
+		if err != nil {
+			return nil, err
+		}
 	}
+	return keys, nil
 }
 
-func (fts *FTS) Delete(ctx context.Context, sitePrefix, resource, keys []string) error {
+func (fts *FTS) Delete(ctx context.Context, sitePrefix, resource string, keys []string) error {
+	dir := filepath.Join(fts.LocalDir, sitePrefix, "system", "bluge", resource)
+	writer, err := bluge.OpenWriter(bluge.DefaultConfig(dir))
+	if err != nil {
+		return err
+	}
+	writer.Delete()
 	return nil
 }
