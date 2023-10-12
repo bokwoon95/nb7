@@ -88,6 +88,7 @@ func (fts *FTS) Delete(ctx context.Context, sitePrefix, resource string, keys []
 	if err != nil {
 		return err
 	}
-	writer.Delete()
+	defer writer.Close()
+	// writer.Delete()
 	return nil
 }
