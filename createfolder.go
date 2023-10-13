@@ -74,6 +74,8 @@ func (nbrew *Notebrew) createfolder(w http.ResponseWriter, r *http.Request, user
 				"join":       path.Join,
 				"base":       path.Base,
 				"neatenURL":  neatenURL,
+				"stylesCSS":  func() template.CSS { return template.CSS(stylesCSS) },
+				"baselineJS": func() template.JS { return template.JS(baselineJS) },
 				"referer":    func() string { return r.Referer() },
 				"username":   func() string { return username },
 				"sitePrefix": func() string { return sitePrefix },

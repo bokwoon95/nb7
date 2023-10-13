@@ -21,7 +21,9 @@ func (nbrew *Notebrew) logout(w http.ResponseWriter, r *http.Request, ip string)
 	switch r.Method {
 	case "GET":
 		funcMap := map[string]any{
-			"referer": func() string { return r.Referer() },
+			"stylesCSS":  func() template.CSS { return template.CSS(stylesCSS) },
+			"baselineJS": func() template.JS { return template.JS(baselineJS) },
+			"referer":    func() string { return r.Referer() },
 		}
 		tmpl, err := template.New("logout.html").Funcs(funcMap).ParseFS(rootFS, "embed/logout.html")
 		if err != nil {
@@ -29,7 +31,7 @@ func (nbrew *Notebrew) logout(w http.ResponseWriter, r *http.Request, ip string)
 			internalServerError(w, r, err)
 			return
 		}
-			contentSecurityPolicy(w, "", false)
+		contentSecurityPolicy(w, "", false)
 		executeTemplate(w, r, time.Time{}, tmpl, nil)
 	case "POST":
 		http.SetCookie(w, &http.Cookie{

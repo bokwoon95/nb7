@@ -145,6 +145,8 @@ func (nbrew *Notebrew) signup(w http.ResponseWriter, r *http.Request, ip string)
 			}
 			funcMap := map[string]any{
 				"isInviteLink": func() bool { return r.Form.Has("token") },
+				"stylesCSS":    func() template.CSS { return template.CSS(stylesCSS) },
+				"signupJS":     func() template.JS { return template.JS(signupJS) },
 			}
 			tmpl, err := template.New("signup.html").Funcs(funcMap).ParseFS(rootFS, "embed/signup.html")
 			if err != nil {

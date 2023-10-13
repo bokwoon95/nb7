@@ -91,9 +91,11 @@ func (nbrew *Notebrew) deletesite(w http.ResponseWriter, r *http.Request, userna
 				return
 			}
 			funcMap := map[string]any{
+				"trimPrefix": strings.TrimPrefix,
+				"stylesCSS":  func() template.CSS { return template.CSS(stylesCSS) },
+				"baselineJS": func() template.JS { return template.JS(baselineJS) },
 				"referer":    func() string { return r.Referer() },
 				"username":   func() string { return username },
-				"trimPrefix": strings.TrimPrefix,
 				"toSitePrefix": func(siteName string) string {
 					if strings.Contains(siteName, ".") {
 						return siteName

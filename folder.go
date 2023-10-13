@@ -435,6 +435,8 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 		"trimPrefix":            strings.TrimPrefix,
 		"neatenURL":             neatenURL,
 		"fileSizeToString":      fileSizeToString,
+		"stylesCSS":             func() template.CSS { return template.CSS(stylesCSS) },
+		"folderJS":              func() template.JS { return template.JS(folderJS) },
 		"username":              func() string { return username },
 		"referer":               func() string { return r.Referer() },
 		"sitePrefix":            func() string { return sitePrefix },
@@ -494,6 +496,6 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 		internalServerError(w, r, err)
 		return
 	}
-			contentSecurityPolicy(w, "", false)
+	contentSecurityPolicy(w, "", false)
 	executeTemplate(w, r, fileInfo.ModTime(), tmpl, &response)
 }

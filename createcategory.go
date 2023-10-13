@@ -46,6 +46,8 @@ func (nbrew *Notebrew) createcategory(w http.ResponseWriter, r *http.Request, us
 			funcMap := map[string]any{
 				"join":       path.Join,
 				"neatenURL":  neatenURL,
+				"stylesCSS":  func() template.CSS { return template.CSS(stylesCSS) },
+				"baselineJS": func() template.JS { return template.JS(baselineJS) },
 				"referer":    func() string { return r.Referer() },
 				"username":   func() string { return username },
 				"sitePrefix": func() string { return sitePrefix },

@@ -80,10 +80,12 @@ func (nbrew *Notebrew) delet(w http.ResponseWriter, r *http.Request, username, s
 			}
 			funcMap := map[string]any{
 				"join":       path.Join,
+				"neatenURL":  neatenURL,
+				"stylesCSS":  func() template.CSS { return template.CSS(stylesCSS) },
+				"baselineJS": func() template.JS { return template.JS(baselineJS) },
 				"referer":    func() string { return r.Referer() },
 				"username":   func() string { return username },
 				"sitePrefix": func() string { return sitePrefix },
-				"neatenURL":  neatenURL,
 				"filecount": func(numFolders, numFiles int) string {
 					if numFolders == 0 && numFiles == 0 {
 						return "no files"

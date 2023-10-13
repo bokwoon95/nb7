@@ -6,6 +6,7 @@ import (
 	"compress/gzip"
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"database/sql"
 	"embed"
 	"encoding/base32"
@@ -374,9 +375,22 @@ func getHost(r *http.Request) string {
 	return r.Host
 }
 
-var commonPasswordHashes = make(map[string]struct{})
+var (
+	commonPasswordHashes = make(map[string]struct{})
+	stylesCSS            string
+	stylesCSSHash        string
+	baselineJS           string
+	baselineJSHash       string
+	folderJS             string
+	folderJSHash         string
+	loginJS              string
+	loginJSHash          string
+	signupJS             string
+	signupJSHash         string
+)
 
 func init() {
+	// top-10000-passwords.txt
 	file, err := rootFS.Open("embed/top-10000-passwords.txt")
 	if err != nil {
 		return
@@ -401,6 +415,46 @@ func init() {
 		encodedHash := hex.EncodeToString(hash[:])
 		commonPasswordHashes[encodedHash] = struct{}{}
 	}
+	// styles.css
+	b, err := fs.ReadFile(rootFS, "static/styles.css")
+	if err != nil {
+		return
+	}
+	hash := sha256.Sum256(b)
+	stylesCSS = string(b)
+	stylesCSSHash = "'sha256-" + base64.StdEncoding.EncodeToString(hash[:]) + "'"
+	// baseline.js
+	b, err = fs.ReadFile(rootFS, "static/baseline.js")
+	if err != nil {
+		return
+	}
+	hash = sha256.Sum256(b)
+	baselineJS = string(b)
+	baselineJSHash = "'sha256-" + base64.StdEncoding.EncodeToString(hash[:]) + "'"
+	// folder.js
+	b, err = fs.ReadFile(rootFS, "static/folder.js")
+	if err != nil {
+		return
+	}
+	hash = sha256.Sum256(b)
+	folderJS = string(b)
+	folderJSHash = "'sha256-" + base64.StdEncoding.EncodeToString(hash[:]) + "'"
+	// login.js
+	b, err = fs.ReadFile(rootFS, "static/login.js")
+	if err != nil {
+		return
+	}
+	hash = sha256.Sum256(b)
+	folderJS = string(b)
+	folderJSHash = "'sha256-" + base64.StdEncoding.EncodeToString(hash[:]) + "'"
+	// signup.js
+	b, err = fs.ReadFile(rootFS, "static/signup.js")
+	if err != nil {
+		return
+	}
+	hash = sha256.Sum256(b)
+	signupJS = string(b)
+	signupJSHash = "'sha256-" + base64.StdEncoding.EncodeToString(hash[:]) + "'"
 }
 
 func IsCommonPassword(password []byte) bool {
@@ -907,7 +961,7 @@ func contentSecurityPolicy(w http.ResponseWriter, cdnBaseURL string, allowCaptch
 	// default-src
 	b.WriteString("default-src 'none';")
 	// script-src
-	b.WriteString(" script-src 'self'")
+	b.WriteString(" script-src 'self' 'unsafe-hashes' " + baselineJSHash + " " + folderJSHash + " " + loginJSHash + " " + signupJSHash)
 	if cdnBaseURL != "" {
 		b.WriteString(" " + cdnBaseURL)
 	}

@@ -163,6 +163,8 @@ func (nbrew *Notebrew) resetpassword(w http.ResponseWriter, r *http.Request, ip 
 				return
 			}
 			funcMap := map[string]any{
+				"stylesCSS":   func() template.CSS { return template.CSS(stylesCSS) },
+				"baselineJS":  func() template.JS { return template.JS(baselineJS) },
 				"isResetLink": func() bool { return r.Form.Has("token") },
 			}
 			tmpl, err := template.New("resetpassword.html").Funcs(funcMap).ParseFS(rootFS, "embed/resetpassword.html")
