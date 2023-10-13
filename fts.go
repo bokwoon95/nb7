@@ -34,8 +34,10 @@ func (fts *FTS) Index(ctx context.Context, sitePrefix, resource, key, value stri
 		return err
 	}
 	defer writer.Close()
-	document := bluge.NewDocument(key).AddField(bluge.NewTextField("value", value))
-	err = writer.Update(document.ID(), document)
+	err = writer.Update(bluge.Identifier(key), &bluge.Document{
+		bluge.NewTextField("key", key),
+		bluge.NewTextField("value", value),
+	})
 	if err != nil {
 		return err
 	}
@@ -87,6 +89,15 @@ func (fts *FTS) Delete(ctx context.Context, sitePrefix, resource string, keys []
 		return err
 	}
 	defer writer.Close()
-	// writer.Delete()
+	for _, key := range keys {
+		err = writer.Delete(bluge.Identifier(key))
+		if err != nil {
+			return err
+		}
+	}
+	err = writer.Close()
+	if err != nil {
+		return err
+	}
 	return nil
 }
