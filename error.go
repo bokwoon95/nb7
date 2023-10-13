@@ -193,7 +193,7 @@ func badRequest(w http.ResponseWriter, r *http.Request, serverErr error) {
 		http.Error(w, string(ErrBadRequest)+": "+msg, http.StatusBadRequest)
 		return
 	}
-	w.Header().Set("Content-Security-Policy", defaultContentSecurityPolicy)
+	contentSecurityPolicy(w, "", false)
 	w.WriteHeader(http.StatusBadRequest)
 	buf.WriteTo(w)
 }
@@ -234,7 +234,7 @@ func notAuthenticated(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, string(ErrNotAuthenticated), http.StatusUnauthorized)
 		return
 	}
-	w.Header().Set("Content-Security-Policy", defaultContentSecurityPolicy)
+	contentSecurityPolicy(w, "", false)
 	w.WriteHeader(http.StatusUnauthorized)
 	buf.WriteTo(w)
 }
@@ -268,7 +268,7 @@ func notAuthorized(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, string(ErrNotAuthorized), http.StatusForbidden)
 		return
 	}
-	w.Header().Set("Content-Security-Policy", defaultContentSecurityPolicy)
+	contentSecurityPolicy(w, "", false)
 	w.WriteHeader(http.StatusForbidden)
 	buf.WriteTo(w)
 }
@@ -302,7 +302,7 @@ func notFound(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, string(ErrNotFound), http.StatusNotFound)
 		return
 	}
-	w.Header().Set("Content-Security-Policy", defaultContentSecurityPolicy)
+	contentSecurityPolicy(w, "", false)
 	w.WriteHeader(http.StatusNotFound)
 	buf.WriteTo(w)
 }
@@ -335,7 +335,7 @@ func methodNotAllowed(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, string(ErrNotFound), http.StatusMethodNotAllowed)
 		return
 	}
-	w.Header().Set("Content-Security-Policy", defaultContentSecurityPolicy)
+	contentSecurityPolicy(w, "", false)
 	w.WriteHeader(http.StatusMethodNotAllowed)
 	buf.WriteTo(w)
 }
@@ -375,7 +375,7 @@ func unsupportedContentType(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, ErrUnsupportedMediaType.Code()+" "+msg, http.StatusUnsupportedMediaType)
 		return
 	}
-	w.Header().Set("Content-Security-Policy", defaultContentSecurityPolicy)
+	contentSecurityPolicy(w, "", false)
 	w.WriteHeader(http.StatusUnsupportedMediaType)
 	buf.WriteTo(w)
 }
@@ -420,7 +420,7 @@ func internalServerError(w http.ResponseWriter, r *http.Request, serverErr error
 		http.Error(w, string(ErrServerError), http.StatusInternalServerError)
 		return
 	}
-	w.Header().Set("Content-Security-Policy", defaultContentSecurityPolicy)
+	contentSecurityPolicy(w, "", false)
 	w.WriteHeader(http.StatusInternalServerError)
 	buf.WriteTo(w)
 }

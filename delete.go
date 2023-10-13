@@ -108,6 +108,7 @@ func (nbrew *Notebrew) delet(w http.ResponseWriter, r *http.Request, username, s
 				internalServerError(w, r, err)
 				return
 			}
+			contentSecurityPolicy(w, "", false)
 			executeTemplate(w, r, time.Time{}, tmpl, &response)
 		}
 

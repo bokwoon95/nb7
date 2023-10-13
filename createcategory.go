@@ -62,6 +62,7 @@ func (nbrew *Notebrew) createcategory(w http.ResponseWriter, r *http.Request, us
 				internalServerError(w, r, err)
 				return
 			}
+			contentSecurityPolicy(w, "", false)
 			executeTemplate(w, r, time.Time{}, tmpl, &response)
 		}
 

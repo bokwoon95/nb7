@@ -178,16 +178,7 @@ func (nbrew *Notebrew) login(w http.ResponseWriter, r *http.Request, ip string) 
 				internalServerError(w, r, err)
 				return
 			}
-			w.Header().Set("Content-Security-Policy", "default-src 'none';"+
-				" script-src 'self' https://hcaptcha.com https://*.hcaptcha.com;"+
-				" connect-src 'self' https://hcaptcha.com https://*.hcaptcha.com;"+
-				" img-src 'self' data:;"+
-				" style-src 'self' 'unsafe-inline' https://hcaptcha.com https://*.hcaptcha.com;"+
-				" base-uri 'self';"+
-				" form-action 'self';"+
-				" media-src 'self';"+
-				" manifest-src 'self';"+
-				" frame-src https://hcaptcha.com https://*.hcaptcha.com;")
+			contentSecurityPolicy(w, "", true)
 			executeTemplate(w, r, time.Time{}, tmpl, &response)
 		}
 

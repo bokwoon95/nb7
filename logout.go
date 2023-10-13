@@ -29,6 +29,7 @@ func (nbrew *Notebrew) logout(w http.ResponseWriter, r *http.Request, ip string)
 			internalServerError(w, r, err)
 			return
 		}
+			contentSecurityPolicy(w, "", false)
 		executeTemplate(w, r, time.Time{}, tmpl, nil)
 	case "POST":
 		http.SetCookie(w, &http.Cookie{

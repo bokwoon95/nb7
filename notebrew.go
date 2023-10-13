@@ -42,16 +42,6 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-const defaultContentSecurityPolicy = "default-src 'none';" +
-	" script-src 'self';" +
-	" connect-src 'self';" +
-	" img-src 'self' data:;" +
-	" style-src 'self' 'unsafe-inline';" +
-	" base-uri 'self';" +
-	" form-action 'self';" +
-	" media-src 'self';" +
-	" manifest-src 'self';"
-
 //go:embed embed static
 var embedFS embed.FS
 
@@ -905,12 +895,56 @@ func executeTemplate(w http.ResponseWriter, r *http.Request, modtime time.Time, 
 	*dst = (*dst)[:encodedLen]
 	hex.Encode(*dst, *src)
 
-	if _, ok := w.Header()["Content-Security-Policy"]; !ok {
-		w.Header().Set("Content-Security-Policy", defaultContentSecurityPolicy)
-	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Content-Encoding", "gzip")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("ETag", `"`+string(*dst)+`"`)
 	http.ServeContent(w, r, "", modtime, bytes.NewReader(buf.Bytes()))
+}
+
+func contentSecurityPolicy(w http.ResponseWriter, cdnBaseURL string, allowCaptcha bool) {
+	var b strings.Builder
+	// default-src
+	b.WriteString("default-src 'none';")
+	// script-src
+	b.WriteString(" script-src 'self'")
+	if cdnBaseURL != "" {
+		b.WriteString(" " + cdnBaseURL)
+	}
+	if allowCaptcha {
+		b.WriteString(" https://hcaptcha.com https://*.hcaptcha.com")
+	}
+	b.WriteString(";")
+	// connect-src
+	b.WriteString(" connect-src 'self'")
+	if allowCaptcha {
+		b.WriteString(" https://hcaptcha.com https://*.hcaptcha.com")
+	}
+	b.WriteString(";")
+	// img-src
+	b.WriteString(" img-src 'self' data:")
+	if cdnBaseURL != "" {
+		b.WriteString(" " + cdnBaseURL)
+	}
+	b.WriteString(";")
+	// style-src
+	b.WriteString(" style-src 'self' 'unsafe-inline'")
+	if cdnBaseURL != "" {
+		b.WriteString(" " + cdnBaseURL)
+	}
+	if allowCaptcha {
+		b.WriteString(" https://hcaptcha.com https://*.hcaptcha.com")
+	}
+	b.WriteString(";")
+	// base-uri
+	b.WriteString(" base-uri 'self';")
+	// form-action
+	b.WriteString(" form-action 'self';")
+	// manifest-src
+	b.WriteString(" manifest-src 'self';")
+	// frame-src
+	if allowCaptcha {
+		b.WriteString(" frame-src https://hcaptcha.com https://*.hcaptcha.com;")
+	}
+	w.Header().Set("Content-Security-Policy", b.String())
 }

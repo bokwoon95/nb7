@@ -69,6 +69,7 @@ func (nbrew *Notebrew) createsite(w http.ResponseWriter, r *http.Request, userna
 				internalServerError(w, r, err)
 				return
 			}
+			contentSecurityPolicy(w, "", false)
 			executeTemplate(w, r, time.Time{}, tmpl, &response)
 		}
 

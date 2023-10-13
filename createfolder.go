@@ -89,6 +89,7 @@ func (nbrew *Notebrew) createfolder(w http.ResponseWriter, r *http.Request, user
 				internalServerError(w, r, err)
 				return
 			}
+			contentSecurityPolicy(w, "", false)
 			executeTemplate(w, r, time.Time{}, tmpl, &response)
 		}
 

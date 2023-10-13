@@ -137,6 +137,7 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 				internalServerError(w, r, err)
 				return
 			}
+			contentSecurityPolicy(w, "", false)
 			executeTemplate(w, r, fileInfo.ModTime(), tmpl, &response)
 		}
 		err := r.ParseForm()

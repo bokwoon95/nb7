@@ -494,5 +494,6 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 		internalServerError(w, r, err)
 		return
 	}
+			contentSecurityPolicy(w, "", false)
 	executeTemplate(w, r, fileInfo.ModTime(), tmpl, &response)
 }
