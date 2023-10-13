@@ -60,9 +60,6 @@ TODO: notebrew.com/admin/journal/
     - system/indexes/pages
     - system/indexes/posts
     - system/indexes/themes
-    AHA: If the database is present, we will use the database for locking. Otherwise, we will fall back to an in-memory RWMutex.
-TODO: time to clone and get your hands dirty with https://github.com/blugelabs/bluge_examples/, I think.
-TODO: get bluge's filesystem implementation working with those three txt files, then use a shortcut: if we can fmt.Sprintf the FS into on an existing directory on disk, use the filesystem implementation directly. Otherwise, dip into the database-backed filesystem instead. (actually, you can refer to online examples of how people use s3/minio as the backing storage).
 
 BlugeFTS
 SQLiteFTS

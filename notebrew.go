@@ -73,7 +73,7 @@ type Notebrew struct {
 	// implementation is provided, ErrorCode returns an empty string.
 	ErrorCode func(error) string
 
-	CompressGeneratedHTML bool
+	FTS *FTS
 
 	Logger *slog.Logger
 }

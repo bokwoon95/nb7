@@ -37,11 +37,17 @@ func New(fsys FS) (*Notebrew, error) {
 		FS:        fsys,
 		ErrorCode: func(error) string { return "" },
 	}
-	localDir, err := filepath.Abs(fmt.Sprint(nbrew.FS))
+	var localDir string
+	localDir, err = filepath.Abs(fmt.Sprint(nbrew.FS))
 	if err == nil {
 		fileInfo, err := os.Stat(localDir)
 		if err != nil || !fileInfo.IsDir() {
 			localDir = ""
+		}
+	}
+	if localDir != "" {
+		nbrew.FTS = &FTS{
+			LocalDir: localDir,
 		}
 	}
 
