@@ -115,6 +115,17 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 	var notAuthorizedForRootSite bool
 	// If folderPath empty, show notes/, pages/, posts/, output/ folders.
 	if folderPath == "" {
+		// TODO: I really don't want to arrange items on the root page using a
+		// custom sort function. I just want to append arbitrary stuff. Here's
+		// how:
+		// define a function that checks if a folder exists
+		// for each folder in notes/, pages/, posts/, output/themes/ check if it exists and if so append it
+		// if database is provided, append journal/
+		// if output/ exists append it
+		// if sitePrefix == ""
+		//   if database exists, crawl the database for the user's sites and if the site folder exists append it
+		//   else crawl the root folder and for any site folders append it
+
 		// If database is present and sitePrefix is empty, show site
 		// folders the user is authorized for.
 		if nbrew.DB != nil && sitePrefix == "" {
