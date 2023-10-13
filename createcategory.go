@@ -184,12 +184,12 @@ func (nbrew *Notebrew) createcategory(w http.ResponseWriter, r *http.Request, us
 		}
 		var resource string
 		switch response.Type {
-		case "":
-			response.Errors["type"] = append(response.Errors["type"], ErrFieldRequired)
 		case "note":
 			resource = "notes"
 		case "post":
 			resource = "posts"
+		case "":
+			response.Errors["type"] = append(response.Errors["type"], ErrFieldRequired)
 		default:
 			response.Errors["type"] = append(response.Errors["type"], ErrInvalidValue)
 		}
