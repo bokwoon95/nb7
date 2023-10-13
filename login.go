@@ -172,7 +172,6 @@ func (nbrew *Notebrew) login(w http.ResponseWriter, r *http.Request, ip string) 
 				"join":           path.Join,
 				"signupsAreOpen": signupsAreOpen,
 				"stylesCSS":      func() template.CSS { return template.CSS(stylesCSS) },
-				"loginJS":        func() template.JS { return template.JS(loginJS) },
 			}
 			tmpl, err := template.New("login.html").Funcs(funcMap).ParseFS(rootFS, "embed/login.html")
 			if err != nil {

@@ -383,10 +383,6 @@ var (
 	baselineJSHash       string
 	folderJS             string
 	folderJSHash         string
-	loginJS              string
-	loginJSHash          string
-	signupJS             string
-	signupJSHash         string
 )
 
 func init() {
@@ -439,22 +435,6 @@ func init() {
 	hash = sha256.Sum256(b)
 	folderJS = string(b)
 	folderJSHash = "'sha256-" + base64.StdEncoding.EncodeToString(hash[:]) + "'"
-	// login.js
-	b, err = fs.ReadFile(rootFS, "static/login.js")
-	if err != nil {
-		return
-	}
-	hash = sha256.Sum256(b)
-	folderJS = string(b)
-	folderJSHash = "'sha256-" + base64.StdEncoding.EncodeToString(hash[:]) + "'"
-	// signup.js
-	b, err = fs.ReadFile(rootFS, "static/signup.js")
-	if err != nil {
-		return
-	}
-	hash = sha256.Sum256(b)
-	signupJS = string(b)
-	signupJSHash = "'sha256-" + base64.StdEncoding.EncodeToString(hash[:]) + "'"
 }
 
 func IsCommonPassword(password []byte) bool {
@@ -961,7 +941,7 @@ func contentSecurityPolicy(w http.ResponseWriter, cdnBaseURL string, allowCaptch
 	// default-src
 	b.WriteString("default-src 'none';")
 	// script-src
-	b.WriteString(" script-src 'self' 'unsafe-hashes' " + baselineJSHash + " " + folderJSHash + " " + loginJSHash + " " + signupJSHash)
+	b.WriteString(" script-src 'self' 'unsafe-hashes' " + baselineJSHash + " " + folderJSHash)
 	if cdnBaseURL != "" {
 		b.WriteString(" " + cdnBaseURL)
 	}
