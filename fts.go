@@ -16,7 +16,7 @@ type FTS struct {
 	// to avoid the pitfalls of the 'delete' command as documented in
 	// https://www.sqlite.org/fts5.html#the_delete_command (namely we need to
 	// provide the exact same content to the delete command or the database
-	// will become corrupted with 'database disk image is malformed'). We do
+	// will become corrupted with 'database disk image is malformed'. We do
 	// NOT want to keep track of the old values just to delete it from the
 	// index, ideally we just need to provide the rowid in order to delete an
 	// entry (that's what contentless-delete tables offer).
