@@ -111,9 +111,8 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 
 	var folderEntries []Entry
 	var fileEntries []Entry
-
 	var notAuthorizedForRootSite bool
-	// If folderPath empty, show notes/, pages/, posts/, output/ folders.
+
 	if folderPath == "" {
 		// TODO: I really don't want to arrange items on the root page using a
 		// custom sort function. I just want to append arbitrary stuff. Here's
@@ -122,9 +121,52 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 		// for each folder in notes/, pages/, posts/, output/themes/ check if it exists and if so append it
 		// if database is provided, append journal/
 		// if output/ exists append it
+		// var authorizedForRootSite bool
 		// if sitePrefix == ""
 		//   if database exists, crawl the database for the user's sites and if the site folder exists append it
+		//     authorizedForRootSite = true only if the root site is found
 		//   else crawl the root folder and for any site folders append it
+		//     authorizedForRootSite is always equal to true
+		//   if !authorizedForRootSite, fiter the slice in place by removing anything equal to notes, pages, posts, output/themes and output.
+		folderExists := func(folder string) bool {
+			fileInfo, err := fs.Stat(nbrew.FS, path.Join(sitePrefix, folder))
+			if err != nil {
+				return false
+			}
+			if !fileInfo.IsDir() {
+				return false
+			}
+			return true
+		}
+		for _, name := range []string{"notes", "pages", "posts", "output/themes"} {
+			if folderExists(name) {
+				folderEntries = append(folderEntries, Entry{
+					Name:  path.Base(name),
+					IsDir: true,
+				})
+			}
+		}
+		if nbrew.DB != nil {
+			folderEntries = append(folderEntries, Entry{
+				Name:  "journal",
+				IsDir: true,
+			})
+		}
+		if folderExists("output") {
+			folderEntries = append(folderEntries, Entry{
+				Name:  "output",
+				IsDir: true,
+			})
+		}
+		if sitePrefix == "" {
+			if nbrew.DB != nil {
+			} else {
+			}
+		}
+	}
+
+	// If folderPath empty, show notes/, pages/, posts/, output/ folders.
+	if folderPath == "" {
 
 		// If database is present and sitePrefix is empty, show site
 		// folders the user is authorized for.
