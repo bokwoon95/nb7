@@ -72,7 +72,7 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 		response.Status = Success
 	}
 
-	head, _, _ := strings.Cut(folderPath, "/")
+	head, tail, _ := strings.Cut(folderPath, "/")
 	response.Sort = strings.ToLower(strings.TrimSpace(r.Form.Get("sort")))
 	if response.Sort == "" {
 		cookie, _ := r.Cookie("sort")
@@ -277,25 +277,23 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 			if !modTime.IsZero() {
 				entry.ModTime = &modTime
 			}
-			if entry.IsDir {
-				dirEntries, err := nbrew.FS.ReadDir(path.Join(sitePrefix, folderPath, entry.Name))
-				if err != nil {
-					getLogger(r.Context()).Error(err.Error(), slog.String("name", dirEntry.Name()))
-					internalServerError(w, r, err)
-					return
-				}
-				for _, dirEntry := range dirEntries {
-					if dirEntry.IsDir() {
-						entry.NumFolders++
-					} else {
-						entry.NumFiles++
-					}
-				}
-			}
 			ext := path.Ext(entry.Name)
 			switch head {
 			case "notes", "posts":
 				if entry.IsDir {
+					dirEntries, err := nbrew.FS.ReadDir(path.Join(sitePrefix, folderPath, entry.Name))
+					if err != nil {
+						getLogger(r.Context()).Error(err.Error(), slog.String("name", dirEntry.Name()))
+						internalServerError(w, r, err)
+						return
+					}
+					for _, dirEntry := range dirEntries {
+						if dirEntry.IsDir() {
+							entry.NumFolders++
+						} else {
+							entry.NumFiles++
+						}
+					}
 					folderEntries = append(folderEntries, entry)
 					continue
 				}
@@ -344,8 +342,56 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 					internalServerError(w, r, err)
 					return
 				}
+			case "output":
+				if !entry.IsDir {
+					fileEntries = append(fileEntries, entry)
+					continue
+				}
+				next, _, _ := strings.Cut(tail, "/")
+				if next == "themes" {
+					folderEntries = append(folderEntries, entry)
+					continue
+				}
+				dirEntries, err := nbrew.FS.ReadDir(path.Join(sitePrefix, folderPath, entry.Name))
+				if err != nil {
+					getLogger(r.Context()).Error(err.Error(), slog.String("name", dirEntry.Name()))
+					internalServerError(w, r, err)
+					return
+				}
+				if len(dirEntries) == 1 && dirEntries[0].Name() == "index.html" {
+					fileInfo, err := dirEntries[0].Info()
+					if err != nil {
+						getLogger(r.Context()).Error(err.Error(), slog.String("name", dirEntry.Name()))
+						internalServerError(w, r, err)
+						return
+					}
+					entry.Name = path.Join(entry.Name, "index.html")
+					entry.IsDir = false
+					entry.Size = fileInfo.Size()
+					modTime := fileInfo.ModTime()
+					if !modTime.IsZero() {
+						entry.ModTime = &modTime
+					}
+					fileEntries = append(fileEntries, entry)
+					continue
+				}
+				folderEntries = append(folderEntries, entry)
+				continue
 			default:
 				if entry.IsDir {
+					dirEntries, err := nbrew.FS.ReadDir(path.Join(sitePrefix, folderPath, entry.Name))
+					if err != nil {
+						getLogger(r.Context()).Error(err.Error(), slog.String("name", dirEntry.Name()))
+						internalServerError(w, r, err)
+						return
+					}
+					for _, dirEntry := range dirEntries {
+						if dirEntry.IsDir() {
+							entry.NumFolders++
+						} else {
+							entry.NumFiles++
+						}
+					}
 					folderEntries = append(folderEntries, entry)
 					continue
 				}
