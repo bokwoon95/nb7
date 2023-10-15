@@ -335,6 +335,7 @@ func (nbrew *Notebrew) admin(w http.ResponseWriter, r *http.Request, ip string) 
 	urlPath := strings.Trim(strings.TrimPrefix(r.URL.Path, "/admin"), "/")
 	head, tail, _ := strings.Cut(urlPath, "/")
 	if head == "static" {
+		w.Header().Add("Cross-Origin-Resource-Policy", "cross-origin")
 		serveFile(w, r, rootFS, urlPath, true)
 		return
 	}
