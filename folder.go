@@ -72,7 +72,7 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 		response.Status = Success
 	}
 
-	head, tail, _ := strings.Cut(folderPath, "/")
+	head, _, _ := strings.Cut(folderPath, "/")
 	response.Sort = strings.ToLower(strings.TrimSpace(r.Form.Get("sort")))
 	if response.Sort == "" {
 		cookie, _ := r.Cookie("sort")
@@ -347,38 +347,20 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 					fileEntries = append(fileEntries, entry)
 					continue
 				}
-				next, _, _ := strings.Cut(tail, "/")
-				if next == "images" || next == "posts" || next == "themes" {
-					dirEntries, err := nbrew.FS.ReadDir(path.Join(sitePrefix, folderPath, entry.Name))
-					if err != nil {
-						getLogger(r.Context()).Error(err.Error(), slog.String("name", dirEntry.Name()))
-						internalServerError(w, r, err)
-						return
-					}
-					for _, dirEntry := range dirEntries {
-						if dirEntry.IsDir() {
-							entry.NumFolders++
-						} else {
-							entry.NumFiles++
-						}
-					}
-					folderEntries = append(folderEntries, entry)
-					continue
-				}
 				dirEntries, err := nbrew.FS.ReadDir(path.Join(sitePrefix, folderPath, entry.Name))
 				if err != nil {
 					getLogger(r.Context()).Error(err.Error(), slog.String("name", dirEntry.Name()))
 					internalServerError(w, r, err)
 					return
 				}
-				if len(dirEntries) == 1 && dirEntries[0].Name() == "index.html" {
+				if len(dirEntries) == 1 && (dirEntries[0].Name() == "index.html" || dirEntries[0].Name() == "index.html.gz") {
 					fileInfo, err := dirEntries[0].Info()
 					if err != nil {
 						getLogger(r.Context()).Error(err.Error(), slog.String("name", dirEntry.Name()))
 						internalServerError(w, r, err)
 						return
 					}
-					entry.Name = path.Join(entry.Name, "index.html")
+					entry.Name = path.Join(entry.Name, fileInfo.Name())
 					entry.IsDir = false
 					entry.Size = fileInfo.Size()
 					modTime := fileInfo.ModTime()
@@ -387,6 +369,13 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 					}
 					fileEntries = append(fileEntries, entry)
 					continue
+				}
+				for _, dirEntry := range dirEntries {
+					if dirEntry.IsDir() {
+						entry.NumFolders++
+					} else {
+						entry.NumFiles++
+					}
 				}
 				folderEntries = append(folderEntries, entry)
 				continue
