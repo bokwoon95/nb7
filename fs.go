@@ -250,6 +250,10 @@ func MkdirAll(fsys FS, dir string, perm fs.FileMode) error {
 	// Parent now exists; invoke Mkdir and use its result.
 	err = fsys.Mkdir(dir, perm)
 	if err != nil {
+		// I don't know why this is sometimes needed, but it is.
+		if errors.Is(err, fs.ErrExist) {
+			return nil
+		}
 		return err
 	}
 	return nil
