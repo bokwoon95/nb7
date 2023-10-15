@@ -205,7 +205,7 @@ func (nbrew *Notebrew) createsite(w http.ResponseWriter, r *http.Request, userna
 			hasForbiddenCharacters := false
 			digitCount := 0
 			for _, char := range response.SiteName {
-				if (char < 'a' || char > 'z') && (char < '0' || char > '9') && char != '-' && char != '.' {
+				if (char < 'a' || char > 'z') && (char < '0' || char > '9') && char != '-' {
 					hasForbiddenCharacters = true
 				}
 				if char >= '0' && char <= '9' {

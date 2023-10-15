@@ -119,6 +119,7 @@
                 <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createfile` }}/?parent={{ $.Path }}&ext=js" class="linktext tr nowrap dib w-100 h-100">create js file</a></div>
                 <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createfolder` }}?parent={{ $.Path }}" class="linktext tr nowrap dib w-100 h-100">create folder</a></div>
                 {{- else }}
+                <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createnote` }}/" class="linktext tr nowrap dib w-100 h-100">create log</a></div>
                 <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createnote` }}/" class="linktext tr nowrap dib w-100 h-100">create note</a></div>
                 <div class="tr ma2"><a href="/{{ join `admin` sitePrefix `createpost` }}/" class="linktext tr nowrap dib w-100 h-100">create post</a></div>
                 {{- end }}
@@ -273,6 +274,7 @@
                     {{ $head := head $.Path }}
                     {{ $ext := ext $entry.Name }}
                     {{- if or (and (eq $head "pages") (eq $ext ".html")) (and (eq $head "posts") (or (eq $ext ".md" ".txt"))) }}
+                    <div class="tr ma2"><a href="" class="link linktext tr nowrap dib w-100 h-100">view</a></div>
                     <div class="tr ma2"><button type="submit" name="name" value="{{ $entry.Name }}" class="link linktext tr nowrap dib w-100 h-100">regenerate</button></div>
                     <hr>
                     {{- end }}

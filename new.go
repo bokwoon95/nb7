@@ -45,10 +45,12 @@ func New(fsys FS) (*Notebrew, error) {
 			localDir = ""
 		}
 	}
-	if localDir != "" {
-		nbrew.FTS = &FTS{
-			LocalDir: localDir,
-		}
+	nbrew.FTS = &FTS{
+		LocalDir: localDir,
+	}
+	err = nbrew.FTS.Setup()
+	if err != nil {
+		return nil, err
 	}
 
 	// Read from config/address.txt.

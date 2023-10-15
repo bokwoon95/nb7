@@ -3,6 +3,7 @@ package nb7
 import (
 	"context"
 	"fmt"
+	"os"
 	"path/filepath"
 
 	"github.com/blugelabs/bluge"
@@ -24,6 +25,10 @@ type FTS struct {
 }
 
 func (fts *FTS) Setup() error {
+	err := os.MkdirAll(filepath.Join(fts.LocalDir, "system", "bluge"), 0755)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

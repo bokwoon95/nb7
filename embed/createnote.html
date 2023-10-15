@@ -42,6 +42,8 @@
     <a href="{{ referer }}" class="linktext" data-go-back>&larr; back</a>
     <span>&boxv;</span>
     {{- end }}
+    <a href="/{{ join `admin` sitePrefix }}/" class="linktext">admin</a>
+    <span>&boxv;</span>
     <a href="/{{ join `admin` sitePrefix `notes` }}/" class="linktext">notes</a>
     {{- range $category := $.Categories }}
     {{- if eq $category $.Category }}

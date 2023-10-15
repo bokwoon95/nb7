@@ -62,7 +62,6 @@ TODO: notebrew.com/admin/log/
     - system/indexes/posts
     - system/indexes/themes
 TODO: add "preview" to the dropdown menu of posts and pages
-TODO: add "admin" to all the &boxv; navbars
 
 BlugeFTS
 SQLiteFTS

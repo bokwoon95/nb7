@@ -35,6 +35,8 @@
     <a href="{{ referer }}" class="linktext" data-go-back>&larr; back</a>
     <span>&boxv;</span>
     {{- end }}
+    <a href="/{{ join `admin` sitePrefix }}/" class="linktext">admin</a>
+    <span>&boxv;</span>
     <a href="/{{ join `admin` sitePrefix `pages` }}/" class="linktext">pages</a>
     {{- if ne $.ParentFolder "pages" }}
     <span>&boxv;</span>
