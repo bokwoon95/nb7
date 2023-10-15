@@ -150,7 +150,7 @@ func (nbrew *Notebrew) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		fileInfo, err := fs.Stat(nbrew.FS, customDomain)
 		if err != nil {
 			if errors.Is(err, fs.ErrNotExist) {
-				notFound(w, r)
+				http.Error(w, "404 Not Found", http.StatusNotFound)
 				return
 			}
 			logger.Error(err.Error())
