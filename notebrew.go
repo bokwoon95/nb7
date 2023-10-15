@@ -982,3 +982,40 @@ func contentSecurityPolicy(w http.ResponseWriter, cdnBaseURL string, allowCaptch
 	}
 	w.Header().Set("Content-Security-Policy", b.String())
 }
+
+type JSONHandler struct {
+	stdoutHandler slog.Handler
+	stderrHandler slog.Handler
+}
+
+func NewJSONHandler(stdout io.Writer, stderr io.Writer, opts *slog.HandlerOptions) *JSONHandler {
+	return &JSONHandler{
+		stdoutHandler: slog.NewJSONHandler(stdout, opts),
+		stderrHandler: slog.NewJSONHandler(stderr, opts),
+	}
+}
+
+func (h *JSONHandler) Enabled(ctx context.Context, level slog.Level) bool {
+	return h.stderrHandler.Enabled(ctx, level)
+}
+
+func (h *JSONHandler) Handle(ctx context.Context, record slog.Record) error {
+	if record.Level == slog.LevelError {
+		return h.stderrHandler.Handle(ctx, record)
+	}
+	return h.stdoutHandler.Handle(ctx, record)
+}
+
+func (h *JSONHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
+	return &JSONHandler{
+		stdoutHandler: h.stdoutHandler.WithAttrs(attrs),
+		stderrHandler: h.stderrHandler.WithAttrs(attrs),
+	}
+}
+
+func (h *JSONHandler) WithGroup(name string) slog.Handler {
+	return &JSONHandler{
+		stdoutHandler: h.stdoutHandler.WithGroup(name),
+		stderrHandler: h.stderrHandler.WithGroup(name),
+	}
+}

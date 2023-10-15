@@ -16,7 +16,7 @@ import (
 	"github.com/bokwoon95/sq"
 )
 
-var extTypes = map[string]string{
+var extensionTypes = map[string]string{
 	".html":  "text/html",
 	".css":   "text/css",
 	".js":    "text/javascript",
@@ -40,6 +40,7 @@ var extTypes = map[string]string{
 	".woff":  "font/woff",
 	".woff2": "font/woff2",
 	".gzip":  "gzip",
+	".gz":    "gzip",
 }
 
 func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, sitePrefix, filePath string, fileInfo fs.FileInfo) {
@@ -61,7 +62,7 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 	}
 
 	ext := path.Ext(filePath)
-	typ := extTypes[ext]
+	typ := extensionTypes[ext]
 	r.Body = http.MaxBytesReader(w, r.Body, 15<<20 /* 15MB */)
 	switch r.Method {
 	case "GET":

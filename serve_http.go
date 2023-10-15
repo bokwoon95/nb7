@@ -3,10 +3,13 @@ package nb7
 import (
 	"bufio"
 	"bytes"
+	"compress/gzip"
 	"context"
 	"database/sql"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"hash"
 	"io"
 	"io/fs"
 	"log/slog"
@@ -121,9 +124,9 @@ func (nbrew *Notebrew) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		notFound(w, r)
 		return
 	}
-	resourcePath := strings.Trim(r.URL.Path, "/")
+	urlPath := strings.Trim(r.URL.Path, "/")
 	if sitePrefix != "" {
-		resourcePath = tail
+		urlPath = tail
 		siteName := strings.TrimPrefix(sitePrefix, "@")
 		for _, char := range siteName {
 			if (char >= '0' && char <= '9') || (char >= 'a' && char <= 'z') || char == '-' {
@@ -133,7 +136,7 @@ func (nbrew *Notebrew) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if nbrew.MultisiteMode == "subdomain" {
-			http.Redirect(w, r, nbrew.Scheme+siteName+"."+nbrew.ContentDomain+"/"+resourcePath, http.StatusFound)
+			http.Redirect(w, r, nbrew.Scheme+siteName+"."+nbrew.ContentDomain+"/"+urlPath, http.StatusFound)
 			return
 		}
 	} else if subdomainPrefix != "" {
@@ -146,7 +149,7 @@ func (nbrew *Notebrew) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if nbrew.MultisiteMode == "subdirectory" {
-			http.Redirect(w, r, nbrew.Scheme+nbrew.ContentDomain+"/"+path.Join(sitePrefix, resourcePath), http.StatusFound)
+			http.Redirect(w, r, nbrew.Scheme+nbrew.ContentDomain+"/"+path.Join(sitePrefix, urlPath), http.StatusFound)
 			return
 		}
 	} else if customDomain != "" {
@@ -170,45 +173,162 @@ func (nbrew *Notebrew) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		notFound(w, r)
 		return
 	}
-	w.Write([]byte("<!DOCTYPE html><title>Hello world!</title>Hello world!"))
-	// nbrew.content(w, r, sitePrefix, resourcePath)
-}
-
-type JSONHandler struct {
-	stdoutHandler slog.Handler
-	stderrHandler slog.Handler
-}
-
-func NewJSONHandler(stdout io.Writer, stderr io.Writer, opts *slog.HandlerOptions) *JSONHandler {
-	return &JSONHandler{
-		stdoutHandler: slog.NewJSONHandler(stdout, opts),
-		stderrHandler: slog.NewJSONHandler(stderr, opts),
+	if r.Method != "GET" {
+		methodNotAllowed(w, r)
+		return
 	}
-}
-
-func (h *JSONHandler) Enabled(ctx context.Context, level slog.Level) bool {
-	return h.stderrHandler.Enabled(ctx, level)
-}
-
-func (h *JSONHandler) Handle(ctx context.Context, record slog.Record) error {
-	if record.Level == slog.LevelError {
-		return h.stderrHandler.Handle(ctx, record)
+	name := path.Join(sitePrefix, "output", urlPath)
+	ext := path.Ext(name)
+	if ext == "" {
+		name = name + "/index.html"
+		ext = ".html"
 	}
-	return h.stdoutHandler.Handle(ctx, record)
+	extInfo, ok := extensionInfo[ext]
+	if !ok {
+		notFound(w, r)
+		return
+	}
+
+	var isGzipped bool
+	file, err := nbrew.FS.Open(name)
+	if err != nil {
+		if !errors.Is(err, fs.ErrNotExist) {
+			getLogger(r.Context()).Error(err.Error())
+			internalServerError(w, r, err)
+			return
+		}
+		if !extInfo.isGzippable {
+			notFound(w, r)
+			return
+		}
+		file, err = nbrew.FS.Open(name + ".gz")
+		if err != nil {
+			if !errors.Is(err, fs.ErrNotExist) {
+				getLogger(r.Context()).Error(err.Error())
+				internalServerError(w, r, err)
+				return
+			}
+			notFound(w, r)
+			return
+		}
+		isGzipped = true
+	}
+	defer file.Close()
+
+	fileInfo, err := file.Stat()
+	if err != nil {
+		getLogger(r.Context()).Error(err.Error())
+		internalServerError(w, r, err)
+		return
+	}
+	if fileInfo.IsDir() {
+		notFound(w, r)
+		return
+	}
+
+	if !extInfo.isGzippable {
+		fileSeeker, ok := file.(io.ReadSeeker)
+		if ok {
+			http.ServeContent(w, r, name, fileInfo.ModTime(), fileSeeker)
+			return
+		}
+		buf := bufPool.Get().(*bytes.Buffer)
+		buf.Reset()
+		defer bufPool.Put(buf)
+		_, err = buf.ReadFrom(file)
+		if err != nil {
+			getLogger(r.Context()).Error(err.Error())
+			internalServerError(w, r, err)
+			return
+		}
+		http.ServeContent(w, r, name, fileInfo.ModTime(), bytes.NewReader(buf.Bytes()))
+		return
+	}
+
+	buf := bufPool.Get().(*bytes.Buffer)
+	buf.Reset()
+	defer bufPool.Put(buf)
+
+	hasher := hashPool.Get().(hash.Hash)
+	hasher.Reset()
+	defer hashPool.Put(hasher)
+
+	multiWriter := io.MultiWriter(buf, hasher)
+	if isGzipped {
+		_, err = io.Copy(multiWriter, file)
+		if err != nil {
+			getLogger(r.Context()).Error(err.Error())
+			internalServerError(w, r, err)
+			return
+		}
+	} else {
+		gzipWriter := gzipPool.Get().(*gzip.Writer)
+		gzipWriter.Reset(multiWriter)
+		defer gzipPool.Put(gzipWriter)
+		_, err = io.Copy(gzipWriter, file)
+		if err != nil {
+			getLogger(r.Context()).Error(err.Error())
+			internalServerError(w, r, err)
+			return
+		}
+		err = gzipWriter.Close()
+		if err != nil {
+			getLogger(r.Context()).Error(err.Error())
+			internalServerError(w, r, err)
+			return
+		}
+	}
+
+	src := bytesPool.Get().(*[]byte)
+	*src = (*src)[:0]
+	defer bytesPool.Put(src)
+
+	dst := bytesPool.Get().(*[]byte)
+	*dst = (*dst)[:0]
+	defer bytesPool.Put(dst)
+
+	*src = hasher.Sum(*src)
+	encodedLen := hex.EncodedLen(len(*src))
+	if cap(*dst) < encodedLen {
+		*dst = make([]byte, encodedLen)
+	}
+	*dst = (*dst)[:encodedLen]
+	hex.Encode(*dst, *src)
+
+	w.Header().Set("Content-Type", extInfo.contentType)
+	w.Header().Set("Content-Encoding", "gzip")
+	w.Header().Set("ETag", `"`+string(*dst)+`"`)
+	http.ServeContent(w, r, name, fileInfo.ModTime(), bytes.NewReader(buf.Bytes()))
 }
 
-func (h *JSONHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
-	return &JSONHandler{
-		stdoutHandler: h.stdoutHandler.WithAttrs(attrs),
-		stderrHandler: h.stderrHandler.WithAttrs(attrs),
-	}
-}
-
-func (h *JSONHandler) WithGroup(name string) slog.Handler {
-	return &JSONHandler{
-		stdoutHandler: h.stdoutHandler.WithGroup(name),
-		stderrHandler: h.stderrHandler.WithGroup(name),
-	}
+var extensionInfo = map[string]struct {
+	contentType string
+	isGzippable bool
+}{
+	".html":  {"text/html", true},
+	".css":   {"text/css", true},
+	".js":    {"text/javascript", true},
+	".md":    {"text/markdown", true},
+	".txt":   {"text/plain", true},
+	".csv":   {"text/csv", true},
+	".tsv":   {"text/tsv", true},
+	".json":  {"application/json", true},
+	".xml":   {"application/xml", true},
+	".toml":  {"application/toml", true},
+	".yaml":  {"application/yaml", true},
+	".svg":   {"image/svg", true},
+	".ico":   {"image/ico", true},
+	".jpeg":  {"image/jpeg", false},
+	".jpg":   {"image/jpeg", false},
+	".png":   {"image/png", false},
+	".gif":   {"image/gif", false},
+	".eot":   {"font/eot", false},
+	".otf":   {"font/otf", false},
+	".ttf":   {"font/ttf", false},
+	".woff":  {"font/woff", false},
+	".woff2": {"font/woff2", false},
+	".gzip":  {"application/gzip", false},
+	".gz":    {"application/gzip", false},
 }
 
 func (nbrew *Notebrew) admin(w http.ResponseWriter, r *http.Request, ip string) {
