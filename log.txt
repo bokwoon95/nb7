@@ -58,6 +58,7 @@ TODO: cut | copy | paste | rename (no need for link indexing and rewriting yet, 
 TODO: notes/posts/pages/themes search indexing
 TODO: notebrew.com/admin/log/
 TODO: need to register www subdomain for both AdminDomain and ContentDomain so that people can point their custom domain at the www.example.io in order to essentially have their own custom domain.
+    - Figure out how to get certmagic's dynamic cert provisioning working, that way instead of a static list configured at startup we can consult the database each time LetsEncrypt comes knocking to verify if we have a cert for a particular domain.
 
 BlugeFTS
 SQLiteFTS
