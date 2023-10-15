@@ -400,6 +400,56 @@ func (nbrew *Notebrew) RegenerateSite(ctx context.Context, sitePrefix string) er
 		return err
 	}
 
+	// Render index.html.
+	file, err = nbrew.FS.Open(path.Join(sitePrefix, "pages/index.html"))
+	if err != nil {
+		if !errors.Is(err, fs.ErrNotExist) {
+			return err
+		}
+		file, err = rootFS.Open("static/index.html")
+		if err != nil {
+			return err
+		}
+	}
+	fileInfo, err = file.Stat()
+	if err != nil {
+		return err
+	}
+	b.Reset()
+	b.Grow(int(fileInfo.Size()))
+	_, err = io.Copy(&b, file)
+	if err != nil {
+		return err
+	}
+	indexTmpl, err := templateParser.Parse(b.String())
+	if err != nil {
+		return err
+	}
+	err = MkdirAll(nbrew.FS, path.Join(sitePrefix, "output"), 0755)
+	if err != nil {
+		return err
+	}
+	readerFrom, err := nbrew.FS.OpenReaderFrom(path.Join(sitePrefix, "output/index.html"), 0644)
+	if err != nil {
+		return err
+	}
+	pipeReader, pipeWriter := io.Pipe()
+	ch := make(chan error, 1)
+	go func() {
+		_, err := readerFrom.ReadFrom(pipeReader)
+		ch <- err
+	}()
+	defer pipeReader.Close()
+	err = indexTmpl.Execute(&ctxWriter{ctx: ctx, dest: pipeWriter}, nil)
+	pipeWriter.CloseWithError(err)
+	if err != nil {
+		return err
+	}
+	err = <-ch
+	if err != nil {
+		return err
+	}
+
 	// Render posts.
 	err = fs.WalkDir(nbrew.FS, path.Join(sitePrefix, "posts"), func(filePath string, dirEntry fs.DirEntry, err error) error {
 		if err != nil {
@@ -569,12 +619,11 @@ func (nbrew *Notebrew) RegenerateSite(ctx context.Context, sitePrefix string) er
 			if err != nil {
 				return err
 			}
-			var outputPath string
 			if relativePath == "index.html" {
-				outputPath = path.Join(sitePrefix, "output/index.html")
-			} else {
-				outputPath = path.Join(sitePrefix, "output", strings.TrimSuffix(relativePath, ext), "index.html")
+				// We already rendered index.html above, return.
+				return nil
 			}
+			outputPath := path.Join(sitePrefix, "output", strings.TrimSuffix(relativePath, ext), "index.html")
 			err = MkdirAll(nbrew.FS, path.Dir(outputPath), 0755)
 			if err != nil {
 				return err
