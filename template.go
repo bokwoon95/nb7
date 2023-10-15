@@ -50,7 +50,7 @@ func NewTemplateParser(ctx context.Context, nbrew *Notebrew, sitePrefix string) 
 		case "subdomain":
 			siteURL = nbrew.Scheme + siteName + "." + nbrew.ContentDomain
 		case "subdirectory":
-			siteURL = nbrew.Scheme + nbrew.ContentDomain + "/" + sitePrefix
+			siteURL = nbrew.Scheme + nbrew.ContentDomain + "/" + sitePrefix + "/"
 		}
 	}
 	var shortSiteURL string
@@ -58,9 +58,6 @@ func NewTemplateParser(ctx context.Context, nbrew *Notebrew, sitePrefix string) 
 		shortSiteURL = strings.TrimSuffix(strings.TrimPrefix(siteURL, "https://"), "/")
 	} else {
 		shortSiteURL = strings.TrimSuffix(strings.TrimPrefix(siteURL, "http://"), "/")
-	}
-	if nbrew.MultisiteMode == "subdirectory" {
-		shortSiteURL += "/"
 	}
 	var categories []string
 	var categoriesErr error
