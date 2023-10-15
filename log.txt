@@ -28,6 +28,7 @@ log => images => RSS => publish
 
 TODO: why is the captcha not showing on mobile when it triggers?
 TODO: /posts/showcase/ is a special post category which displays the posts in an instagram-like image grid formation. Override with showcase.html in the templates. But do it only if people want it, because I don't use it and it's be a waste of space if I added that feature and no one used it.
+    - Actually, instead of a special category I can just add a new template function that grabs all the links of the photos for a given post, and the template can then use its custom logic to pick the right image to show as the featured image.
 TODO: rss reader (notebrew.com/admin/reader)
 TODO: should notebrew.com be the catch-all website? So people go there to browse rss stuff like they do HN, discover new posts, etc. But my main issue is that it would tread over the toes of the main site i.e. what if someone hosts notebrew on just one domain? All the dynamic stuff has to be squirrelled away into example.com/admin/, not example.com
 TODO: why does clicking a *.html.gz file hang and then 404? What's being calculated here?
