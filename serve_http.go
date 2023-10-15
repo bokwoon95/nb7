@@ -306,11 +306,7 @@ func (nbrew *Notebrew) admin(w http.ResponseWriter, r *http.Request, ip string) 
 		logger := getLogger(r.Context()).With(slog.String("username", username))
 		r = r.WithContext(context.WithValue(r.Context(), loggerKey, logger))
 		if !result.IsAuthorized {
-			if sitePrefix == "" && head == "" {
-				// ok
-			} else if head == "createsite" || head == "deletesite" {
-				// ok
-			} else {
+			if (sitePrefix != "" || head != "") && head != "createsite" && head != "deletesite" {
 				notAuthorized(w, r)
 				return
 			}
