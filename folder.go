@@ -278,7 +278,7 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 				entry.ModTime = &modTime
 			}
 			if entry.IsDir {
-				dirEntries, err := nbrew.FS.ReadDir(path.Join(folderPath, entry.Name))
+				dirEntries, err := nbrew.FS.ReadDir(path.Join(sitePrefix, folderPath, entry.Name))
 				if err != nil {
 					getLogger(r.Context()).Error(err.Error(), slog.String("name", dirEntry.Name()))
 					internalServerError(w, r, err)
@@ -303,7 +303,7 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 					fileEntries = append(fileEntries, entry)
 					continue
 				}
-				file, err := nbrew.FS.Open(path.Join(sitePrefix, response.Path, entry.Name))
+				file, err := nbrew.FS.Open(path.Join(sitePrefix, folderPath, entry.Name))
 				if err != nil {
 					getLogger(r.Context()).Error(err.Error(), slog.String("name", entry.Name))
 					internalServerError(w, r, err)

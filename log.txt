@@ -56,11 +56,7 @@ TODO: top left corner now links to the admin domain, followed by the relevant Co
 TODO: cut | copy | paste | rename (no need for link indexing and rewriting yet, that comes later)
 TODO: notes/posts/pages/themes search indexing
 TODO: notebrew.com/admin/log/
-    - system/indexes/log
-    - system/indexes/notes
-    - system/indexes/pages
-    - system/indexes/posts
-    - system/indexes/themes
+TODO: why is creating a folder in pages triggering a 500?
 
 BlugeFTS
 SQLiteFTS
