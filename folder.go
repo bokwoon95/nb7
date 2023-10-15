@@ -348,7 +348,20 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 					continue
 				}
 				next, _, _ := strings.Cut(tail, "/")
-				if next == "themes" {
+				if next == "images" || next == "posts" || next == "themes" {
+					dirEntries, err := nbrew.FS.ReadDir(path.Join(sitePrefix, folderPath, entry.Name))
+					if err != nil {
+						getLogger(r.Context()).Error(err.Error(), slog.String("name", dirEntry.Name()))
+						internalServerError(w, r, err)
+						return
+					}
+					for _, dirEntry := range dirEntries {
+						if dirEntry.IsDir() {
+							entry.NumFolders++
+						} else {
+							entry.NumFiles++
+						}
+					}
 					folderEntries = append(folderEntries, entry)
 					continue
 				}
