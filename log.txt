@@ -24,8 +24,9 @@ rename.go
 serve_http.go
 new.go
 
-journal => images => RSS => publish
+log => images => RSS => publish
 
+TODO: /posts/showcase/ is a special post category which displays the posts in an instagram-like image grid formation. Override with showcase.html in the templates. But do it only if people want it, because I don't use it and it's be a waste of space if I added that feature and no one used it.
 TODO: rss reader (notebrew.com/admin/rss)
 TODO: should notebrew.com be the catch-all website? So people go there to browse rss stuff like they do HN, discover new posts, etc. But my main issue is that it would tread over the toes of the main site i.e. what if someone hosts notebrew on just one domain? All the dynamic stuff has to be squirrelled away into example.com/admin/, not example.com
 TODO: why does clicking a *.html.gz file hang and then 404? What's being calculated here?
@@ -54,12 +55,14 @@ TODO: conservative rendering by default:
 TODO: top left corner now links to the admin domain, followed by the relevant ContentSiteURL is present.
 TODO: cut | copy | paste | rename (no need for link indexing and rewriting yet, that comes later)
 TODO: notes/posts/pages/themes search indexing
-TODO: notebrew.com/admin/journal/
-    - system/indexes/journal
+TODO: notebrew.com/admin/log/
+    - system/indexes/log
     - system/indexes/notes
     - system/indexes/pages
     - system/indexes/posts
     - system/indexes/themes
+TODO: notebrew.com/admin/log
+TODO: do you want to let logs be public?
 
 BlugeFTS
 SQLiteFTS

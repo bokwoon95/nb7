@@ -111,7 +111,7 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 
 	var folderEntries []Entry
 	var fileEntries []Entry
-	var notAuthorizedForRootSite bool
+	var authorizedForRootSite bool
 
 	if folderPath == "" {
 		// TODO: I really don't want to arrange items on the root page using a
@@ -139,7 +139,18 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 			return true
 		}
 		for _, name := range []string{"notes", "pages", "posts", "output/themes"} {
-			if folderExists(name) {
+			fileInfo, err := fs.Stat(nbrew.FS, path.Join(sitePrefix, name))
+			if err != nil {
+				if errors.Is(err, fs.ErrNotExist) {
+					continue
+				}
+				getLogger(r.Context()).Error(err.Error())
+				internalServerError(w, r, err)
+				return
+			}
+			if fileInfo.IsDir() {
+				if !fileInfo.ModTime().IsZero() {
+				}
 				folderEntries = append(folderEntries, Entry{
 					Name:  path.Base(name),
 					IsDir: true,
@@ -160,14 +171,56 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 		}
 		if sitePrefix == "" {
 			if nbrew.DB != nil {
+				results, err := sq.FetchAllContext(r.Context(), nbrew.DB, sq.CustomQuery{
+					Dialect: nbrew.Dialect,
+					Format: "SELECT {*}" +
+						" FROM site" +
+						" JOIN site_user ON site_user.site_id = site.site_id" +
+						" JOIN users ON users.user_id = site_user.user_id" +
+						" WHERE users.username = {username}" +
+						" ORDER BY site_prefix",
+					Values: []any{
+						sq.StringParam("username", username),
+					},
+				}, func(row *sq.Row) (result struct {
+					Name   string
+					IsUser bool
+				}) {
+					result.Name = row.String("CASE" +
+						" WHEN site.site_name LIKE '%.%' THEN site.site_name" +
+						" WHEN site.site_name <> '' THEN '@' || site.site_name" +
+						" ELSE ''" +
+						" END AS site_prefix",
+					)
+					result.IsUser = row.Bool("EXISTS (SELECT 1 FROM users WHERE users.username = site.site_name)")
+					return result
+				})
+				if err != nil {
+					getLogger(r.Context()).Error(err.Error())
+					internalServerError(w, r, err)
+					return
+				}
+				for _, result := range results {
+					if result.Name == "" {
+						authorizedForRootSite = true
+					}
+					if folderExists(result.Name) {
+						folderEntries = append(folderEntries, Entry{
+							Name:   result.Name,
+							IsDir:  true,
+							IsSite: true,
+							IsUser: result.IsUser,
+						})
+					}
+				}
 			} else {
+				authorizedForRootSite = true
 			}
 		}
 	}
 
 	// If folderPath empty, show notes/, pages/, posts/, output/ folders.
 	if folderPath == "" {
-
 		// If database is present and sitePrefix is empty, show site
 		// folders the user is authorized for.
 		if nbrew.DB != nil && sitePrefix == "" {
@@ -391,31 +444,6 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 			}
 		}
 	}
-	slices.SortFunc(folderEntries, func(a, b Entry) int {
-		isSiteA := strings.HasPrefix(a.Name, "@") || strings.Contains(a.Name, ".")
-		isSiteB := strings.HasPrefix(b.Name, "@") || strings.Contains(b.Name, ".")
-		// Custom rule: the output folder comes after all folders but before
-		// all sites.
-		if a.Name == "output" {
-			if isSiteB {
-				return -1
-			}
-			return 1
-		}
-		if b.Name == "output" {
-			if isSiteA {
-				return 1
-			}
-			return -1
-		}
-		if isSiteA && !isSiteB {
-			return 1
-		}
-		if !isSiteA && isSiteB {
-			return -1
-		}
-		return strings.Compare(path.Base(a.Name), path.Base(b.Name))
-	})
 
 	switch response.Sort {
 	case "name", "created":
@@ -494,7 +522,7 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 		"referer":               func() string { return r.Referer() },
 		"sitePrefix":            func() string { return sitePrefix },
 		"safeHTML":              func(s string) template.HTML { return template.HTML(s) },
-		"authorizedForRootSite": func() bool { return !notAuthorizedForRootSite },
+		"authorizedForRootSite": func() bool { return authorizedForRootSite },
 		"head": func(s string) string {
 			head, _, _ := strings.Cut(s, "/")
 			return head
