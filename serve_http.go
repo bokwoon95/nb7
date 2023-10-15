@@ -166,6 +166,50 @@ func (nbrew *Notebrew) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "404 Not Found", http.StatusNotFound)
 		return
 	}
+
+	custom404 := func(w http.ResponseWriter, r *http.Request, sitePrefix string) {
+		file, err := nbrew.FS.Open(path.Join(sitePrefix, "output/themes/404.html"))
+		if err != nil {
+			if errors.Is(err, fs.ErrNotExist) {
+				http.Error(w, "404 Not Found", http.StatusNotFound)
+				return
+			}
+			getLogger(r.Context()).Error(err.Error())
+			http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		fileInfo, err := file.Stat()
+		if err != nil {
+			getLogger(r.Context()).Error(err.Error())
+			http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		var b strings.Builder
+		b.Grow(int(fileInfo.Size()))
+		_, err = io.Copy(&b, file)
+		if err != nil {
+			getLogger(r.Context()).Error(err.Error())
+			http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		templateParser, err := NewTemplateParser(r.Context(), nbrew, sitePrefix)
+		if err != nil {
+			getLogger(r.Context()).Error(err.Error())
+			http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		tmpl, err := templateParser.Parse(b.String())
+		if err != nil {
+			http.Error(w, "404 Not Found\n"+err.Error(), http.StatusNotFound)
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+		err = tmpl.Execute(w, nil)
+		if err != nil {
+			io.WriteString(w, err.Error())
+		}
+	}
+
 	if r.Method != "GET" {
 		http.Error(w, "405 Method Not Allowed", http.StatusMethodNotAllowed)
 		return
@@ -178,7 +222,7 @@ func (nbrew *Notebrew) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	extInfo, ok := extensionInfo[ext]
 	if !ok {
-		http.Error(w, "404 Not Found", http.StatusNotFound)
+		custom404(w, r, sitePrefix)
 		return
 	}
 
@@ -191,7 +235,7 @@ func (nbrew *Notebrew) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if !extInfo.isGzippable {
-			http.Error(w, "404 Not Found", http.StatusNotFound)
+			custom404(w, r, sitePrefix)
 			return
 		}
 		file, err = nbrew.FS.Open(name + ".gz")
@@ -201,7 +245,7 @@ func (nbrew *Notebrew) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
 				return
 			}
-			http.Error(w, "404 Not Found", http.StatusNotFound)
+			custom404(w, r, sitePrefix)
 			return
 		}
 		isGzipped = true
@@ -215,7 +259,7 @@ func (nbrew *Notebrew) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if fileInfo.IsDir() {
-		http.Error(w, "404 Not Found", http.StatusNotFound)
+		custom404(w, r, sitePrefix)
 		return
 	}
 
@@ -336,6 +380,39 @@ var extensionInfo = map[string]struct {
 	".woff2": {"font/woff2", false},
 	".gzip":  {"application/gzip", false},
 	".gz":    {"application/gzip", false},
+}
+
+func (nbrew *Notebrew) custom404(w http.ResponseWriter, r *http.Request, sitePrefix string) {
+	file, err := nbrew.FS.Open(path.Join(sitePrefix, "output/themes/404.html"))
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			http.Error(w, "404 Not Found", http.StatusNotFound)
+			return
+		}
+		getLogger(r.Context()).Error(err.Error())
+		http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	fileInfo, err := file.Stat()
+	if err != nil {
+		getLogger(r.Context()).Error(err.Error())
+		http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	var b strings.Builder
+	b.Grow(int(fileInfo.Size()))
+	_, err = io.Copy(&b, file)
+	if err != nil {
+		getLogger(r.Context()).Error(err.Error())
+		http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	postTmpl, err := templateParser.Parse(b.String())
+	if err != nil {
+		getLogger(r.Context()).Error(err.Error())
+		http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
+		return
+	}
 }
 
 func (nbrew *Notebrew) admin(w http.ResponseWriter, r *http.Request, ip string) {
