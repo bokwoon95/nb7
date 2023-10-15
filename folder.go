@@ -114,60 +114,62 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 	var authorizedForRootSite bool
 
 	if folderPath == "" {
-		// TODO: I really don't want to arrange items on the root page using a
-		// custom sort function. I just want to append arbitrary stuff. Here's
-		// how:
-		// define a function that checks if a folder exists
-		// for each folder in notes/, pages/, posts/, output/themes/ check if it exists and if so append it
-		// if database is provided, append journal/
-		// if output/ exists append it
-		// var authorizedForRootSite bool
-		// if sitePrefix == ""
-		//   if database exists, crawl the database for the user's sites and if the site folder exists append it
-		//     authorizedForRootSite = true only if the root site is found
-		//   else crawl the root folder and for any site folders append it
-		//     authorizedForRootSite is always equal to true
-		//   if !authorizedForRootSite, fiter the slice in place by removing anything equal to notes, pages, posts, output/themes and output.
-		folderExists := func(folder string) bool {
-			fileInfo, err := fs.Stat(nbrew.FS, path.Join(sitePrefix, folder))
-			if err != nil {
-				return false
-			}
-			if !fileInfo.IsDir() {
-				return false
-			}
-			return true
-		}
 		for _, name := range []string{"notes", "pages", "posts", "output/themes"} {
 			fileInfo, err := fs.Stat(nbrew.FS, path.Join(sitePrefix, name))
 			if err != nil {
-				if errors.Is(err, fs.ErrNotExist) {
-					continue
+				if !errors.Is(err, fs.ErrNotExist) {
+					getLogger(r.Context()).Error(err.Error())
+					internalServerError(w, r, err)
+					return
 				}
-				getLogger(r.Context()).Error(err.Error())
-				internalServerError(w, r, err)
-				return
-			}
-			if fileInfo.IsDir() {
-				if !fileInfo.ModTime().IsZero() {
-				}
-				folderEntries = append(folderEntries, Entry{
-					Name:  path.Base(name),
+			} else if fileInfo.IsDir() {
+				entry := Entry{
+					Name:  name,
 					IsDir: true,
-				})
+				}
+				modTime := fileInfo.ModTime()
+				if !modTime.IsZero() {
+					entry.ModTime = &modTime
+				}
+				dirEntries, err := nbrew.FS.ReadDir(path.Join(sitePrefix, name))
+				if err != nil {
+					getLogger(r.Context()).Error(err.Error())
+					internalServerError(w, r, err)
+					return
+				}
+				for _, dirEntry := range dirEntries {
+					if dirEntry.IsDir() {
+						entry.NumFolders++
+					} else {
+						entry.NumFiles++
+					}
+				}
+				folderEntries = append(folderEntries, entry)
 			}
 		}
 		if nbrew.DB != nil {
 			folderEntries = append(folderEntries, Entry{
-				Name:  "journal",
+				Name:  "logs",
 				IsDir: true,
 			})
 		}
-		if folderExists("output") {
-			folderEntries = append(folderEntries, Entry{
+		fileInfo, err := fs.Stat(nbrew.FS, path.Join(sitePrefix, "output"))
+		if err != nil {
+			if !errors.Is(err, fs.ErrNotExist) {
+				getLogger(r.Context()).Error(err.Error())
+				internalServerError(w, r, err)
+				return
+			}
+		} else if fileInfo.IsDir() {
+			entry := Entry{
 				Name:  "output",
 				IsDir: true,
-			})
+			}
+			modTime := fileInfo.ModTime()
+			if !modTime.IsZero() {
+				entry.ModTime = &modTime
+			}
+			folderEntries = append(folderEntries, entry)
 		}
 		if sitePrefix == "" {
 			if nbrew.DB != nil {
@@ -183,10 +185,10 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 						sq.StringParam("username", username),
 					},
 				}, func(row *sq.Row) (result struct {
-					Name   string
-					IsUser bool
+					SitePrefix string
+					IsUser     bool
 				}) {
-					result.Name = row.String("CASE" +
+					result.SitePrefix = row.String("CASE" +
 						" WHEN site.site_name LIKE '%.%' THEN site.site_name" +
 						" WHEN site.site_name <> '' THEN '@' || site.site_name" +
 						" ELSE ''" +
@@ -201,143 +203,60 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 					return
 				}
 				for _, result := range results {
-					if result.Name == "" {
+					if result.SitePrefix == "" {
 						authorizedForRootSite = true
+						continue
 					}
-					if folderExists(result.Name) {
+					fileInfo, err := fs.Stat(nbrew.FS, path.Clean(result.SitePrefix))
+					if err != nil {
+						if !errors.Is(err, fs.ErrNotExist) {
+							getLogger(r.Context()).Error(err.Error())
+							internalServerError(w, r, err)
+							return
+						}
+					} else if fileInfo.IsDir() {
 						folderEntries = append(folderEntries, Entry{
-							Name:   result.Name,
+							Name:   result.SitePrefix,
 							IsDir:  true,
 							IsSite: true,
 							IsUser: result.IsUser,
 						})
 					}
 				}
+				if !authorizedForRootSite {
+					n := 0
+					for _, entry := range folderEntries {
+						switch entry.Name {
+						case "notes", "pages", "posts", "output/themes", "output":
+							break
+						default:
+							folderEntries[n] = entry
+							n++
+						}
+					}
+					folderEntries = folderEntries[:n]
+				}
 			} else {
 				authorizedForRootSite = true
-			}
-		}
-	}
-
-	// If folderPath empty, show notes/, pages/, posts/, output/ folders.
-	if folderPath == "" {
-		// If database is present and sitePrefix is empty, show site
-		// folders the user is authorized for.
-		if nbrew.DB != nil && sitePrefix == "" {
-			type RootFolder struct {
-				Name   string
-				IsUser bool
-			}
-			rootFolders, err := sq.FetchAllContext(r.Context(), nbrew.DB, sq.CustomQuery{
-				Dialect: nbrew.Dialect,
-				Format: "SELECT {*}" +
-					" FROM site" +
-					" JOIN site_user ON site_user.site_id = site.site_id" +
-					" JOIN users ON users.user_id = site_user.user_id" +
-					" WHERE users.username = {username}" +
-					" ORDER BY site_prefix",
-				Values: []any{
-					sq.StringParam("username", username),
-				},
-			}, func(row *sq.Row) RootFolder {
-				return RootFolder{
-					Name: row.String("CASE" +
-						" WHEN site.site_name LIKE '%.%' THEN site.site_name" +
-						" WHEN site.site_name <> '' THEN '@' || site.site_name" +
-						" ELSE ''" +
-						" END AS site_prefix",
-					),
-					IsUser: row.Bool("EXISTS (SELECT 1 FROM users WHERE username = site.site_name)"),
-				}
-			})
-			if err != nil {
-				getLogger(r.Context()).Error(err.Error())
-				internalServerError(w, r, err)
-				return
-			}
-			hasRootSite := slices.ContainsFunc(rootFolders, func(rootFolder RootFolder) bool {
-				return rootFolder.Name == ""
-			})
-			if hasRootSite {
-				rootFolders = append(rootFolders,
-					RootFolder{Name: "notes"},
-					RootFolder{Name: "pages"},
-					RootFolder{Name: "posts"},
-					RootFolder{Name: "output/themes"},
-					RootFolder{Name: "output"},
-				)
-			} else {
-				notAuthorizedForRootSite = true
-			}
-			for _, rootFolder := range rootFolders {
-				if rootFolder.Name == "" {
-					continue
-				}
-				fileInfo, err := fs.Stat(nbrew.FS, rootFolder.Name)
+				dirEntries, err := nbrew.FS.ReadDir(".")
 				if err != nil {
-					if !errors.Is(err, fs.ErrNotExist) {
-						getLogger(r.Context()).Error(err.Error())
-					}
-					continue
+					getLogger(r.Context()).Error(err.Error())
+					internalServerError(w, r, err)
+					return
 				}
-				if !fileInfo.IsDir() {
-					continue
-				}
-				folderEntry := Entry{
-					Name:   rootFolder.Name,
-					IsDir:  true,
-					IsSite: strings.HasPrefix(rootFolder.Name, "@") || strings.Contains(rootFolder.Name, "."),
-					IsUser: rootFolder.IsUser,
-				}
-				modTime := fileInfo.ModTime()
-				if !modTime.IsZero() {
-					folderEntry.ModTime = &modTime
-				}
-				folderEntries = append(folderEntries, folderEntry)
-			}
-		} else {
-			// path.Clean the sitePrefix in case it is an empty string, in
-			// which case it becomes "."
-			dirEntries, err := nbrew.FS.ReadDir(path.Clean(sitePrefix))
-			if err != nil {
-				getLogger(r.Context()).Error(err.Error())
-				internalServerError(w, r, err)
-				return
-			}
-			for _, dirEntry := range dirEntries {
-				entry := Entry{
-					Name:  dirEntry.Name(),
-					IsDir: dirEntry.IsDir(),
-				}
-				if !entry.IsDir {
-					continue
-				}
-				switch entry.Name {
-				case "notes", "pages", "posts":
-					folderEntries = append(folderEntries, entry)
-				case "output":
-					folderEntries = append(folderEntries, entry)
-					fileInfo, err := fs.Stat(nbrew.FS, path.Join(sitePrefix, "output/themes"))
-					if err != nil && !errors.Is(err, fs.ErrNotExist) {
-						getLogger(r.Context()).Error(err.Error())
-						internalServerError(w, r, err)
-						return
-					}
-					if fileInfo != nil && fileInfo.IsDir() {
-						folderEntries = append(folderEntries, Entry{
-							Name:  "output/themes",
-							IsDir: true,
-						})
-					}
-				default:
-					if sitePrefix != "" {
+				for _, dirEntry := range dirEntries {
+					if !dirEntry.IsDir() {
 						continue
 					}
-					if !strings.HasPrefix(entry.Name, "@") && !strings.Contains(entry.Name, ".") {
+					name := dirEntry.Name()
+					if !strings.Contains(name, ".") && !strings.HasPrefix(name, "@") {
 						continue
 					}
-					entry.IsSite = true
-					folderEntries = append(folderEntries, entry)
+					folderEntries = append(folderEntries, Entry{
+						Name:   name,
+						IsDir:  true,
+						IsSite: true,
+					})
 				}
 			}
 		}
@@ -363,6 +282,21 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 			modTime := fileInfo.ModTime()
 			if !modTime.IsZero() {
 				entry.ModTime = &modTime
+			}
+			if entry.IsDir {
+				dirEntries, err := nbrew.FS.ReadDir(path.Join(folderPath, entry.Name))
+				if err != nil {
+					getLogger(r.Context()).Error(err.Error(), slog.String("name", dirEntry.Name()))
+					internalServerError(w, r, err)
+					return
+				}
+				for _, dirEntry := range dirEntries {
+					if dirEntry.IsDir() {
+						entry.NumFolders++
+					} else {
+						entry.NumFiles++
+					}
+				}
 			}
 			ext := path.Ext(entry.Name)
 			switch head {
@@ -426,25 +360,6 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 		}
 	}
 
-	for i, folderEntry := range folderEntries {
-		if strings.HasPrefix(folderEntry.Name, "@") || strings.Contains(folderEntry.Name, ".") {
-			continue
-		}
-		dirEntries, err := nbrew.FS.ReadDir(path.Join(sitePrefix, folderPath, folderEntry.Name))
-		if err != nil {
-			getLogger(r.Context()).Error(err.Error(), slog.String("name", folderEntry.Name))
-			internalServerError(w, r, err)
-			return
-		}
-		for _, dirEntry := range dirEntries {
-			if dirEntry.IsDir() {
-				folderEntries[i].NumFolders++
-			} else {
-				folderEntries[i].NumFiles++
-			}
-		}
-	}
-
 	switch response.Sort {
 	case "name", "created":
 		if response.Order == "desc" {
@@ -492,10 +407,7 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 		}
 	}
 
-	response.Entries = make([]Entry, 0, len(folderEntries)+len(fileEntries))
-	response.Entries = append(response.Entries, folderEntries...)
-	response.Entries = append(response.Entries, fileEntries...)
-
+	response.Entries = append(folderEntries, fileEntries...)
 	response.ContentSiteURL = contentSiteURL(nbrew, sitePrefix)
 	accept, _, _ := mime.ParseMediaType(r.Header.Get("Accept"))
 	if accept == "application/json" {
@@ -518,6 +430,7 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 		"fileSizeToString":      fileSizeToString,
 		"stylesCSS":             func() template.CSS { return template.CSS(stylesCSS) },
 		"folderJS":              func() template.JS { return template.JS(folderJS) },
+		"hasDatabase":           func() bool { return nbrew.DB != nil },
 		"username":              func() string { return username },
 		"referer":               func() string { return r.Referer() },
 		"sitePrefix":            func() string { return sitePrefix },

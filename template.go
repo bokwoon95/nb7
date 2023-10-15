@@ -324,7 +324,7 @@ func (nbrew *Notebrew) RegenerateSite(ctx context.Context, sitePrefix string) er
 		return err
 	}
 
-	dirEntries, err := fs.ReadDir(nbrew.FS, path.Join(sitePrefix, "output"))
+	dirEntries, err := nbrew.FS.ReadDir(path.Join(sitePrefix, "output"))
 	if err != nil {
 		return err
 	}

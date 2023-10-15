@@ -15,8 +15,12 @@
     <a href="{{ $.ContentSiteURL }}" class="ma2">{{ neatenURL $.ContentSiteURL }}</a>
     {{- end }}
     <span class="flex-grow-1"></span>
+    {{- if hasDatabase }}
+    <a href="" class="ma2">rss</a>
+    <a href="" class="ma2">logs</a>
     <a href="" class="ma2">{{ if username }}@{{ username }}{{ else }}user{{ end }}</a>
     <a href="/admin/logout/" class="ma2">logout</a>
+    {{- end }}
 </nav>
 {{- if containsError (index $.Errors "type") "NB-05000" "NB-05010" }}
 <ul class="mv5 w-80 w-70-m w-60-l center">

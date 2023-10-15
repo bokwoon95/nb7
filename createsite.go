@@ -24,6 +24,7 @@ func (nbrew *Notebrew) createsite(w http.ResponseWriter, r *http.Request, userna
 		SiteName string             `json:"siteName,omitempty"`
 		Errors   map[string][]Error `json:"errors,omitempty"`
 	}
+	const MAX_SITES = 3
 
 	getNumSites := func() (int, error) {
 		return sq.FetchOneContext(r.Context(), nbrew.DB, sq.CustomQuery{
@@ -98,7 +99,7 @@ func (nbrew *Notebrew) createsite(w http.ResponseWriter, r *http.Request, userna
 			internalServerError(w, r, err)
 			return
 		}
-		if numSites >= 10 {
+		if numSites >= MAX_SITES {
 			response.Status = ErrMaxSitesReached
 			writeResponse(w, r, response)
 			return
@@ -191,7 +192,7 @@ func (nbrew *Notebrew) createsite(w http.ResponseWriter, r *http.Request, userna
 			internalServerError(w, r, err)
 			return
 		}
-		if numSites >= 10 {
+		if numSites >= MAX_SITES {
 			response.Status = ErrMaxSitesReached
 			writeResponse(w, r, response)
 			return

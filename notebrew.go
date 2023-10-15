@@ -764,7 +764,7 @@ func (nbrew *Notebrew) getPosts(ctx context.Context, sitePrefix, category string
 	if !fileInfo.IsDir() {
 		return nil, nil
 	}
-	dirEntries, err := fs.ReadDir(nbrew.FS, path.Join(sitePrefix, "posts", category))
+	dirEntries, err := nbrew.FS.ReadDir(path.Join(sitePrefix, "posts", category))
 	if err != nil {
 		return nil, err
 	}

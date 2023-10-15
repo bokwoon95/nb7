@@ -61,8 +61,10 @@ TODO: notebrew.com/admin/log/
     - system/indexes/pages
     - system/indexes/posts
     - system/indexes/themes
-TODO: notebrew.com/admin/log
-TODO: do you want to let logs be public?
+TODO: add "preview" to the dropdown menu of posts and pages
+TODO: add "admin" to all the &boxv; navbars
+TODO: add "logs" and "rss reader" to the top
+TODO: do you want to let logs be public? No, if all dynamic stuff is gated behind a login and public-facing stuff is static, we can create some very high performance servers on very low end hardware.
 
 BlugeFTS
 SQLiteFTS

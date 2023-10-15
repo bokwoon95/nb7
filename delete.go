@@ -154,7 +154,7 @@ func (nbrew *Notebrew) delet(w http.ResponseWriter, r *http.Request, username, s
 			}
 			var numFolders, numFiles int
 			if fileInfo.IsDir() {
-				dirEntries, err := fs.ReadDir(nbrew.FS, path.Join(sitePrefix, response.ParentFolder, name))
+				dirEntries, err := nbrew.FS.ReadDir(path.Join(sitePrefix, response.ParentFolder, name))
 				if err != nil {
 					getLogger(r.Context()).Error(err.Error())
 					internalServerError(w, r, err)

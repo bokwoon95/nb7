@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io/fs"
 	"path/filepath"
 	"slices"
 	"strconv"
@@ -20,7 +19,7 @@ func (dir *FilesystemDirectory) Setup(readOnly bool) error {
 }
 
 func (dir *FilesystemDirectory) List(kind string) ([]uint64, error) {
-	dirEntries, err := fs.ReadDir(dir.fs, ".")
+	dirEntries, err := dir.fs.ReadDir(".")
 	if err != nil {
 		return nil, err
 	}

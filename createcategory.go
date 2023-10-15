@@ -44,14 +44,15 @@ func (nbrew *Notebrew) createcategory(w http.ResponseWriter, r *http.Request, us
 				return
 			}
 			funcMap := map[string]any{
-				"join":       path.Join,
-				"neatenURL":  neatenURL,
-				"stylesCSS":  func() template.CSS { return template.CSS(stylesCSS) },
-				"baselineJS": func() template.JS { return template.JS(baselineJS) },
-				"referer":    func() string { return r.Referer() },
-				"username":   func() string { return username },
-				"sitePrefix": func() string { return sitePrefix },
-				"safeHTML":   func(s string) template.HTML { return template.HTML(s) },
+				"join":        path.Join,
+				"neatenURL":   neatenURL,
+				"stylesCSS":   func() template.CSS { return template.CSS(stylesCSS) },
+				"baselineJS":  func() template.JS { return template.JS(baselineJS) },
+				"hasDatabase": func() bool { return nbrew.DB != nil },
+				"referer":     func() string { return r.Referer() },
+				"username":    func() string { return username },
+				"sitePrefix":  func() string { return sitePrefix },
+				"safeHTML":    func(s string) template.HTML { return template.HTML(s) },
 				"containsError": func(errors []Error, codes ...string) bool {
 					return slices.ContainsFunc(errors, func(err Error) bool {
 						return slices.Contains(codes, err.Code())

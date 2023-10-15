@@ -9,7 +9,7 @@ CREATE TABLE files (
 
 CREATE VIRTUAL TABLE files_index USING fts5 (value, content = ''/*, contentless_delete = 1 */);
 
-CREATE VIRTUAL TABLE journal_entry_index USING fts5 (value, content = 'journal_entry'/* , contentless_delete = 1 */);
+CREATE VIRTUAL TABLE logs_index USING fts5 (value, content = 'logs'/* , contentless_delete = 1 */);
 
 -- Postgres
 CREATE TABLE files_index (
@@ -23,9 +23,9 @@ CREATE TABLE files_index (
 
 CREATE INDEX files_index_ts_idx ON files_index USING GIN (ts);
 
-ALTER TABLE journal_entry ADD COLUMN ts TSVECTOR;
+ALTER TABLE logs ADD COLUMN ts TSVECTOR;
 
-CREATE INDEX journal_entry_ts_idx ON journal_entry USING GIN (ts);
+CREATE INDEX logs_ts_idx ON logs USING GIN (ts);
 
 -- MySQL
 CREATE TABLE files_index (
@@ -39,4 +39,4 @@ CREATE TABLE files_index (
 
 CREATE FULLTEXT INDEX files_index_value_idx ON files_index (value);
 
-CREATE FULLTEXT INDEX journal_entry_value_idx ON journal_entry (value);
+CREATE FULLTEXT INDEX logs_value_idx ON logs (value);
