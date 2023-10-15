@@ -201,9 +201,7 @@ func (nbrew *Notebrew) createnote(w http.ResponseWriter, r *http.Request, userna
 				if title == "" {
 					continue
 				}
-				var b strings.Builder
-				stripMarkdownStyles(&b, []byte(title))
-				title = b.String()
+				title = stripMarkdownStyles([]byte(title))
 				break
 			}
 			slug = urlSafe(title)

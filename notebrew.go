@@ -301,7 +301,10 @@ var goldmarkMarkdown = func() goldmark.Markdown {
 	return md
 }()
 
-func stripMarkdownStyles(dest io.Writer, src []byte) {
+func stripMarkdownStyles(src []byte) string {
+	buf := bufPool.Get().(*bytes.Buffer)
+	buf.Reset()
+	defer bufPool.Put(buf)
 	var node ast.Node
 	nodes := []ast.Node{goldmarkMarkdown.Parser().Parse(text.NewReader(src))}
 	for len(nodes) > 0 {
@@ -311,10 +314,25 @@ func stripMarkdownStyles(dest io.Writer, src []byte) {
 		}
 		switch node := node.(type) {
 		case *ast.Text:
-			dest.Write(node.Text(src))
+			buf.Write(node.Text(src))
 		}
 		nodes = append(nodes, node.NextSibling(), node.FirstChild())
 	}
+	// Manually escape the backslashes (goldmark may be able to do this,
+	// investigate).
+	var b strings.Builder
+	format := buf.String()
+	for i := strings.IndexByte(format, '\\'); i >= 0; i = strings.IndexByte(format, '\\') {
+		b.WriteString(format[:i])
+		if i == len(format)-1 {
+			break
+		}
+		char, width := utf8.DecodeRuneInString(format[i+1:])
+		b.WriteRune(char)
+		format = format[i+1+width:]
+	}
+	b.WriteString(format)
+	return b.String()
 }
 
 var uppercaseCharSet = map[rune]struct{}{
@@ -839,14 +857,10 @@ func (nbrew *Notebrew) getPosts(ctx context.Context, sitePrefix, category string
 					continue
 				}
 				if post.Title == "" {
-					var b strings.Builder
-					stripMarkdownStyles(&b, line)
-					post.Title = b.String()
+					post.Title = stripMarkdownStyles(line)
 					continue
 				}
-				var b strings.Builder
-				stripMarkdownStyles(&b, line)
-				post.Preview = b.String()
+				post.Preview = stripMarkdownStyles(line)
 				break
 			}
 			return nil

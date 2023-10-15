@@ -322,15 +322,11 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 						continue
 					}
 					if entry.Title == "" {
-						var b strings.Builder
-						stripMarkdownStyles(&b, line)
-						entry.Title = b.String()
+						entry.Title = stripMarkdownStyles(line)
 						continue
 					}
 					if entry.Preview == "" {
-						var b strings.Builder
-						stripMarkdownStyles(&b, line)
-						entry.Preview = b.String()
+						entry.Preview = stripMarkdownStyles(line)
 						continue
 					}
 					break

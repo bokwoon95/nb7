@@ -527,9 +527,7 @@ func (nbrew *Notebrew) RegenerateSite(ctx context.Context, sitePrefix string) er
 				if len(line) == 0 {
 					continue
 				}
-				var b strings.Builder
-				stripMarkdownStyles(&b, line)
-				title = b.String()
+				title = stripMarkdownStyles(line)
 				break
 			}
 			// content
