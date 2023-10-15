@@ -35,7 +35,7 @@
     {{- end }}
     <h3 class="mv3 b">Delete the following item(s)?</h3>
     <input type="hidden" name="parentFolder" value="{{ $.ParentFolder }}">
-    <ul class="list-style-disc">
+    <ul class="ph3 list-style-disc">
         {{- range $item := $.Items }}
         <li class="mv1">
             <a href="/{{ join `admin` sitePrefix $.ParentFolder $item.Name }}{{ if $item.IsDir }}/{{ end }}" class="linktext">{{ $item.Name }}{{ if $item.IsDir }}/{{ end }}</a>

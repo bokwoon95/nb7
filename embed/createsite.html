@@ -22,8 +22,12 @@
     {{- if referer }}
     <div><a href="{{ referer }}" class="linktext" data-go-back>&larr; back</a></div>
     {{- end }}
-    <div class="mv3 b">You have reached the maximum of 10 sites, cannot create any more.</div>
-    <div><a href="/admin/" class="linktext">View sites</a></div>
+    <div class="mv3 b">You have reached the maximum of {{ maxSites }} sites, cannot create any more.</div>
+    <ul class="ph3">
+        {{- range $siteName := $.SiteNames }}
+        <li><a href="/{{ join `admin` (toSitePrefix $siteName) }}/" class="linktext">{{ $siteName }}</a></li>
+        {{- end }}
+    </ul>
 </div>
 {{- else }}
 <form method="post" action="/admin/createsite/" class="mv5 w-80 w-70-m w-60-l center">

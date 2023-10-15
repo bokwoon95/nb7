@@ -20,28 +20,30 @@ func (nbrew *Notebrew) createsite(w http.ResponseWriter, r *http.Request, userna
 		SiteName string `json:"siteName,omitempty"`
 	}
 	type Response struct {
-		Status   Error              `json:"status"`
-		SiteName string             `json:"siteName,omitempty"`
-		Errors   map[string][]Error `json:"errors,omitempty"`
+		Status    Error              `json:"status"`
+		SiteName  string             `json:"siteName,omitempty"`
+		SiteNames []string           `json:"siteNames,omitempty"`
+		Errors    map[string][]Error `json:"errors,omitempty"`
 	}
-	const MAX_SITES = 3
+	const maxSites = 3
 
-	getNumSites := func() (int, error) {
-		return sq.FetchOneContext(r.Context(), nbrew.DB, sq.CustomQuery{
+	getSiteNames := func(username string) ([]string, error) {
+		return sq.FetchAllContext(r.Context(), nbrew.DB, sq.CustomQuery{
 			Dialect: nbrew.Dialect,
 			Format: "SELECT {*}" +
 				" FROM site" +
 				" JOIN site_user ON site_user.site_id = site.site_id" +
 				" JOIN users ON users.user_id = site_user.user_id" +
 				" WHERE users.username = {username}" +
+				" AND site.site_name <> ''" +
 				" AND NOT EXISTS (" +
 				"SELECT 1 FROM users WHERE username = site.site_name" +
 				")",
 			Values: []any{
 				sq.StringParam("username", username),
 			},
-		}, func(row *sq.Row) int {
-			return row.Int("COUNT(*)")
+		}, func(row *sq.Row) string {
+			return row.String("site.site_name")
 		})
 	}
 
@@ -61,11 +63,22 @@ func (nbrew *Notebrew) createsite(w http.ResponseWriter, r *http.Request, userna
 				return
 			}
 			funcMap := map[string]any{
+				"join":        path.Join,
 				"stylesCSS":   func() template.CSS { return template.CSS(stylesCSS) },
 				"baselineJS":  func() template.JS { return template.JS(baselineJS) },
 				"hasDatabase": func() bool { return nbrew.DB != nil },
 				"referer":     func() string { return r.Referer() },
 				"username":    func() string { return username },
+				"maxSites":    func() int { return maxSites },
+				"toSitePrefix": func(s string) string {
+					if strings.Contains(s, ".") {
+						return s
+					}
+					if s != "" {
+						return "@" + s
+					}
+					return s
+				},
 			}
 			tmpl, err := template.New("createsite.html").Funcs(funcMap).ParseFS(rootFS, "embed/createsite.html")
 			if err != nil {
@@ -94,13 +107,13 @@ func (nbrew *Notebrew) createsite(w http.ResponseWriter, r *http.Request, userna
 			writeResponse(w, r, response)
 			return
 		}
-		numSites, err := getNumSites()
+		response.SiteNames, err = getSiteNames(username)
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
 			internalServerError(w, r, err)
 			return
 		}
-		if numSites >= MAX_SITES {
+		if len(response.SiteNames) >= maxSites {
 			response.Status = ErrMaxSitesReached
 			writeResponse(w, r, response)
 			return
@@ -186,14 +199,13 @@ func (nbrew *Notebrew) createsite(w http.ResponseWriter, r *http.Request, userna
 			SiteName: request.SiteName,
 			Errors:   make(map[string][]Error),
 		}
-
-		numSites, err := getNumSites()
+		response.SiteNames, err = getSiteNames(username)
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
 			internalServerError(w, r, err)
 			return
 		}
-		if numSites >= MAX_SITES {
+		if len(response.SiteNames) >= maxSites {
 			response.Status = ErrMaxSitesReached
 			writeResponse(w, r, response)
 			return
