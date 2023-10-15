@@ -59,6 +59,9 @@ func NewTemplateParser(ctx context.Context, nbrew *Notebrew, sitePrefix string) 
 	} else {
 		shortSiteURL = strings.TrimSuffix(strings.TrimPrefix(siteURL, "http://"), "/")
 	}
+	if nbrew.MultisiteMode == "subdirectory" {
+		shortSiteURL += "/"
+	}
 	var categories []string
 	var categoriesErr error
 	var categoriesOnce sync.Once
