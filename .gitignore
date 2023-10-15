@@ -5,7 +5,3 @@ static/dist
 *_test.db-shm
 *_test.db-wal
 static/codemirror.js
-static/codemirror-html.js
-static/codemirror-css.js
-static/codemirror-javascript.js
-static/codemirror-markdown.js
