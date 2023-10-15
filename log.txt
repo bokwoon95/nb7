@@ -57,6 +57,7 @@ TODO: top left corner now links to the admin domain, followed by the relevant Co
 TODO: cut | copy | paste | rename (no need for link indexing and rewriting yet, that comes later)
 TODO: notes/posts/pages/themes search indexing
 TODO: notebrew.com/admin/log/
+TODO: need to register www subdomain for both AdminDomain and ContentDomain so that people can point their custom domain at the www.example.io in order to essentially have their own custom domain.
 
 BlugeFTS
 SQLiteFTS
