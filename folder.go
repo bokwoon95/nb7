@@ -457,7 +457,7 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 		},
 		"generateBreadcrumbLinks": func(filePath string) template.HTML {
 			var b strings.Builder
-			b.WriteString(`<a href="/admin/" class="linktext ma1">admin</a>`)
+			b.WriteString(`<a href="/admin/" class="linktext">admin</a>`)
 			segments := strings.Split(filePath, "/")
 			if sitePrefix != "" {
 				segments = append([]string{sitePrefix}, segments...)
@@ -470,7 +470,7 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 				if i == len(segments)-1 && !response.IsDir {
 					href = strings.TrimSuffix(href, `/`)
 				}
-				b.WriteString(`/<a href="` + href + `" class="linktext ma1">` + segments[i] + `</a>`)
+				b.WriteString(` / <a href="` + href + `" class="linktext">` + segments[i] + `</a>`)
 			}
 			if response.IsDir {
 				b.WriteString(`/`)
