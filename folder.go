@@ -473,7 +473,7 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 				b.WriteString(` / <a href="` + href + `" class="linktext">` + segments[i] + `</a>`)
 			}
 			if response.IsDir {
-				b.WriteString(`/`)
+				b.WriteString(` /`)
 			}
 			return template.HTML(b.String())
 		},
