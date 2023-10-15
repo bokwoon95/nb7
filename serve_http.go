@@ -59,18 +59,20 @@ func (nbrew *Notebrew) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	)
 	r = r.WithContext(context.WithValue(r.Context(), loggerKey, logger))
 
-	switch strings.Trim(r.URL.Path, "/") {
-	case "app.webmanifest":
-		nbrew.securityHeaders(w, r)
-		serveFile(w, r, rootFS, "static/app.webmanifest", false)
-		return
-	case "apple-touch-icon.png":
-		nbrew.securityHeaders(w, r)
-		serveFile(w, r, rootFS, "static/icons/apple-touch-icon.png", false)
-		return
+	segments := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
+	if segments[0] == "admin" {
+		switch strings.Trim(r.URL.Path, "/") {
+		case "app.webmanifest":
+			nbrew.securityHeaders(w, r)
+			serveFile(w, r, rootFS, "static/app.webmanifest", false)
+			return
+		case "apple-touch-icon.png":
+			nbrew.securityHeaders(w, r)
+			serveFile(w, r, rootFS, "static/icons/apple-touch-icon.png", false)
+			return
+		}
 	}
 
-	segments := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
 	if len(segments) < 2 || segments[0] != "admin" || segments[1] != "static" {
 		file, err := nbrew.FS.Open("config/show-latency.txt")
 		if err != nil && !errors.Is(err, fs.ErrNotExist) {
@@ -93,7 +95,8 @@ func (nbrew *Notebrew) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	host := getHost(r)
-	head, tail, _ := strings.Cut(strings.Trim(r.URL.Path, "/"), "/")
+	urlPath := strings.Trim(r.URL.Path, "/")
+	head, tail, _ := strings.Cut(urlPath, "/")
 	if host == nbrew.AdminDomain && head == "admin" {
 		nbrew.securityHeaders(w, r)
 		nbrew.admin(w, r, ip)
@@ -112,10 +115,9 @@ func (nbrew *Notebrew) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		sitePrefix = head
 	}
 	if sitePrefix != "" && (subdomainPrefix != "" || customDomain != "") {
-		notFound(w, r)
+		http.Error(w, "404 Not Found", http.StatusNotFound)
 		return
 	}
-	urlPath := strings.Trim(r.URL.Path, "/")
 	if sitePrefix != "" {
 		urlPath = tail
 		siteName := strings.TrimPrefix(sitePrefix, "@")
@@ -123,7 +125,7 @@ func (nbrew *Notebrew) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			if (char >= '0' && char <= '9') || (char >= 'a' && char <= 'z') || char == '-' {
 				continue
 			}
-			notFound(w, r)
+			http.Error(w, "404 Not Found", http.StatusNotFound)
 			return
 		}
 		if nbrew.MultisiteMode == "subdomain" {
@@ -136,7 +138,7 @@ func (nbrew *Notebrew) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			if (char >= '0' && char <= '9') || (char >= 'a' && char <= 'z') || char == '-' {
 				continue
 			}
-			notFound(w, r)
+			http.Error(w, "404 Not Found", http.StatusNotFound)
 			return
 		}
 		if nbrew.MultisiteMode == "subdirectory" {
@@ -152,20 +154,20 @@ func (nbrew *Notebrew) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			logger.Error(err.Error())
-			internalServerError(w, r, err)
+			http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
 			return
 		}
 		if !fileInfo.IsDir() {
-			notFound(w, r)
+			http.Error(w, "404 Not Found", http.StatusNotFound)
 			return
 		}
 	}
 	if nbrew.MultisiteMode == "" && sitePrefix != "" {
-		notFound(w, r)
+		http.Error(w, "404 Not Found", http.StatusNotFound)
 		return
 	}
 	if r.Method != "GET" {
-		methodNotAllowed(w, r)
+		http.Error(w, "405 Method Not Allowed", http.StatusMethodNotAllowed)
 		return
 	}
 	name := path.Join(sitePrefix, "output", urlPath)
@@ -176,7 +178,7 @@ func (nbrew *Notebrew) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	extInfo, ok := extensionInfo[ext]
 	if !ok {
-		notFound(w, r)
+		http.Error(w, "404 Not Found", http.StatusNotFound)
 		return
 	}
 
@@ -185,21 +187,21 @@ func (nbrew *Notebrew) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if !errors.Is(err, fs.ErrNotExist) {
 			getLogger(r.Context()).Error(err.Error())
-			internalServerError(w, r, err)
+			http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
 			return
 		}
 		if !extInfo.isGzippable {
-			notFound(w, r)
+			http.Error(w, "404 Not Found", http.StatusNotFound)
 			return
 		}
 		file, err = nbrew.FS.Open(name + ".gz")
 		if err != nil {
 			if !errors.Is(err, fs.ErrNotExist) {
 				getLogger(r.Context()).Error(err.Error())
-				internalServerError(w, r, err)
+				http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
 				return
 			}
-			notFound(w, r)
+			http.Error(w, "404 Not Found", http.StatusNotFound)
 			return
 		}
 		isGzipped = true
@@ -209,11 +211,11 @@ func (nbrew *Notebrew) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	fileInfo, err := file.Stat()
 	if err != nil {
 		getLogger(r.Context()).Error(err.Error())
-		internalServerError(w, r, err)
+		http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 	if fileInfo.IsDir() {
-		notFound(w, r)
+		http.Error(w, "404 Not Found", http.StatusNotFound)
 		return
 	}
 
@@ -229,7 +231,7 @@ func (nbrew *Notebrew) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		_, err = buf.ReadFrom(file)
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
-			internalServerError(w, r, err)
+			http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
 			return
 		}
 		http.ServeContent(w, r, name, fileInfo.ModTime(), bytes.NewReader(buf.Bytes()))
@@ -249,7 +251,7 @@ func (nbrew *Notebrew) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		_, err = io.Copy(multiWriter, file)
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
-			internalServerError(w, r, err)
+			http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
 			return
 		}
 	} else {
@@ -259,13 +261,13 @@ func (nbrew *Notebrew) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		_, err = io.Copy(gzipWriter, file)
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
-			internalServerError(w, r, err)
+			http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
 			return
 		}
 		err = gzipWriter.Close()
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
-			internalServerError(w, r, err)
+			http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
 			return
 		}
 	}
