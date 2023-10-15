@@ -58,33 +58,19 @@ func (nbrew *Notebrew) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		slog.String("ip", ip),
 	)
 	r = r.WithContext(context.WithValue(r.Context(), loggerKey, logger))
-	segments := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
-
-	// https://cheatsheetseries.owasp.org/cheatsheets/HTTP_Headers_Cheat_Sheet.html
-	w.Header().Add("X-Frame-Options", "DENY")
-	w.Header().Add("X-Content-Type-Options", "nosniff")
-	w.Header().Add("Referrer-Policy", "strict-origin-when-cross-origin")
-	w.Header().Add("Permissions-Policy", "geolocation=(), camera=(), microphone=()")
-	w.Header().Add("Cross-Origin-Opener-Policy", "same-origin")
-	w.Header().Add("Cross-Origin-Embedder-Policy", "require-corp")
-	if len(segments) > 2 && segments[0] == "admin" && segments[1] == "static" {
-		w.Header().Add("Cross-Origin-Resource-Policy", "cross-origin")
-	} else {
-		w.Header().Add("Cross-Origin-Resource-Policy", "same-site")
-	}
-	if nbrew.Scheme == "https://" {
-		w.Header().Add("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload")
-	}
 
 	switch strings.Trim(r.URL.Path, "/") {
 	case "app.webmanifest":
+		nbrew.securityHeaders(w, r)
 		serveFile(w, r, rootFS, "static/app.webmanifest", false)
 		return
 	case "apple-touch-icon.png":
+		nbrew.securityHeaders(w, r)
 		serveFile(w, r, rootFS, "static/icons/apple-touch-icon.png", false)
 		return
 	}
 
+	segments := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
 	if len(segments) < 2 || segments[0] != "admin" || segments[1] != "static" {
 		file, err := nbrew.FS.Open("config/show-latency.txt")
 		if err != nil && !errors.Is(err, fs.ErrNotExist) {
@@ -109,6 +95,7 @@ func (nbrew *Notebrew) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	host := getHost(r)
 	head, tail, _ := strings.Cut(strings.Trim(r.URL.Path, "/"), "/")
 	if host == nbrew.AdminDomain && head == "admin" {
+		nbrew.securityHeaders(w, r)
 		nbrew.admin(w, r, ip)
 		return
 	}
@@ -303,6 +290,20 @@ func (nbrew *Notebrew) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Encoding", "gzip")
 	w.Header().Set("ETag", `"`+string(*dst)+`"`)
 	http.ServeContent(w, r, name, fileInfo.ModTime(), bytes.NewReader(buf.Bytes()))
+}
+
+func (nbrew *Notebrew) securityHeaders(w http.ResponseWriter, r *http.Request) {
+	// https://cheatsheetseries.owasp.org/cheatsheets/HTTP_Headers_Cheat_Sheet.html
+	w.Header().Add("X-Frame-Options", "DENY")
+	w.Header().Add("X-Content-Type-Options", "nosniff")
+	w.Header().Add("Referrer-Policy", "strict-origin-when-cross-origin")
+	w.Header().Add("Permissions-Policy", "geolocation=(), camera=(), microphone=()")
+	w.Header().Add("Cross-Origin-Opener-Policy", "same-origin")
+	w.Header().Add("Cross-Origin-Embedder-Policy", "require-corp")
+	w.Header().Add("Cross-Origin-Resource-Policy", "cross-origin")
+	if nbrew.Scheme == "https://" {
+		w.Header().Add("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload")
+	}
 }
 
 var extensionInfo = map[string]struct {
