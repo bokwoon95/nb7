@@ -382,39 +382,6 @@ var extensionInfo = map[string]struct {
 	".gz":    {"application/gzip", false},
 }
 
-func (nbrew *Notebrew) custom404(w http.ResponseWriter, r *http.Request, sitePrefix string) {
-	file, err := nbrew.FS.Open(path.Join(sitePrefix, "output/themes/404.html"))
-	if err != nil {
-		if errors.Is(err, fs.ErrNotExist) {
-			http.Error(w, "404 Not Found", http.StatusNotFound)
-			return
-		}
-		getLogger(r.Context()).Error(err.Error())
-		http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-	fileInfo, err := file.Stat()
-	if err != nil {
-		getLogger(r.Context()).Error(err.Error())
-		http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-	var b strings.Builder
-	b.Grow(int(fileInfo.Size()))
-	_, err = io.Copy(&b, file)
-	if err != nil {
-		getLogger(r.Context()).Error(err.Error())
-		http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-	postTmpl, err := templateParser.Parse(b.String())
-	if err != nil {
-		getLogger(r.Context()).Error(err.Error())
-		http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-}
-
 func (nbrew *Notebrew) admin(w http.ResponseWriter, r *http.Request, ip string) {
 	urlPath := strings.Trim(strings.TrimPrefix(r.URL.Path, "/admin"), "/")
 	head, tail, _ := strings.Cut(urlPath, "/")
