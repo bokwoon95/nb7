@@ -7,15 +7,19 @@
 <script type="module">{{ baselineJS }}</script>
 <title>Delete</title>
 <body class="centered-body">
-<nav class="mv2 bg-dark-cyan white flex justify-between items-center">
+<nav class="mv2 bg-dark-cyan white flex flex-wrap items-center">
     <a href="/admin/" class="ma2">🖋️☕ notebrew</a>
     {{- if $.ContentSiteURL }}
-    &boxv;
+    &bull;
     <a href="{{ $.ContentSiteURL }}" class="ma2">{{ neatenURL $.ContentSiteURL }}</a>
     {{- end }}
     <span class="flex-grow-1"></span>
+    {{- if hasDatabase }}
+    <a href="" class="ma2">logs</a>
+    <a href="" class="ma2">rss reader</a>
     <a href="" class="ma2">{{ if username }}@{{ username }}{{ else }}user{{ end }}</a>
     <a href="/admin/logout/" class="ma2">logout</a>
+    {{- end }}
 </nav>
 {{- if or (not $.ParentFolder) (not $.Items) }}
 <div class="mv5 w-80 w-70-m w-60-l center">

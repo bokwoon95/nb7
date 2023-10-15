@@ -147,12 +147,6 @@ func (nbrew *Notebrew) folder(w http.ResponseWriter, r *http.Request, username, 
 				folderEntries = append(folderEntries, entry)
 			}
 		}
-		if nbrew.DB != nil {
-			folderEntries = append(folderEntries, Entry{
-				Name:  "logs",
-				IsDir: true,
-			})
-		}
 		fileInfo, err := fs.Stat(nbrew.FS, path.Join(sitePrefix, "output"))
 		if err != nil {
 			if !errors.Is(err, fs.ErrNotExist) {

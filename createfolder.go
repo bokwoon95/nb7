@@ -71,14 +71,15 @@ func (nbrew *Notebrew) createfolder(w http.ResponseWriter, r *http.Request, user
 				return
 			}
 			funcMap := map[string]any{
-				"join":       path.Join,
-				"base":       path.Base,
-				"neatenURL":  neatenURL,
-				"stylesCSS":  func() template.CSS { return template.CSS(stylesCSS) },
-				"baselineJS": func() template.JS { return template.JS(baselineJS) },
-				"referer":    func() string { return r.Referer() },
-				"username":   func() string { return username },
-				"sitePrefix": func() string { return sitePrefix },
+				"join":        path.Join,
+				"base":        path.Base,
+				"neatenURL":   neatenURL,
+				"stylesCSS":   func() template.CSS { return template.CSS(stylesCSS) },
+				"baselineJS":  func() template.JS { return template.JS(baselineJS) },
+				"hasDatabase": func() bool { return nbrew.DB != nil },
+				"referer":     func() string { return r.Referer() },
+				"username":    func() string { return username },
+				"sitePrefix":  func() string { return sitePrefix },
 				"containsError": func(errors []Error, codes ...string) bool {
 					return slices.ContainsFunc(errors, func(err Error) bool {
 						return slices.Contains(codes, err.Code())

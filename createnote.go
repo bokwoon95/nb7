@@ -67,14 +67,15 @@ func (nbrew *Notebrew) createnote(w http.ResponseWriter, r *http.Request, userna
 				return
 			}
 			funcMap := map[string]any{
-				"join":       path.Join,
-				"neatenURL":  neatenURL,
-				"stylesCSS":  func() template.CSS { return template.CSS(stylesCSS) },
-				"baselineJS": func() template.JS { return template.JS(baselineJS) },
-				"referer":    func() string { return r.Referer() },
-				"username":   func() string { return username },
-				"sitePrefix": func() string { return sitePrefix },
-				"safeHTML":   func(s string) template.HTML { return template.HTML(s) },
+				"join":        path.Join,
+				"neatenURL":   neatenURL,
+				"stylesCSS":   func() template.CSS { return template.CSS(stylesCSS) },
+				"baselineJS":  func() template.JS { return template.JS(baselineJS) },
+				"hasDatabase": func() bool { return nbrew.DB != nil },
+				"referer":     func() string { return r.Referer() },
+				"username":    func() string { return username },
+				"sitePrefix":  func() string { return sitePrefix },
+				"safeHTML":    func(s string) template.HTML { return template.HTML(s) },
 			}
 			tmpl, err := template.New("createnote.html").Funcs(funcMap).ParseFS(rootFS, "embed/createnote.html")
 			if err != nil {

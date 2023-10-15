@@ -103,6 +103,7 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, username, si
 				"fileSizeToString": fileSizeToString,
 				"stylesCSS":        func() template.CSS { return template.CSS(stylesCSS) },
 				"baselineJS":       func() template.JS { return template.JS(baselineJS) },
+				"hasDatabase":      func() bool { return nbrew.DB != nil },
 				"referer":          func() string { return r.Referer() },
 				"username":         func() string { return username },
 				"sitePrefix":       func() string { return sitePrefix },
