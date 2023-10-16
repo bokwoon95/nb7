@@ -19,7 +19,6 @@ import (
 
 	"github.com/bokwoon95/sq"
 	"github.com/caddyserver/certmagic"
-	"github.com/davecgh/go-spew/spew"
 )
 
 func New(fsys FS) (*Notebrew, error) {
@@ -433,7 +432,7 @@ func (nbrew *Notebrew) NewServer() (*http.Server, error) {
 		server.TLSConfig = certConfig.TLSConfig()
 		getCertificate := server.TLSConfig.GetCertificate
 		server.TLSConfig.GetCertificate = func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
-			spew.Dump(hello)
+			fmt.Printf("hello.ServerName: %s\n", hello.ServerName)
 			cert, err := getCertificate(hello)
 			return cert, err
 		}
