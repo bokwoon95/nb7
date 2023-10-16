@@ -81,18 +81,18 @@ func (nbrew *Notebrew) login(w http.ResponseWriter, r *http.Request, ip string) 
 		return failedLogins, nil
 	}
 
-	getCaptchaCredentials := func() (captchaSecretKey, captchaSiteKey string, err error) {
-		b, err := fs.ReadFile(nbrew.FS, "config/hcaptcha-secret-key.txt")
+	type CaptchaCredentials struct {
+		SecretKey string `json:"secretKey,omitempty"`
+		SiteKey   string `json:"siteKey,omitempty"`
+	}
+	getCaptchaCredentials := func() (CaptchaCredentials, error) {
+		var captchaCredentials CaptchaCredentials
+		b, err := fs.ReadFile(nbrew.FS, "config/captcha.json")
 		if err != nil && !errors.Is(err, fs.ErrNotExist) {
-			return "", "", err
+			return captchaCredentials, err
 		}
-		captchaSecretKey = string(bytes.TrimSpace(b))
-		b, err = fs.ReadFile(nbrew.FS, "config/hcaptcha-site-key.txt")
-		if err != nil && !errors.Is(err, fs.ErrNotExist) {
-			return "", "", err
-		}
-		captchaSiteKey = string(bytes.TrimSpace(b))
-		return captchaSecretKey, captchaSiteKey, nil
+		err = json.Unmarshal(b, &captchaCredentials)
+		return captchaCredentials, err
 	}
 
 	signupsAreOpen := func() bool {
@@ -139,14 +139,14 @@ func (nbrew *Notebrew) login(w http.ResponseWriter, r *http.Request, ip string) 
 	switch r.Method {
 	case "GET":
 		writeResponse := func(w http.ResponseWriter, r *http.Request, response Response) {
-			captchaSecretKey, captchaSiteKey, err := getCaptchaCredentials()
+			captchaCredentials, err := getCaptchaCredentials()
 			if err != nil {
 				getLogger(r.Context()).Error(err.Error())
 				internalServerError(w, r, err)
 				return
 			}
-			response.CaptchaSiteKey = captchaSiteKey
-			if captchaSecretKey != "" && captchaSiteKey != "" {
+			response.CaptchaSiteKey = captchaCredentials.SiteKey
+			if captchaCredentials.SecretKey != "" && captchaCredentials.SiteKey != "" {
 				failedLogins, err := getFailedLoginsForIP(ip)
 				if err != nil {
 					getLogger(r.Context()).Error(err.Error())
@@ -448,14 +448,14 @@ func (nbrew *Notebrew) login(w http.ResponseWriter, r *http.Request, ip string) 
 			failedLogins = result.FailedLogins
 		}
 
-		captchaSecretKey, captchaSiteKey, err := getCaptchaCredentials()
+		captchaCredentials, err := getCaptchaCredentials()
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
 			internalServerError(w, r, err)
 			return
 		}
-		response.CaptchaSiteKey = captchaSiteKey
-		if captchaSecretKey != "" && captchaSiteKey != "" {
+		response.CaptchaSiteKey = captchaCredentials.SiteKey
+		if captchaCredentials.SecretKey != "" && captchaCredentials.SiteKey != "" {
 			if failedLogins >= 3 {
 				response.RequireCaptcha = true
 			} else {
@@ -489,10 +489,10 @@ func (nbrew *Notebrew) login(w http.ResponseWriter, r *http.Request, ip string) 
 				Timeout: 15 * time.Second,
 			}
 			values := url.Values{
-				"secret":   []string{captchaSecretKey},
+				"secret":   []string{captchaCredentials.SecretKey},
 				"response": []string{request.CaptchaResponse},
 				"remoteip": []string{ip},
-				"sitekey":  []string{captchaSiteKey},
+				"sitekey":  []string{captchaCredentials.SiteKey},
 			}
 			resp, err := client.Post("https://api.hcaptcha.com/siteverify", "application/x-www-form-urlencoded", strings.NewReader(values.Encode()))
 			if err != nil {

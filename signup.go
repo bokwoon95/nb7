@@ -66,18 +66,18 @@ func (nbrew *Notebrew) signup(w http.ResponseWriter, r *http.Request, ip string)
 		return exists
 	}
 
-	getCaptchaCredentials := func() (captchaSecretKey, captchaSiteKey string, err error) {
-		b, err := fs.ReadFile(nbrew.FS, "config/hcaptcha-secret-key.txt")
+	type CaptchaCredentials struct {
+		SecretKey string `json:"secretKey,omitempty"`
+		SiteKey   string `json:"siteKey,omitempty"`
+	}
+	getCaptchaCredentials := func() (CaptchaCredentials, error) {
+		var captchaCredentials CaptchaCredentials
+		b, err := fs.ReadFile(nbrew.FS, "config/captcha.json")
 		if err != nil && !errors.Is(err, fs.ErrNotExist) {
-			return "", "", err
+			return captchaCredentials, err
 		}
-		captchaSecretKey = string(bytes.TrimSpace(b))
-		b, err = fs.ReadFile(nbrew.FS, "config/hcaptcha-site-key.txt")
-		if err != nil && !errors.Is(err, fs.ErrNotExist) {
-			return "", "", err
-		}
-		captchaSiteKey = string(bytes.TrimSpace(b))
-		return captchaSecretKey, captchaSiteKey, nil
+		err = json.Unmarshal(b, &captchaCredentials)
+		return captchaCredentials, err
 	}
 
 	signupsAreOpen := func() bool {
@@ -124,14 +124,14 @@ func (nbrew *Notebrew) signup(w http.ResponseWriter, r *http.Request, ip string)
 	switch r.Method {
 	case "GET":
 		writeResponse := func(w http.ResponseWriter, r *http.Request, response Response) {
-			captchaSecretKey, captchaSiteKey, err := getCaptchaCredentials()
+			captchaCredentials, err := getCaptchaCredentials()
 			if err != nil {
 				getLogger(r.Context()).Error(err.Error())
 				internalServerError(w, r, err)
 				return
 			}
-			response.CaptchaSiteKey = captchaSiteKey
-			response.RequireCaptcha = captchaSecretKey != "" && captchaSiteKey != "" && response.SignupToken == ""
+			response.CaptchaSiteKey = captchaCredentials.SiteKey
+			response.RequireCaptcha = captchaCredentials.SecretKey != "" && captchaCredentials.SiteKey != "" && response.SignupToken == ""
 			accept, _, _ := mime.ParseMediaType(r.Header.Get("Accept"))
 			if accept == "application/json" {
 				w.Header().Set("Content-Type", "application/json")
@@ -288,15 +288,15 @@ func (nbrew *Notebrew) signup(w http.ResponseWriter, r *http.Request, ip string)
 			writeResponse(w, r, response)
 			return
 		}
-		captchaSecretKey, captchaSiteKey, err := getCaptchaCredentials()
+		captchaCredentials, err := getCaptchaCredentials()
 		if err != nil {
 			getLogger(r.Context()).Error(err.Error())
 			internalServerError(w, r, err)
 			return
 		}
-		response.CaptchaSiteKey = captchaSiteKey
+		response.CaptchaSiteKey = captchaCredentials.SiteKey
 		var signupTokenHash []byte
-		if captchaSecretKey != "" && captchaSiteKey != "" {
+		if captchaCredentials.SecretKey != "" && captchaCredentials.SiteKey != "" {
 			signupTokenHash, err = hashAndValidateSignupToken(request.SignupToken)
 			if err != nil {
 				getLogger(r.Context()).Error(err.Error())
@@ -317,7 +317,7 @@ func (nbrew *Notebrew) signup(w http.ResponseWriter, r *http.Request, ip string)
 			}
 		}
 
-		response.RequireCaptcha = captchaSecretKey != "" && captchaSiteKey != "" && signupTokenHash == nil && !request.DryRun
+		response.RequireCaptcha = captchaCredentials.SecretKey != "" && captchaCredentials.SiteKey != "" && signupTokenHash == nil && !request.DryRun
 		if response.RequireCaptcha {
 			if request.CaptchaResponse == "" {
 				response.Status = ErrRetryWithCaptcha
@@ -336,10 +336,10 @@ func (nbrew *Notebrew) signup(w http.ResponseWriter, r *http.Request, ip string)
 				Timeout: 15 * time.Second,
 			}
 			values := url.Values{
-				"secret":   []string{captchaSecretKey},
+				"secret":   []string{captchaCredentials.SecretKey},
 				"response": []string{request.CaptchaResponse},
 				"remoteip": []string{getIP(r)},
-				"sitekey":  []string{captchaSiteKey},
+				"sitekey":  []string{captchaCredentials.SiteKey},
 			}
 			resp, err := client.Post("https://api.hcaptcha.com/siteverify", "application/x-www-form-urlencoded", strings.NewReader(values.Encode()))
 			if err != nil {
