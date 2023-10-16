@@ -7,11 +7,13 @@ require (
 	github.com/bokwoon95/sq v0.4.2
 	github.com/bokwoon95/sqddl v0.4.6
 	github.com/caddyserver/certmagic v0.19.2
+	github.com/davecgh/go-spew v1.1.1
 	github.com/denisenkom/go-mssqldb v0.12.3
 	github.com/go-sql-driver/mysql v1.7.1
 	github.com/google/go-cmp v0.5.9
 	github.com/google/uuid v1.3.1
 	github.com/lib/pq v1.10.9
+	github.com/libdns/namecheap v0.0.0-20211109042440-fc7440785c8e
 	github.com/mattn/go-sqlite3 v1.14.16
 	github.com/yuin/goldmark v1.4.13
 	golang.org/x/crypto v0.10.0
@@ -42,7 +44,6 @@ require (
 	github.com/klauspost/compress v1.15.2 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.5 // indirect
 	github.com/libdns/libdns v0.2.1 // indirect
-	github.com/libdns/namecheap v0.0.0-20211109042440-fc7440785c8e // indirect
 	github.com/mattn/go-isatty v0.0.16 // indirect
 	github.com/mholt/acmez v1.2.0 // indirect
 	github.com/miekg/dns v1.1.55 // indirect
