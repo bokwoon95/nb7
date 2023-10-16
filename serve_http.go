@@ -97,7 +97,7 @@ func (nbrew *Notebrew) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	host := getHost(r)
 	urlPath := strings.Trim(r.URL.Path, "/")
 	head, tail, _ := strings.Cut(urlPath, "/")
-	if host == nbrew.AdminDomain && head == "admin" {
+	if (host == nbrew.AdminDomain || host == "www."+nbrew.AdminDomain) && head == "admin" {
 		nbrew.securityHeaders(w, r)
 		nbrew.admin(w, r, ip)
 		return
@@ -141,7 +141,7 @@ func (nbrew *Notebrew) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "404 Not Found", http.StatusNotFound)
 			return
 		}
-		if nbrew.MultisiteMode == "subdirectory" {
+		if nbrew.MultisiteMode == "subdirectory" && subdomainPrefix != "www" {
 			http.Redirect(w, r, nbrew.Scheme+nbrew.ContentDomain+"/"+path.Join(sitePrefix, urlPath), http.StatusFound)
 			return
 		}
