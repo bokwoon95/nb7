@@ -3,6 +3,7 @@ package nb7
 import (
 	"bufio"
 	"context"
+	"crypto/tls"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -18,6 +19,7 @@ import (
 
 	"github.com/bokwoon95/sq"
 	"github.com/caddyserver/certmagic"
+	"github.com/davecgh/go-spew/spew"
 )
 
 func New(fsys FS) (*Notebrew, error) {
@@ -429,6 +431,14 @@ func (nbrew *Notebrew) NewServer() (*http.Server, error) {
 			return nil, err
 		}
 		server.TLSConfig = certConfig.TLSConfig()
+		tlsConfig := *server.TLSConfig
+		server.TLSConfig.GetCertificate = func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
+			cert, err := tlsConfig.GetCertificate(hello)
+			if err == nil {
+				spew.Dump(cert)
+			}
+			return cert, err
+		}
 		server.TLSConfig.NextProtos = []string{"h2", "http/1.1", "acme-tls/1"}
 	}
 	return server, nil
