@@ -396,6 +396,9 @@ func (nbrew *Notebrew) NewServer() (*http.Server, error) {
 		}
 		certConfig.OnDemand = &certmagic.OnDemandConfig{
 			DecisionFunc: func(name string) error {
+				if name == nbrew.AdminDomain || name == nbrew.ContentDomain {
+					return nil
+				}
 				fileInfo, err := fs.Stat(nbrew.FS, name)
 				if err != nil {
 					return err
