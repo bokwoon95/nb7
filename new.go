@@ -371,9 +371,9 @@ func (nbrew *Notebrew) NewServer() (*http.Server, error) {
 	if nbrew.Scheme == "https://" {
 		server.Addr = ":443"
 		certConfig := certmagic.NewDefault()
-		domainNames := []string{nbrew.AdminDomain}
+		domainNames := []string{nbrew.AdminDomain, "www."+nbrew.AdminDomain}
 		if nbrew.ContentDomain != "" && nbrew.ContentDomain != nbrew.AdminDomain {
-			domainNames = append(domainNames, nbrew.ContentDomain)
+			domainNames = append(domainNames, nbrew.ContentDomain, "www."+nbrew.ContentDomain)
 		}
 		if nbrew.MultisiteMode == "subdomain" {
 			if certmagic.DefaultACME.DNS01Solver == nil && certmagic.DefaultACME.CA == certmagic.LetsEncryptProductionCA {
