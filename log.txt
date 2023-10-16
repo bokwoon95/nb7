@@ -63,6 +63,7 @@ TODO: need to register www subdomain for both AdminDomain and ContentDomain so t
     - Can we register notebrew.com as a custom domain in order to "close the loop"? So we'd be able to host our official docs on notebrew.com/docs and not docs.notebrew.io. And also the definitive html guide can be just another post on notebrew.com/posts.
 TODO: we can wire up the view dropdown menu for pages and posts alr
 TODO: also add the regenerate option to folders (it just means the whole folder will be regenerated)
+TODO: When a site is created, we always generate the index page and posts page. Furthermore, we also put a copy of the default index.html and posts.html inside the user's templates. They can tweak it anytime they want, and if everything goes wrong they can always hit a reset button (specially appears only for pages/index.html, output/themes/posts.html and output/themes/post.html).
 
 BlugeFTS
 SQLiteFTS
