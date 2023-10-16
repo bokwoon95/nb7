@@ -97,7 +97,7 @@ func (nbrew *Notebrew) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	host := getHost(r)
 	urlPath := strings.Trim(r.URL.Path, "/")
 	head, tail, _ := strings.Cut(urlPath, "/")
-	if (host == nbrew.AdminDomain || host == "www."+nbrew.AdminDomain) && head == "admin" {
+	if host == nbrew.AdminDomain && head == "admin" {
 		nbrew.securityHeaders(w, r)
 		nbrew.admin(w, r, ip)
 		return

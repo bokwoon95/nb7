@@ -16,6 +16,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/bokwoon95/sq"
 	"github.com/caddyserver/certmagic"
 )
 
@@ -371,7 +372,7 @@ func (nbrew *Notebrew) NewServer() (*http.Server, error) {
 	if nbrew.Scheme == "https://" {
 		server.Addr = ":443"
 		certConfig := certmagic.NewDefault()
-		domainNames := []string{nbrew.AdminDomain, "www."+nbrew.AdminDomain}
+		domainNames := []string{nbrew.AdminDomain}
 		if nbrew.ContentDomain != "" && nbrew.ContentDomain != nbrew.AdminDomain {
 			domainNames = append(domainNames, nbrew.ContentDomain, "www."+nbrew.ContentDomain)
 		}
@@ -391,6 +392,33 @@ func (nbrew *Notebrew) NewServer() (*http.Server, error) {
 		err := certConfig.ManageAsync(context.Background(), domainNames)
 		if err != nil {
 			return nil, err
+		}
+		certConfig.OnDemand = &certmagic.OnDemandConfig{
+			DecisionFunc: func(name string) error {
+				fileInfo, err := fs.Stat(nbrew.FS, name)
+				if err != nil {
+					return err
+				}
+				if !fileInfo.IsDir() {
+					return fs.ErrNotExist
+				}
+				if nbrew.DB != nil {
+					exists, err := sq.FetchExists(nbrew.DB, sq.CustomQuery{
+						Dialect: nbrew.Dialect,
+						Format:  "SELECT 1 FROM site WHERE site_name = {name}",
+						Values: []any{
+							sq.StringParam("name", name),
+						},
+					})
+					if err != nil {
+						return err
+					}
+					if !exists {
+						return sql.ErrNoRows
+					}
+				}
+				return nil
+			},
 		}
 		server.TLSConfig = certConfig.TLSConfig()
 		server.TLSConfig.NextProtos = []string{"h2", "http/1.1", "acme-tls/1"}
