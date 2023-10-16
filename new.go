@@ -18,6 +18,7 @@ import (
 
 	"github.com/bokwoon95/sq"
 	"github.com/caddyserver/certmagic"
+	"github.com/davecgh/go-spew/spew"
 )
 
 func New(fsys FS) (*Notebrew, error) {
@@ -398,7 +399,17 @@ func (nbrew *Notebrew) NewServer() (*http.Server, error) {
 		// 	Logger: certmagic.Default.Logger,
 		// })
 		// certConfig := certmagic.New(certCache, certmagic.Default)
-		certConfig := certmagic.NewDefault()
+		config := certmagic.Config{
+			RenewalWindowRatio: certmagic.DefaultRenewalWindowRatio,
+		}
+		cache := certmagic.NewCache(certmagic.CacheOptions{
+			GetConfigForCert: func(c certmagic.Certificate) (*certmagic.Config, error) {
+				spew.Dump(c)
+				return &config, nil
+			},
+		})
+		certConfig := certmagic.New(cache, config)
+		// certConfig := certmagic.NewDefault()
 		certConfig.Issuers = []certmagic.Issuer{
 			&acmeIssuer,
 		}
