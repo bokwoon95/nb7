@@ -16,7 +16,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/bokwoon95/sq"
 	"github.com/caddyserver/certmagic"
 	"github.com/davecgh/go-spew/spew"
 )
@@ -413,37 +412,37 @@ func (nbrew *Notebrew) NewServer() (*http.Server, error) {
 		certConfig.Issuers = []certmagic.Issuer{
 			&acmeIssuer,
 		}
-		certConfig.OnDemand = &certmagic.OnDemandConfig{
-			DecisionFunc: func(name string) error {
-				if name == nbrew.AdminDomain || name == nbrew.ContentDomain {
-					return nil
-				}
-				fileInfo, err := fs.Stat(nbrew.FS, name)
-				if err != nil {
-					return err
-				}
-				if !fileInfo.IsDir() {
-					return fs.ErrNotExist
-				}
-				if nbrew.DB != nil {
-					exists, err := sq.FetchExists(nbrew.DB, sq.CustomQuery{
-						Dialect: nbrew.Dialect,
-						Format:  "SELECT 1 FROM site WHERE site_name = {name}",
-						Values: []any{
-							sq.StringParam("name", name),
-						},
-					})
-					if err != nil {
-						return err
-					}
-					if !exists {
-						return sql.ErrNoRows
-					}
-				}
-				return nil
-			},
-		}
-		err := certConfig.ManageAsync(context.Background(), domainNames)
+		// certConfig.OnDemand = &certmagic.OnDemandConfig{
+		// 	DecisionFunc: func(name string) error {
+		// 		if name == nbrew.AdminDomain || name == nbrew.ContentDomain {
+		// 			return nil
+		// 		}
+		// 		fileInfo, err := fs.Stat(nbrew.FS, name)
+		// 		if err != nil {
+		// 			return err
+		// 		}
+		// 		if !fileInfo.IsDir() {
+		// 			return fs.ErrNotExist
+		// 		}
+		// 		if nbrew.DB != nil {
+		// 			exists, err := sq.FetchExists(nbrew.DB, sq.CustomQuery{
+		// 				Dialect: nbrew.Dialect,
+		// 				Format:  "SELECT 1 FROM site WHERE site_name = {name}",
+		// 				Values: []any{
+		// 					sq.StringParam("name", name),
+		// 				},
+		// 			})
+		// 			if err != nil {
+		// 				return err
+		// 			}
+		// 			if !exists {
+		// 				return sql.ErrNoRows
+		// 			}
+		// 		}
+		// 		return nil
+		// 	},
+		// }
+		err := certConfig.ManageSync(context.Background(), domainNames)
 		if err != nil {
 			return nil, err
 		}
