@@ -253,10 +253,11 @@ func main() {
 			if errno == syscall.EADDRINUSE || runtime.GOOS == "windows" && errno == WSAEADDRINUSE {
 				if nbrew.Scheme == "https://" {
 					fmt.Println(server.Addr + " already in use")
-				} else {
-					fmt.Println("http://" + server.Addr)
-					open("http://" + server.Addr)
+					return nil
 				}
+				fmt.Println("http://" + server.Addr)
+				open("http://" + server.Addr)
+				return nil
 			} else {
 				return err
 			}
