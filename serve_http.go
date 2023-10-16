@@ -128,7 +128,9 @@ func (nbrew *Notebrew) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "404 Not Found", http.StatusNotFound)
 			return
 		}
-		if nbrew.MultisiteMode == "subdomain" {
+		if siteName == "www" {
+			sitePrefix = ""
+		} else if nbrew.MultisiteMode == "subdomain" {
 			http.Redirect(w, r, nbrew.Scheme+siteName+"."+nbrew.ContentDomain+"/"+urlPath, http.StatusFound)
 			return
 		}
@@ -141,7 +143,9 @@ func (nbrew *Notebrew) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "404 Not Found", http.StatusNotFound)
 			return
 		}
-		if nbrew.MultisiteMode == "subdirectory" && subdomainPrefix != "www" {
+		if subdomainPrefix == "www" {
+			sitePrefix = ""
+		} else if nbrew.MultisiteMode == "subdirectory" {
 			http.Redirect(w, r, nbrew.Scheme+nbrew.ContentDomain+"/"+path.Join(sitePrefix, urlPath), http.StatusFound)
 			return
 		}
