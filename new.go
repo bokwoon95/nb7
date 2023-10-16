@@ -431,12 +431,10 @@ func (nbrew *Notebrew) NewServer() (*http.Server, error) {
 			return nil, err
 		}
 		server.TLSConfig = certConfig.TLSConfig()
-		tlsConfig := *server.TLSConfig
+		getCertificate := server.TLSConfig.GetCertificate
 		server.TLSConfig.GetCertificate = func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
-			cert, err := tlsConfig.GetCertificate(hello)
-			if err == nil {
-				spew.Dump(cert)
-			}
+			spew.Dump(hello)
+			cert, err := getCertificate(hello)
 			return cert, err
 		}
 		server.TLSConfig.NextProtos = []string{"h2", "http/1.1", "acme-tls/1"}
