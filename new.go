@@ -371,13 +371,14 @@ func (nbrew *Notebrew) NewServer() (*http.Server, error) {
 	}
 	if nbrew.Scheme == "https://" {
 		server.Addr = ":443"
-		certConfig := certmagic.NewDefault()
 		domainNames := []string{nbrew.AdminDomain}
 		if nbrew.ContentDomain != "" && nbrew.ContentDomain != nbrew.AdminDomain {
 			domainNames = append(domainNames, nbrew.ContentDomain, "www."+nbrew.ContentDomain)
 		}
+		acmeIssuer := certmagic.DefaultACME
+		// TODO: try to set up DNS01 solver here, if not then give up and continue.
 		if nbrew.MultisiteMode == "subdomain" {
-			if certmagic.DefaultACME.DNS01Solver == nil && certmagic.DefaultACME.CA == certmagic.LetsEncryptProductionCA {
+			if acmeIssuer.DNS01Solver == nil && acmeIssuer.CA == certmagic.LetsEncryptProductionCA {
 				dir, err := filepath.Abs(fmt.Sprint(nbrew.FS))
 				if err == nil {
 					fileInfo, err := os.Stat(dir)
@@ -389,9 +390,9 @@ func (nbrew *Notebrew) NewServer() (*http.Server, error) {
 			}
 			domainNames = append(domainNames, "*."+nbrew.ContentDomain)
 		}
-		err := certConfig.ManageAsync(context.Background(), domainNames)
-		if err != nil {
-			return nil, err
+		certConfig := certmagic.NewDefault()
+		certConfig.Issuers = []certmagic.Issuer{
+			&acmeIssuer,
 		}
 		certConfig.OnDemand = &certmagic.OnDemandConfig{
 			DecisionFunc: func(name string) error {
@@ -419,6 +420,10 @@ func (nbrew *Notebrew) NewServer() (*http.Server, error) {
 				}
 				return nil
 			},
+		}
+		err := certConfig.ManageAsync(context.Background(), domainNames)
+		if err != nil {
+			return nil, err
 		}
 		server.TLSConfig = certConfig.TLSConfig()
 		server.TLSConfig.NextProtos = []string{"h2", "http/1.1", "acme-tls/1"}
