@@ -65,6 +65,16 @@ TODO: we can wire up the view dropdown menu for pages and posts alr
 TODO: also add the regenerate option to folders (it just means the whole folder will be regenerated)
 TODO: When a site is created, we always generate the index page and posts page. Furthermore, we also put a copy of the default index.html and posts.html inside the user's templates. They can tweak it anytime they want, and if everything goes wrong they can always hit a reset button (specially appears only for pages/index.html, output/themes/posts.html and output/themes/post.html).
 
+route53-access-key.txt
+route53-secret-key.txt
+cloudflare-api-token.txt
+porkbun-api-key.txt
+porkbun-secret-key.txt
+namecheap-api-key.txt
+namecheap-username.txt
+godaddy-api-token.txt
+dns01.json
+
 BlugeFTS
 SQLiteFTS
 PostgresFTS
