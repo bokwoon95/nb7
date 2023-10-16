@@ -128,9 +128,7 @@ func (nbrew *Notebrew) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "404 Not Found", http.StatusNotFound)
 			return
 		}
-		if siteName == "www" {
-			sitePrefix = ""
-		} else if nbrew.MultisiteMode == "subdomain" {
+		if siteName == "www" || nbrew.MultisiteMode == "subdomain" {
 			http.Redirect(w, r, nbrew.Scheme+siteName+"."+nbrew.ContentDomain+"/"+urlPath, http.StatusFound)
 			return
 		}
