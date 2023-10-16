@@ -30,12 +30,12 @@ var open = func(address string) {}
 
 func main() {
 	err := func() error {
-		var dir, addr, multisite, db, showQueries string
+		var dir, address, multisite, database, showQueries string
 		flagset := flag.NewFlagSet("", flag.ContinueOnError)
 		flagset.StringVar(&dir, "dir", "", "")
-		flagset.StringVar(&addr, "address", "", "")
+		flagset.StringVar(&address, "address", "", "")
 		flagset.StringVar(&multisite, "multisite", "", "")
-		flagset.StringVar(&db, "database", "", "")
+		flagset.StringVar(&database, "database", "", "")
 		flagset.StringVar(&showQueries, "show-queries", "", "")
 		err := flagset.Parse(os.Args[1:])
 		if err != nil {
@@ -59,12 +59,12 @@ func main() {
 			return err
 		}
 
-		addr = strings.TrimSpace(addr)
-		if addr != "" {
-			if strings.Count(addr, ",") > 1 {
-				return fmt.Errorf("-addr %q: too many commas (max 1)", addr)
+		address = strings.TrimSpace(address)
+		if address != "" {
+			if strings.Count(address, ",") > 1 {
+				return fmt.Errorf("-addr %q: too many commas (max 1)", address)
 			}
-			err = os.WriteFile(filepath.Join(dir, "config/address.txt"), []byte(strings.ReplaceAll(addr, ",", "\n")), 0644)
+			err = os.WriteFile(filepath.Join(dir, "config/address.txt"), []byte(strings.ReplaceAll(address, ",", "\n")), 0644)
 			if err != nil {
 				return err
 			}
@@ -78,9 +78,9 @@ func main() {
 			}
 		}
 
-		db = strings.TrimSpace(db)
-		if db != "" {
-			err = os.WriteFile(filepath.Join(dir, "config/database.txt"), []byte(db), 0644)
+		database = strings.TrimSpace(database)
+		if database != "" {
+			err = os.WriteFile(filepath.Join(dir, "config/database.txt"), []byte(database), 0644)
 			if err != nil {
 				return err
 			}

@@ -42,6 +42,7 @@ require (
 	github.com/klauspost/compress v1.15.2 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.5 // indirect
 	github.com/libdns/libdns v0.2.1 // indirect
+	github.com/libdns/namecheap v0.0.0-20211109042440-fc7440785c8e // indirect
 	github.com/mattn/go-isatty v0.0.16 // indirect
 	github.com/mholt/acmez v1.2.0 // indirect
 	github.com/miekg/dns v1.1.55 // indirect
