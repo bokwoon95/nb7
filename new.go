@@ -384,81 +384,81 @@ func (nbrew *Notebrew) NewServer() (*http.Server, error) {
 		return nil, fmt.Errorf("ContentDomain cannot be empty")
 	}
 	server.Addr = ":443"
-	certmagic.DefaultACME.DNS01Solver = nil
-	if certmagic.DefaultACME.DNS01Solver == nil {
-		localDir, err := filepath.Abs(fmt.Sprint(nbrew.FS))
-		if err == nil {
-			fileInfo, err := os.Stat(localDir)
-			if err != nil || !fileInfo.IsDir() {
-				localDir = ""
-			}
+	// acmeIssuer is a copy of DefaultACME except with the DNS01Provider field
+	// possibly overwritten if the user provided config/dns01.json (we don't
+	// want to overwrite anything in DefaultACME since it's a global variable).
+	// This means every certmagic config has to explicitly use acmeIssuer
+	// otherwise it will fall back to using the DefaultACME.
+	acmeIssuer := certmagic.DefaultACME
+	localDir, err := filepath.Abs(fmt.Sprint(nbrew.FS))
+	if err == nil {
+		fileInfo, err := os.Stat(localDir)
+		if err != nil || !fileInfo.IsDir() {
+			localDir = ""
 		}
-		b, err := fs.ReadFile(nbrew.FS, "config/dns01.json")
+	}
+	b, err := fs.ReadFile(nbrew.FS, "config/dns01.json")
+	if err != nil {
+		if !errors.Is(err, fs.ErrNotExist) {
+			return nil, err
+		}
+		if nbrew.MultisiteMode == "subdomain" && certmagic.DefaultACME.CA == certmagic.LetsEncryptProductionCA {
+			return nil, fmt.Errorf(`%s: "subdomain" not supported, use "subdirectory" instead (more info: https://notebrew.com/path/to/docs/)`, filepath.Join(localDir, "config/multisite.txt"))
+		}
+	} else {
+		var config map[string]string
+		err = json.Unmarshal(b, &config)
 		if err != nil {
-			if !errors.Is(err, fs.ErrNotExist) {
-				return nil, err
+			return nil, fmt.Errorf("%s: unmarshaling %q into map[string]string: %w", filepath.Join(localDir, "config/dns01.json"), string(b), err)
+		}
+		provider, ok := config["provider"]
+		if !ok {
+			return nil, fmt.Errorf("%s: no provider specified", filepath.Join(localDir, "config/dns01.json"))
+		}
+		switch provider {
+		case "namecheap":
+			username := config["username"]
+			if username == "" {
+				return nil, fmt.Errorf("%s: namecheap: username missing", filepath.Join(localDir, "config/dns01.json"))
 			}
-			if nbrew.MultisiteMode == "subdomain" && certmagic.DefaultACME.CA == certmagic.LetsEncryptProductionCA {
-				return nil, fmt.Errorf(`%s: "subdomain" not supported, use "subdirectory" instead (more info: https://notebrew.com/path/to/docs/)`, filepath.Join(localDir, "config/multisite.txt"))
+			apiKey := config["apiKey"]
+			if apiKey == "" {
+				return nil, fmt.Errorf("%s: namecheap: apiKey missing", filepath.Join(localDir, "config/dns01.json"))
 			}
-		} else {
-			var config map[string]string
-			err = json.Unmarshal(b, &config)
+			resp, err := http.Get("https://ipv4.icanhazip.com")
 			if err != nil {
-				return nil, fmt.Errorf("%s: unmarshaling %q into map[string]string: %w", filepath.Join(localDir, "config/dns01.json"), string(b), err)
+				return nil, fmt.Errorf("determining the IP address of this machine by calling https://ipv4.icanhazip.com: %w", err)
 			}
-			provider, ok := config["provider"]
-			if !ok {
-				return nil, fmt.Errorf("%s: no provider specified", filepath.Join(localDir, "config/dns01.json"))
+			defer resp.Body.Close()
+			var b strings.Builder
+			_, err = io.Copy(&b, resp.Body)
+			if err != nil {
+				return nil, fmt.Errorf("https://ipv4.icanhazip.com: reading response body: %w", err)
 			}
-			switch provider {
-			case "namecheap":
-				username := config["username"]
-				if username == "" {
-					return nil, fmt.Errorf("%s: namecheap: username missing", filepath.Join(localDir, "config/dns01.json"))
-				}
-				apiKey := config["apiKey"]
-				if apiKey == "" {
-					return nil, fmt.Errorf("%s: namecheap: apiKey missing", filepath.Join(localDir, "config/dns01.json"))
-				}
-				resp, err := http.Get("https://ipv4.icanhazip.com")
-				if err != nil {
-					return nil, fmt.Errorf("determining the IP address of this machine by calling https://ipv4.icanhazip.com: %w", err)
-				}
-				defer resp.Body.Close()
-				var b strings.Builder
-				_, err = io.Copy(&b, resp.Body)
-				if err != nil {
-					return nil, fmt.Errorf("https://ipv4.icanhazip.com: reading response body: %w", err)
-				}
-				clientIP := strings.TrimSpace(b.String())
-				bs, err := json.MarshalIndent(&namecheap.Provider{
+			clientIP := strings.TrimSpace(b.String())
+			bs, err := json.MarshalIndent(&namecheap.Provider{
+				APIKey:      apiKey,
+				User:        username,
+				APIEndpoint: "https://api.namecheap.com/xml.response",
+				ClientIP:    clientIP,
+			}, "", "  ")
+			if err == nil {
+				fmt.Println(string(bs))
+			}
+			acmeIssuer.DNS01Solver = &certmagic.DNS01Solver{
+				DNSProvider: &namecheap.Provider{
 					APIKey:      apiKey,
 					User:        username,
 					APIEndpoint: "https://api.namecheap.com/xml.response",
 					ClientIP:    clientIP,
-				}, "", "  ")
-				if err == nil {
-					fmt.Println(string(bs))
-				}
-				if true {
-					return nil, fmt.Errorf("stop")
-				}
-				// certmagic.DefaultACME.DNS01Solver = &certmagic.DNS01Solver{
-				// 	DNSProvider: &namecheap.Provider{
-				// 		APIKey:      apiKey,
-				// 		User:        username,
-				// 		APIEndpoint: "https://api.namecheap.com/xml.response",
-				// 		ClientIP:    clientIP,
-				// 	},
-				// }
-			case "cloudflare":
-			case "porkbun":
-			case "route53":
-			case "godaddy":
-			default:
-				return nil, fmt.Errorf("%s: unsupported provider %q", filepath.Join(localDir, "config/dns01.json"), provider)
+				},
 			}
+		case "cloudflare":
+		case "porkbun":
+		case "route53":
+		case "godaddy":
+		default:
+			return nil, fmt.Errorf("%s: unsupported provider %q", filepath.Join(localDir, "config/dns01.json"), provider)
 		}
 	}
 	domains := []string{nbrew.AdminDomain}
@@ -467,18 +467,20 @@ func (nbrew *Notebrew) NewServer() (*http.Server, error) {
 	} else {
 		domains = append(domains, nbrew.ContentDomain, "www."+nbrew.ContentDomain)
 	}
-	// if nbrew.MultisiteMode == "subdomain" {
-	// 	domains = append(domains, "*."+nbrew.ContentDomain)
-	// }
+	if nbrew.MultisiteMode == "subdomain" {
+		domains = append(domains, "*."+nbrew.ContentDomain)
+	}
 	// TODO: figure out how to make certmagic store its certificates in
 	// nbrew.FS config/certificates/ instead of the local file system.
 	//
 	// certConfig manages the certificate for the admin domain, content domain
 	// and wildcard subdomain.
 	certConfig := certmagic.NewDefault()
+	certConfig.Issuers = []certmagic.Issuer{&acmeIssuer}
 	// customDomainCertConfig manages the certificates for custom domains.
 	customDomainCertConfig := certmagic.NewDefault()
-	err := certConfig.ManageAsync(context.Background(), domains)
+	customDomainCertConfig.Issuers = []certmagic.Issuer{&acmeIssuer}
+	err = certConfig.ManageAsync(context.Background(), domains)
 	if err != nil {
 		return nil, err
 	}
