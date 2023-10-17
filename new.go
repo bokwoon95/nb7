@@ -477,7 +477,7 @@ func (nbrew *Notebrew) NewServer() (*http.Server, error) {
 		NextProtos: []string{"h2", "http/1.1", "acme-tls/1"},
 		GetCertificate: func(clientHelloInfo *tls.ClientHelloInfo) (*tls.Certificate, error) {
 			if clientHelloInfo.ServerName == "" {
-				return nil, fmt.Errorf("acme: invalid hostname")
+				return nil, fmt.Errorf("clientHelloInfo.ServerName is empty")
 			}
 			for _, domain := range domains {
 				if certmagic.MatchWildcard(clientHelloInfo.ServerName, domain) {
