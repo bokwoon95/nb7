@@ -19,6 +19,7 @@ import (
 
 	"github.com/bokwoon95/sq"
 	"github.com/caddyserver/certmagic"
+	"github.com/klauspost/cpuid/v2"
 )
 
 func New(fsys FS) (*Notebrew, error) {
@@ -404,6 +405,7 @@ func (nbrew *Notebrew) NewServer() (*http.Server, error) {
 	}
 	// TODO: figure out how to make certmagic store its certificates in
 	// nbrew.FS config/certificates/ instead of the local file system.
+	//
 	// certConfig manages the certificate for the admin domain, content domain
 	// and wildcard subdomain.
 	certConfig := certmagic.NewDefault()
@@ -441,20 +443,43 @@ func (nbrew *Notebrew) NewServer() (*http.Server, error) {
 			return nil
 		},
 	}
-	tlsConfig := certConfig.TLSConfig()
-	customDomainTLSConfig := customDomainCertConfig.TLSConfig()
-	server.TLSConfig = tlsConfig
-	server.TLSConfig.NextProtos = []string{"h2", "http/1.1", "acme-tls/1"}
-	server.TLSConfig.GetCertificate = func(clientHelloInfo *tls.ClientHelloInfo) (*tls.Certificate, error) {
-		if clientHelloInfo.ServerName == "" {
-			return nil, fmt.Errorf("acme: invalid hostname")
-		}
-		for _, domain := range domains {
-			if certmagic.MatchWildcard(clientHelloInfo.ServerName, domain) {
-				return tlsConfig.GetCertificate(clientHelloInfo)
+	server.TLSConfig = &tls.Config{
+		NextProtos: []string{"h2", "http/1.1", "acme-tls/1"},
+		GetCertificate: func(clientHelloInfo *tls.ClientHelloInfo) (*tls.Certificate, error) {
+			if clientHelloInfo.ServerName == "" {
+				return nil, fmt.Errorf("acme: invalid hostname")
 			}
+			for _, domain := range domains {
+				if certmagic.MatchWildcard(clientHelloInfo.ServerName, domain) {
+					return certConfig.GetCertificate(clientHelloInfo)
+				}
+			}
+			return customDomainCertConfig.GetCertificate(clientHelloInfo)
+		},
+		MinVersion: tls.VersionTLS12,
+		CurvePreferences: []tls.CurveID{
+			tls.X25519,
+			tls.CurveP256,
+		},
+		CipherSuites: []uint16{
+			tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
+			tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
+			tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+		},
+		PreferServerCipherSuites: true,
+	}
+	if cpuid.CPU.Supports(cpuid.AESNI) {
+		server.TLSConfig.CipherSuites = []uint16{
+			tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+			tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
+			tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
 		}
-		return customDomainTLSConfig.GetCertificate(clientHelloInfo)
 	}
 	return server, nil
 }
