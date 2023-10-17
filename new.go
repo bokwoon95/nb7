@@ -504,9 +504,6 @@ func (nbrew *Notebrew) NewServer() (*http.Server, error) {
 	if nbrew.MultisiteMode == "subdomain" {
 		domains = append(domains, "*."+nbrew.ContentDomain)
 	}
-	// TODO: figure out how to make certmagic store its certificates in
-	// nbrew.FS config/certificates/ instead of the local file system.
-	//
 	// certConfig manages the certificate for the admin domain, content domain
 	// and wildcard subdomain.
 	certConfig := certmagic.NewDefault()
