@@ -318,7 +318,7 @@ func stripMarkdownStyles(src []byte) string {
 		}
 		nodes = append(nodes, node.NextSibling(), node.FirstChild())
 	}
-	// Manually escape the backslashes (goldmark may be able to do this,
+	// Manually escape backslashes (goldmark may be able to do this,
 	// investigate).
 	var b strings.Builder
 	format := buf.String()
