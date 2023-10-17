@@ -419,6 +419,7 @@ func (nbrew *Notebrew) NewServer() (*http.Server, error) {
 						ClientIP:    "",
 					},
 				}
+				certmagic.DefaultACME.DNS01Solver = nil
 			case "cloudflare":
 			case "porkbun":
 			case "route53":
