@@ -22,7 +22,10 @@ import (
 	"github.com/bokwoon95/sq"
 	"github.com/caddyserver/certmagic"
 	"github.com/klauspost/cpuid/v2"
+	"github.com/libdns/cloudflare"
+	"github.com/libdns/godaddy"
 	"github.com/libdns/namecheap"
+	"github.com/libdns/porkbun"
 )
 
 func New(fsys FS) (*Notebrew, error) {
@@ -454,9 +457,40 @@ func (nbrew *Notebrew) NewServer() (*http.Server, error) {
 				},
 			}
 		case "cloudflare":
+			apiToken := config["apiToken"]
+			if apiToken == "" {
+				return nil, fmt.Errorf("%s: cloudflare: apiToken missing", filepath.Join(localDir, "config/dns01.json"))
+			}
+			certmagic.DefaultACME.DNS01Solver = &certmagic.DNS01Solver{
+				DNSProvider: &cloudflare.Provider{
+					APIToken: apiToken,
+				},
+			}
 		case "porkbun":
-		case "route53":
+			apiKey := config["apiKey"]
+			if apiKey == "" {
+				return nil, fmt.Errorf("%s: porkbun: apiKey missing", filepath.Join(localDir, "config/dns01.json"))
+			}
+			secretKey := config["secretKey"]
+			if secretKey == "" {
+				return nil, fmt.Errorf("%s: porkbun: secretKey missing", filepath.Join(localDir, "config/dns01.json"))
+			}
+			certmagic.DefaultACME.DNS01Solver = &certmagic.DNS01Solver{
+				DNSProvider: &porkbun.Provider{
+					APIKey:       apiKey,
+					APISecretKey: secretKey,
+				},
+			}
 		case "godaddy":
+			apiToken := config["apiToken"]
+			if apiToken == "" {
+				return nil, fmt.Errorf("%s: godaddy: apiToken missing", filepath.Join(localDir, "config/dns01.json"))
+			}
+			certmagic.DefaultACME.DNS01Solver = &certmagic.DNS01Solver{
+				DNSProvider: &godaddy.Provider{
+					APIToken: apiToken,
+				},
+			}
 		default:
 			return nil, fmt.Errorf("%s: unsupported provider %q", filepath.Join(localDir, "config/dns01.json"), provider)
 		}
