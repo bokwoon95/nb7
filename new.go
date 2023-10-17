@@ -21,6 +21,7 @@ import (
 	"github.com/bokwoon95/sq"
 	"github.com/caddyserver/certmagic"
 	"github.com/klauspost/cpuid/v2"
+	"github.com/libdns/namecheap"
 )
 
 func New(fsys FS) (*Notebrew, error) {
@@ -382,38 +383,49 @@ func (nbrew *Notebrew) NewServer() (*http.Server, error) {
 		return nil, fmt.Errorf("ContentDomain cannot be empty")
 	}
 	server.Addr = ":443"
-	if nbrew.MultisiteMode == "subdomain" && certmagic.DefaultACME.DNS01Solver == nil && certmagic.DefaultACME.CA == certmagic.LetsEncryptProductionCA {
-		dir, err := filepath.Abs(fmt.Sprint(nbrew.FS))
+	if certmagic.DefaultACME.DNS01Solver == nil {
+		localDir, err := filepath.Abs(fmt.Sprint(nbrew.FS))
 		if err == nil {
-			fileInfo, err := os.Stat(dir)
+			fileInfo, err := os.Stat(localDir)
 			if err != nil || !fileInfo.IsDir() {
-				dir = ""
+				localDir = ""
 			}
 		}
 		b, err := fs.ReadFile(nbrew.FS, "config/dns01.json")
 		if err != nil {
-			if errors.Is(err, fs.ErrNotExist) {
-				return nil, fmt.Errorf(`%s: "subdomain" not supported, use "subdirectory" instead (more info: https://notebrew.com/path/to/docs/)`, filepath.Join(dir, "config/multisite.txt"))
+			if !errors.Is(err, fs.ErrNotExist) {
+				return nil, err
 			}
-			return nil, err
-		}
-		var config map[string]string
-		err = json.Unmarshal(b, &config)
-		if err != nil {
-			return nil, fmt.Errorf("%s: unmarshaling into map[string]string: %w", filepath.Join(dir, "config/multisite.txt"), err)
-		}
-		provider, ok := config["provider"]
-		if !ok {
-			return nil, fmt.Errorf("%s: no provider specified", filepath.Join(dir, "config/multisite.txt"))
-		}
-		switch provider {
-		case "namecheap":
-		case "cloudflare":
-		case "porkbun":
-		case "route53":
-		case "godaddy":
-		default:
-			return nil, fmt.Errorf("%s: unsupported provider %q", filepath.Join(dir, "config/multisite.txt"), provider)
+			if nbrew.MultisiteMode == "subdomain" && certmagic.DefaultACME.CA == certmagic.LetsEncryptProductionCA {
+				return nil, fmt.Errorf(`%s: "subdomain" not supported, use "subdirectory" instead (more info: https://notebrew.com/path/to/docs/)`, filepath.Join(localDir, "config/multisite.txt"))
+			}
+		} else {
+			var config map[string]string
+			err = json.Unmarshal(b, &config)
+			if err != nil {
+				return nil, fmt.Errorf("%s: unmarshaling %q into map[string]string: %w", filepath.Join(localDir, "config/dns01.json"), string(b), err)
+			}
+			provider, ok := config["provider"]
+			if !ok {
+				return nil, fmt.Errorf("%s: no provider specified", filepath.Join(localDir, "config/dns01.json"))
+			}
+			switch provider {
+			case "namecheap":
+				certmagic.DefaultACME.DNS01Solver = &certmagic.DNS01Solver{
+					DNSProvider: &namecheap.Provider{
+						APIKey:      "",
+						User:        "",
+						APIEndpoint: "",
+						ClientIP:    "",
+					},
+				}
+			case "cloudflare":
+			case "porkbun":
+			case "route53":
+			case "godaddy":
+			default:
+				return nil, fmt.Errorf("%s: unsupported provider %q", filepath.Join(localDir, "config/dns01.json"), provider)
+			}
 		}
 	}
 	domains := []string{nbrew.AdminDomain}
