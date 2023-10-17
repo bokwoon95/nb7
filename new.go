@@ -420,22 +420,23 @@ func (nbrew *Notebrew) NewServer() (*http.Server, error) {
 				return err
 			}
 			if !fileInfo.IsDir() {
-				return fs.ErrNotExist
+				return fmt.Errorf("%q is not a directory", name)
 			}
-			if nbrew.DB != nil {
-				exists, err := sq.FetchExists(nbrew.DB, sq.CustomQuery{
-					Dialect: nbrew.Dialect,
-					Format:  "SELECT 1 FROM site WHERE site_name = {name}",
-					Values: []any{
-						sq.StringParam("name", name),
-					},
-				})
-				if err != nil {
-					return err
-				}
-				if !exists {
-					return sql.ErrNoRows
-				}
+			if nbrew.DB == nil {
+				return fmt.Errorf("database is nil")
+			}
+			exists, err := sq.FetchExists(nbrew.DB, sq.CustomQuery{
+				Dialect: nbrew.Dialect,
+				Format:  "SELECT 1 FROM site WHERE site_name = {name}",
+				Values: []any{
+					sq.StringParam("name", name),
+				},
+			})
+			if err != nil {
+				return err
+			}
+			if !exists {
+				return fmt.Errorf("%q does not exist in site table", name)
 			}
 			return nil
 		},
