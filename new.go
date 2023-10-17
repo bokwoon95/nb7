@@ -445,6 +445,12 @@ func (nbrew *Notebrew) NewServer() (*http.Server, error) {
 	}
 	// I have no idea what any of these fields in *tls.Config mean, I'm just
 	// copying what (*certmagic.Config).TLSConfig() does under the hood.
+	//
+	// We're not using (*certmagic.Config).TLSConfig() directly because we want
+	// to override GetCertificate to switch between certConfig.GetCertificate
+	// and customDomainCertConfig.GetCertificate dynamically depending on
+	// whether the incoming server name is knocking for the
+	// AdminDomain/ContentDomain or a custom domain.
 	server.TLSConfig = &tls.Config{
 		NextProtos: []string{"h2", "http/1.1", "acme-tls/1"},
 		GetCertificate: func(clientHelloInfo *tls.ClientHelloInfo) (*tls.Certificate, error) {
