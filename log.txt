@@ -67,6 +67,8 @@ TODO: When a site is created, we always generate the index page and posts page. 
 TODO: implement wildcard domains by reading from config/dns01.json, then once we have both wildcard domains and on-demand domains we can create two cert configs and attempts to mux between them in TLSConfig.GetCertificate by inspecting ClientHelloInfo.ServerName.
 - Bingo! https://github.com/zllovesuki/specter/blob/a01164adb694f79b66cb111487669ccbc3170773/acme/manager.go#L159
 - Even better: examples of how to use certmagic.MatchWildcard https://github.com/caddyserver/certmagic/blob/v0.19.2/certificates_test.go#L187
+TODO: use a more aggressive word-break policy for the "what is a note slug?" and "what is a post slug?" sections so that opening it doesn't cause the page width to blow out beyond the existing viewport.
+TODO: add "existing categories" list (links to each category folder) to the createcategory page.
 
 route53-access-key.txt
 route53-secret-key.txt
