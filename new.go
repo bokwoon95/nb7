@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/tls"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -381,17 +382,38 @@ func (nbrew *Notebrew) NewServer() (*http.Server, error) {
 		return nil, fmt.Errorf("ContentDomain cannot be empty")
 	}
 	server.Addr = ":443"
-	if nbrew.MultisiteMode == "subdomain" {
-		// TODO: try to set up DNS01 solver here, if not then give up and continue.
-		if certmagic.DefaultACME.DNS01Solver == nil && certmagic.DefaultACME.CA == certmagic.LetsEncryptProductionCA {
-			dir, err := filepath.Abs(fmt.Sprint(nbrew.FS))
-			if err == nil {
-				fileInfo, err := os.Stat(dir)
-				if err != nil || !fileInfo.IsDir() {
-					dir = ""
-				}
+	if nbrew.MultisiteMode == "subdomain" && certmagic.DefaultACME.DNS01Solver == nil && certmagic.DefaultACME.CA == certmagic.LetsEncryptProductionCA {
+		dir, err := filepath.Abs(fmt.Sprint(nbrew.FS))
+		if err == nil {
+			fileInfo, err := os.Stat(dir)
+			if err != nil || !fileInfo.IsDir() {
+				dir = ""
 			}
-			return nil, fmt.Errorf(`%s: "subdomain" not supported, use "subdirectory" instead (more info: https://notebrew.com/path/to/docs/)`, filepath.Join(dir, "config/multisite.txt"))
+		}
+		b, err := fs.ReadFile(nbrew.FS, "config/dns01.json")
+		if err != nil {
+			if errors.Is(err, fs.ErrNotExist) {
+				return nil, fmt.Errorf(`%s: "subdomain" not supported, use "subdirectory" instead (more info: https://notebrew.com/path/to/docs/)`, filepath.Join(dir, "config/multisite.txt"))
+			}
+			return nil, err
+		}
+		var config map[string]string
+		err = json.Unmarshal(b, &config)
+		if err != nil {
+			return nil, fmt.Errorf("%s: unmarshaling into map[string]string: %w", filepath.Join(dir, "config/multisite.txt"), err)
+		}
+		provider, ok := config["provider"]
+		if !ok {
+			return nil, fmt.Errorf("%s: no provider specified", filepath.Join(dir, "config/multisite.txt"))
+		}
+		switch provider {
+		case "namecheap":
+		case "cloudflare":
+		case "porkbun":
+		case "route53":
+		case "godaddy":
+		default:
+			return nil, fmt.Errorf("%s: unsupported provider %q", filepath.Join(dir, "config/multisite.txt"), provider)
 		}
 	}
 	domains := []string{nbrew.AdminDomain}
