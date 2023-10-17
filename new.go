@@ -370,73 +370,90 @@ func (nbrew *Notebrew) NewServer() (*http.Server, error) {
 		Addr:         nbrew.AdminDomain,
 		Handler:      nbrew,
 	}
-	if nbrew.Scheme == "https://" {
-		server.Addr = ":443"
-		domainNames := []string{nbrew.AdminDomain}
-		if nbrew.ContentDomain != "" && nbrew.ContentDomain != nbrew.AdminDomain {
-			domainNames = append(domainNames, nbrew.ContentDomain, "www."+nbrew.ContentDomain)
-		}
-		acmeIssuer := certmagic.DefaultACME
+	if nbrew.Scheme != "https://" {
+		return server, nil
+	}
+	if nbrew.AdminDomain == "" {
+		return nil, fmt.Errorf("AdminDomain cannot be empty")
+	}
+	if nbrew.ContentDomain == "" {
+		return nil, fmt.Errorf("ContentDomain cannot be empty")
+	}
+	server.Addr = ":443"
+	if nbrew.MultisiteMode == "subdomain" {
 		// TODO: try to set up DNS01 solver here, if not then give up and continue.
-		if nbrew.MultisiteMode == "subdomain" {
-			if acmeIssuer.DNS01Solver == nil && acmeIssuer.CA == certmagic.LetsEncryptProductionCA {
-				dir, err := filepath.Abs(fmt.Sprint(nbrew.FS))
-				if err == nil {
-					fileInfo, err := os.Stat(dir)
-					if err != nil || !fileInfo.IsDir() {
-						dir = ""
-					}
+		if certmagic.DefaultACME.DNS01Solver == nil && certmagic.DefaultACME.CA == certmagic.LetsEncryptProductionCA {
+			dir, err := filepath.Abs(fmt.Sprint(nbrew.FS))
+			if err == nil {
+				fileInfo, err := os.Stat(dir)
+				if err != nil || !fileInfo.IsDir() {
+					dir = ""
 				}
-				return nil, fmt.Errorf(`%s: "subdomain" not supported, use "subdirectory" instead (more info: https://notebrew.com/path/to/docs/)`, filepath.Join(dir, "config/multisite.txt"))
 			}
-			domainNames = append(domainNames, "*."+nbrew.ContentDomain)
+			return nil, fmt.Errorf(`%s: "subdomain" not supported, use "subdirectory" instead (more info: https://notebrew.com/path/to/docs/)`, filepath.Join(dir, "config/multisite.txt"))
 		}
-		certConfig := certmagic.NewDefault()
-		certConfig.Issuers = []certmagic.Issuer{
-			&acmeIssuer,
-		}
-		certConfig.OnDemand = &certmagic.OnDemandConfig{
-			DecisionFunc: func(name string) error {
-				if name == nbrew.AdminDomain || name == nbrew.ContentDomain {
-					return nil
-				}
-				fileInfo, err := fs.Stat(nbrew.FS, name)
+	}
+	domains := []string{nbrew.AdminDomain}
+	if nbrew.AdminDomain == nbrew.ContentDomain {
+		domains = append(domains, "www."+nbrew.AdminDomain)
+	} else {
+		domains = append(domains, nbrew.ContentDomain, "www."+nbrew.ContentDomain)
+	}
+	if nbrew.MultisiteMode == "subdomain" {
+		domains = append(domains, "*."+nbrew.ContentDomain)
+	}
+	// TODO: figure out how to make certmagic store its certificates in
+	// nbrew.FS config/certificates/ instead of the local file system.
+	// certConfig manages the certificate for the admin domain, content domain
+	// and wildcard subdomain.
+	certConfig := certmagic.NewDefault()
+	// customDomainCertConfig manages the certificates for custom domains.
+	customDomainCertConfig := certmagic.NewDefault()
+	err := certConfig.ManageAsync(context.Background(), domains)
+	if err != nil {
+		return nil, err
+	}
+	customDomainCertConfig.OnDemand = &certmagic.OnDemandConfig{
+		DecisionFunc: func(name string) error {
+			fileInfo, err := fs.Stat(nbrew.FS, name)
+			if err != nil {
+				return err
+			}
+			if !fileInfo.IsDir() {
+				return fs.ErrNotExist
+			}
+			if nbrew.DB != nil {
+				exists, err := sq.FetchExists(nbrew.DB, sq.CustomQuery{
+					Dialect: nbrew.Dialect,
+					Format:  "SELECT 1 FROM site WHERE site_name = {name}",
+					Values: []any{
+						sq.StringParam("name", name),
+					},
+				})
 				if err != nil {
 					return err
 				}
-				if !fileInfo.IsDir() {
-					return fs.ErrNotExist
+				if !exists {
+					return sql.ErrNoRows
 				}
-				if nbrew.DB != nil {
-					exists, err := sq.FetchExists(nbrew.DB, sq.CustomQuery{
-						Dialect: nbrew.Dialect,
-						Format:  "SELECT 1 FROM site WHERE site_name = {name}",
-						Values: []any{
-							sq.StringParam("name", name),
-						},
-					})
-					if err != nil {
-						return err
-					}
-					if !exists {
-						return sql.ErrNoRows
-					}
-				}
-				return nil
-			},
+			}
+			return nil
+		},
+	}
+	tlsConfig := certConfig.TLSConfig()
+	customDomainTLSConfig := customDomainCertConfig.TLSConfig()
+	server.TLSConfig = tlsConfig
+	server.TLSConfig.NextProtos = []string{"h2", "http/1.1", "acme-tls/1"}
+	server.TLSConfig.GetCertificate = func(clientHelloInfo *tls.ClientHelloInfo) (*tls.Certificate, error) {
+		if clientHelloInfo.ServerName == "" {
+			return nil, fmt.Errorf("acme: invalid hostname")
 		}
-		err := certConfig.ManageSync(context.Background(), domainNames)
-		if err != nil {
-			return nil, err
+		for _, domain := range domains {
+			if certmagic.MatchWildcard(clientHelloInfo.ServerName, domain) {
+				return tlsConfig.GetCertificate(clientHelloInfo)
+			}
 		}
-		server.TLSConfig = certConfig.TLSConfig()
-		getCertificate := server.TLSConfig.GetCertificate
-		server.TLSConfig.GetCertificate = func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
-			fmt.Printf("hello.ServerName: %s\n", hello.ServerName)
-			cert, err := getCertificate(hello)
-			return cert, err
-		}
-		server.TLSConfig.NextProtos = []string{"h2", "http/1.1", "acme-tls/1"}
+		return customDomainTLSConfig.GetCertificate(clientHelloInfo)
 	}
 	return server, nil
 }
