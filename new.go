@@ -445,15 +445,6 @@ func (nbrew *Notebrew) NewServer() (*http.Server, error) {
 				return nil, fmt.Errorf("https://ipv4.icanhazip.com: reading response body: %w", err)
 			}
 			clientIP := strings.TrimSpace(b.String())
-			bs, err := json.MarshalIndent(&namecheap.Provider{
-				APIKey:      apiKey,
-				User:        username,
-				APIEndpoint: "https://api.namecheap.com/xml.response",
-				ClientIP:    clientIP,
-			}, "", "  ")
-			if err == nil {
-				fmt.Println(string(bs))
-			}
 			certmagic.DefaultACME.DNS01Solver = &certmagic.DNS01Solver{
 				DNSProvider: &namecheap.Provider{
 					APIKey:      apiKey,
