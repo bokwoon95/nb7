@@ -431,14 +431,6 @@ func (nbrew *Notebrew) NewServer() (*http.Server, error) {
 					return nil, fmt.Errorf("https://ipv4.icanhazip.com: reading response body: %w", err)
 				}
 				clientIP := strings.TrimSpace(b.String())
-				certmagic.DefaultACME.DNS01Solver = &certmagic.DNS01Solver{
-					DNSProvider: &namecheap.Provider{
-						APIKey:      apiKey,
-						User:        username,
-						APIEndpoint: "https://api.namecheap.com/xml.response",
-						ClientIP:    clientIP,
-					},
-				}
 				bs, err := json.MarshalIndent(&namecheap.Provider{
 					APIKey:      apiKey,
 					User:        username,
@@ -448,6 +440,17 @@ func (nbrew *Notebrew) NewServer() (*http.Server, error) {
 				if err == nil {
 					fmt.Println(string(bs))
 				}
+				if true {
+					return nil, fmt.Errorf("stop")
+				}
+				// certmagic.DefaultACME.DNS01Solver = &certmagic.DNS01Solver{
+				// 	DNSProvider: &namecheap.Provider{
+				// 		APIKey:      apiKey,
+				// 		User:        username,
+				// 		APIEndpoint: "https://api.namecheap.com/xml.response",
+				// 		ClientIP:    clientIP,
+				// 	},
+				// }
 			case "cloudflare":
 			case "porkbun":
 			case "route53":
