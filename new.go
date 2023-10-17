@@ -384,6 +384,7 @@ func (nbrew *Notebrew) NewServer() (*http.Server, error) {
 		return nil, fmt.Errorf("ContentDomain cannot be empty")
 	}
 	server.Addr = ":443"
+	certmagic.DefaultACME.DNS01Solver = nil
 	if certmagic.DefaultACME.DNS01Solver == nil {
 		localDir, err := filepath.Abs(fmt.Sprint(nbrew.FS))
 		if err == nil {
