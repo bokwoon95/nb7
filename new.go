@@ -443,6 +443,8 @@ func (nbrew *Notebrew) NewServer() (*http.Server, error) {
 			return nil
 		},
 	}
+	// I have no idea what any of these fields in *tls.Config mean, I'm just
+	// copying what (*certmagic.Config).TLSConfig() does under the hood.
 	server.TLSConfig = &tls.Config{
 		NextProtos: []string{"h2", "http/1.1", "acme-tls/1"},
 		GetCertificate: func(clientHelloInfo *tls.ClientHelloInfo) (*tls.Certificate, error) {
