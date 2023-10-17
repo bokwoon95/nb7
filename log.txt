@@ -58,13 +58,11 @@ TODO: top left corner now links to the admin domain, followed by the relevant Co
 TODO: cut | copy | paste | rename (no need for link indexing and rewriting yet, that comes later)
 TODO: notes/posts/pages/themes search indexing
 TODO: notebrew.com/admin/log/
-TODO: need to register www subdomain for both AdminDomain and ContentDomain so that people can point their custom domain at the www.example.io in order to essentially have their own custom domain.
-    - Figure out how to get certmagic's dynamic cert provisioning working, that way instead of a static list configured at startup we can consult the database each time LetsEncrypt comes knocking to verify if we have a cert for a particular domain.
-    - Can we register notebrew.com as a custom domain in order to "close the loop"? So we'd be able to host our official docs on notebrew.com/docs and not docs.notebrew.io. And also the definitive html guide can be just another post on notebrew.com/posts.
 TODO: we can wire up the view dropdown menu for pages and posts alr
 TODO: also add the regenerate option to folders (it just means the whole folder will be regenerated)
 TODO: When a site is created, we always generate the index page and posts page. Furthermore, we also put a copy of the default index.html and posts.html inside the user's templates.
-    - These are what I call "permanent templates". Even if you deleted them, they just get replaced with the base copy stashed in the embedded static directory.
+    - These are what I call "permanent templates" (index.html, posts.html, post.html, 404.html). Even if you deleted them, they just get replaced with the base copy stashed in the embedded static directory. This is also how users can "reset" their permanent templates back to the default, just delete it and it will get replaced with the default template.
+    - implemented as ensureFile(name, fallback string) which obtains a file from the user's site folder and if missing copies the contents of the fallback over to the user's site folder and reopens the file.
 TODO: implement wildcard domains by reading from config/dns01.json, then once we have both wildcard domains and on-demand domains we can create two cert configs and attempts to mux between them in TLSConfig.GetCertificate by inspecting ClientHelloInfo.ServerName.
 - Bingo! https://github.com/zllovesuki/specter/blob/a01164adb694f79b66cb111487669ccbc3170773/acme/manager.go#L159
 - Even better: examples of how to use certmagic.MatchWildcard https://github.com/caddyserver/certmagic/blob/v0.19.2/certificates_test.go#L187
