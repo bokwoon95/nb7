@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"log"
 	"net/http"
@@ -411,15 +412,42 @@ func (nbrew *Notebrew) NewServer() (*http.Server, error) {
 			}
 			switch provider {
 			case "namecheap":
+				username := config["username"]
+				if username == "" {
+					return nil, fmt.Errorf("%s: namecheap: username missing", filepath.Join(localDir, "config/dns01.json"))
+				}
+				apiKey := config["apiKey"]
+				if apiKey == "" {
+					return nil, fmt.Errorf("%s: namecheap: apiKey missing", filepath.Join(localDir, "config/dns01.json"))
+				}
+				resp, err := http.Get("https://ipv4.icanhazip.com")
+				if err != nil {
+					return nil, fmt.Errorf("determining the IP address of this machine by calling https://ipv4.icanhazip.com: %w", err)
+				}
+				defer resp.Body.Close()
+				var b strings.Builder
+				_, err = io.Copy(&b, resp.Body)
+				if err != nil {
+					return nil, fmt.Errorf("https://ipv4.icanhazip.com: reading response body: %w", err)
+				}
+				clientIP := strings.TrimSpace(b.String())
 				certmagic.DefaultACME.DNS01Solver = &certmagic.DNS01Solver{
 					DNSProvider: &namecheap.Provider{
-						APIKey:      "",
-						User:        "",
-						APIEndpoint: "",
-						ClientIP:    "",
+						APIKey:      apiKey,
+						User:        username,
+						APIEndpoint: "https://api.namecheap.com/xml.response",
+						ClientIP:    clientIP,
 					},
 				}
-				certmagic.DefaultACME.DNS01Solver = nil
+				bs, err := json.MarshalIndent(&namecheap.Provider{
+					APIKey:      apiKey,
+					User:        username,
+					APIEndpoint: "https://api.namecheap.com/xml.response",
+					ClientIP:    clientIP,
+				}, "", "  ")
+				if err == nil {
+					fmt.Println(string(bs))
+				}
 			case "cloudflare":
 			case "porkbun":
 			case "route53":
