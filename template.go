@@ -331,7 +331,7 @@ func (nbrew *Notebrew) RegenerateSite(ctx context.Context, sitePrefix string) er
 	for _, dirEntry := range dirEntries {
 		name, isDir := dirEntry.Name(), dirEntry.IsDir()
 		if isDir {
-			if name == "images" || name == "themes" {
+			if name == "images" || name == "themes" || strings.HasPrefix(name, ".") {
 				continue
 			}
 			err := RemoveAll(nbrew.FS, path.Join(sitePrefix, "output", name))

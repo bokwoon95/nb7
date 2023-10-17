@@ -387,7 +387,7 @@ func urlSafe(s string) string {
 		}
 		b.WriteRune(char)
 	}
-	return b.String()
+	return strings.Trim(b.String(), ".")
 }
 
 func getHost(r *http.Request) string {
