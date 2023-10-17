@@ -71,21 +71,6 @@ TODO: use a more aggressive word-break policy for the "what is a note slug?" and
 TODO: add "existing categories" list (links to each category folder) to the createcategory page.
 TODO: rework TemplateError so that it serializes itself into a json object of arrays and prints everything out so  even the front end users have a clue what's going on when they are shown a crappily written template.
 
-route53-access-key.txt
-route53-secret-key.txt
-cloudflare-api-token.txt
-porkbun-api-key.txt
-porkbun-secret-key.txt
-namecheap-api-key.txt
-namecheap-username.txt
-godaddy-api-token.txt
-dns01.json
-
-BlugeFTS
-SQLiteFTS
-PostgresFTS
-MySQLFTS
-
 free user only gets text and 1 site.
 paid user gets text + images + fonts and multiple sites (up to 10 per day).
 
