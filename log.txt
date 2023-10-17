@@ -69,6 +69,7 @@ TODO: implement wildcard domains by reading from config/dns01.json, then once we
 TODO: use a more aggressive word-break policy for the "what is a note slug?" and "what is a post slug?" sections so that opening it doesn't cause the page width to blow out beyond the existing viewport.
 TODO: add "existing categories" list (links to each category folder) to the createcategory page.
 TODO: rework TemplateError so that it serializes itself into a json object of arrays and prints everything out so  even the front end users have a clue what's going on when they are shown a crappily written template.
+TODO: is it possible to roll notes and logs into one? Feeling very bearish on logs, it's too complicated/extraneous of a feature for people to understand.
 
 free user only gets text and 1 site.
 paid user gets text + images + fonts and multiple sites (up to 10 per day).
