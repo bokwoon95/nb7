@@ -321,17 +321,24 @@ func stripMarkdownStyles(src []byte) string {
 	// Manually escape backslashes (goldmark may be able to do this,
 	// investigate).
 	var b strings.Builder
-	format := buf.String()
-	for i := strings.IndexByte(format, '\\'); i >= 0; i = strings.IndexByte(format, '\\') {
-		b.WriteString(format[:i])
-		if i == len(format)-1 {
+	str := buf.String()
+	// Jump to the location of each backslash found in the string.
+	for i := strings.IndexByte(str, '\\'); i >= 0; i = strings.IndexByte(str, '\\') {
+		// Write everything in the string before the backslash.
+		b.WriteString(str[:i])
+		// If the backslash is the last character in the string, stop.
+		if i == len(str)-1 {
 			break
 		}
-		char, width := utf8.DecodeRuneInString(format[i+1:])
+		// Write the next character immediately following the backslash.
+		char, width := utf8.DecodeRuneInString(str[i+1:])
 		b.WriteRune(char)
-		format = format[i+1+width:]
+		// Shrink the string to exclude what we have just written and continue
+		// the search for the next backslash.
+		str = str[i+1+width:]
 	}
-	b.WriteString(format)
+	// Write what is left of the string.
+	b.WriteString(str)
 	return b.String()
 }
 
