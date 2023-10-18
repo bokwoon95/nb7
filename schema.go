@@ -58,14 +58,6 @@ type USERS struct {
 	FAILED_LOGINS    sq.NumberField
 }
 
-type LOGS struct {
-	sq.TableStruct
-	LOG_ID     sq.UUIDField   `ddl:"primarykey"`
-	USER_ID    sq.UUIDField   `ddl:"notnull references={users onupdate=cascade index}"`
-	VALUE      sq.StringField `ddl:"len=5000"`
-	UPDATED_AT sq.TimeField
-}
-
 type IP_LOGIN struct {
 	sq.TableStruct
 	IP            sq.StringField `ddl:"primarykey len=500"`
