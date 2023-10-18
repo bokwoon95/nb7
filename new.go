@@ -414,21 +414,6 @@ func (nbrew *Notebrew) NewServer() (*http.Server, error) {
 		if !ok {
 			return nil, fmt.Errorf("%s: no provider specified", filepath.Join(localDir, "config/dns01.json"))
 		}
-		// NOTE: We configure the provider-specific DNS-01 solver by setting
-		// the DNS01Solver field on the global variable certmagic.DefaultACME.
-		// This may be a little problematic, since multiple instantiations of
-		// notebrew in a program may potentially step over each other by
-		// configuring certmagic.DefaultACME.DNS01Solver to different values,
-		// to say nothing of the possible race conditions if this is done
-		// concurrently. *But* I can't figure out any other way, since when I
-		// make a simple copy of certmagic.DefaultACME and write to the
-		// DNS01Solver field I constantly get panics arising from this line:
-		// github.com/caddyserver/certmagic@v0.19.2/account.go:342
-		// (certmagic.(*ACMEIssuer).mostRecentAccountEmail). I suspect it's
-		// because the acmeIssuer's config field is nil because I didn't set
-		// it, but I don't know how else to set it since it's private and this
-		// is getting too confusing so I'll just resort to
-		// certmagic.DefaultACME.DNS01Solver.
 		switch provider {
 		case "namecheap":
 			username := config["username"]
@@ -521,7 +506,7 @@ func (nbrew *Notebrew) NewServer() (*http.Server, error) {
 			DNS01Solver: dns01Solver,
 		}),
 	}
-	err = certConfig.ManageAsync(context.Background(), domains)
+	err = certConfig.ManageSync(context.Background(), domains)
 	if err != nil {
 		return nil, err
 	}
