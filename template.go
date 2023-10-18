@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"html/template"
@@ -294,11 +295,8 @@ func (parser *TemplateParser) parse(templateName, templateText string, callers [
 type TemplateError map[string][]string
 
 func (templateErrors TemplateError) Error() string {
-	names := make([]string, 0, len(templateErrors))
-	for name := range templateErrors {
-		names = append(names, name)
-	}
-	return fmt.Sprintf("the following templates have errors: %+v", names)
+	b, _ := json.MarshalIndent(templateErrors, "", "  ")
+	return fmt.Sprintf("the following templates have errors: %s", string(b))
 }
 
 func (templateErrors TemplateError) ToList() []string {

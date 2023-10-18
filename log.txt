@@ -63,9 +63,6 @@ TODO: also add the regenerate option to folders (it just means the whole folder 
 TODO: When a site is created, we always generate the index page and posts page. Furthermore, we also put a copy of the default index.html and posts.html inside the user's templates.
     - These are what I call "permanent templates" (index.html, posts.html, post.html, 404.html). Even if you deleted them, they just get replaced with the base copy stashed in the embedded static directory. This is also how users can "reset" their permanent templates back to the default, just delete it and it will get replaced with the default template.
     - implemented as ensureFile(name, fallback string) which obtains a file from the user's site folder and if missing copies the contents of the fallback over to the user's site folder and reopens the file.
-TODO: implement wildcard domains by reading from config/dns01.json, then once we have both wildcard domains and on-demand domains we can create two cert configs and attempts to mux between them in TLSConfig.GetCertificate by inspecting ClientHelloInfo.ServerName.
-- Bingo! https://github.com/zllovesuki/specter/blob/a01164adb694f79b66cb111487669ccbc3170773/acme/manager.go#L159
-- Even better: examples of how to use certmagic.MatchWildcard https://github.com/caddyserver/certmagic/blob/v0.19.2/certificates_test.go#L187
 TODO: use a more aggressive word-break policy for the "what is a note slug?" and "what is a post slug?" sections so that opening it doesn't cause the page width to blow out beyond the existing viewport.
 TODO: add "existing categories" list (links to each category folder) to the createcategory page.
 TODO: rework TemplateError so that it serializes itself into a json object of arrays and prints everything out so  even the front end users have a clue what's going on when they are shown a crappily written template.

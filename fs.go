@@ -5,7 +5,6 @@ import (
 	"io"
 	"io/fs"
 	"os"
-	"path"
 	"path/filepath"
 	"runtime"
 	"syscall"
@@ -48,6 +47,7 @@ func (localFS *LocalFS) String() string {
 }
 
 func (localFS *LocalFS) Open(name string) (fs.File, error) {
+	name = filepath.FromSlash(name)
 	return os.Open(filepath.Join(localFS.RootDir, name))
 }
 
@@ -60,27 +60,34 @@ func (localFS *LocalFS) OpenReaderFrom(name string, perm fs.FileMode) (io.Reader
 }
 
 func (localFS *LocalFS) ReadDir(name string) ([]fs.DirEntry, error) {
+	name = filepath.FromSlash(name)
 	return os.ReadDir(filepath.Join(localFS.RootDir, name))
 }
 
 func (localFS *LocalFS) Mkdir(name string, perm fs.FileMode) error {
+	name = filepath.FromSlash(name)
 	return os.Mkdir(filepath.Join(localFS.RootDir, name), perm)
 }
 
 func (localFS *LocalFS) MkdirAll(name string, perm fs.FileMode) error {
+	name = filepath.FromSlash(name)
 	return os.MkdirAll(filepath.Join(localFS.RootDir, name), perm)
 }
 
 func (localFS *LocalFS) Remove(name string) error {
+	name = filepath.FromSlash(name)
 	return os.Remove(filepath.Join(localFS.RootDir, name))
 }
 
 func (localFS *LocalFS) RemoveAll(name string) error {
+	name = filepath.FromSlash(name)
 	return os.RemoveAll(filepath.Join(localFS.RootDir, name))
 }
 
 func (localFS *LocalFS) Rename(oldname, newname string) error {
-	return os.Rename(filepath.Join(localFS.RootDir, oldname), path.Join(localFS.RootDir, newname))
+	oldname = filepath.FromSlash(oldname)
+	newname = filepath.FromSlash(newname)
+	return os.Rename(filepath.Join(localFS.RootDir, oldname), filepath.Join(localFS.RootDir, newname))
 }
 
 type localFile struct {
@@ -103,7 +110,7 @@ func (localFile *localFile) ReadFrom(r io.Reader) (n int64, err error) {
 	if err != nil {
 		return 0, err
 	}
-	tempFileName := path.Join(tempDir, tempFileInfo.Name())
+	tempFileName := filepath.Join(tempDir, tempFileInfo.Name())
 	defer os.Remove(tempFileName)
 	n, err = io.Copy(tempFile, r)
 	if err != nil {
@@ -113,7 +120,7 @@ func (localFile *localFile) ReadFrom(r io.Reader) (n int64, err error) {
 	if err != nil {
 		return 0, err
 	}
-	destFileName := path.Join(localFile.localFS.RootDir, localFile.name)
+	destFileName := filepath.Join(localFile.localFS.RootDir, localFile.name)
 	destFileInfo, err := os.Stat(destFileName)
 	if err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return 0, err
@@ -138,6 +145,7 @@ func RemoveAll(fsys FS, root string) error {
 		IsFile           bool   // whether item is file or directory
 		MarkedForRemoval bool   // if true, remove item unconditionally
 	}
+	root = filepath.FromSlash(root)
 	fileInfo, err := fs.Stat(fsys, root)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
@@ -175,7 +183,7 @@ func RemoveAll(fsys FS, root string) error {
 		// If item has been marked for removal or it is a file, we can remove
 		// it immediately.
 		if item.MarkedForRemoval || item.IsFile {
-			err = fsys.Remove(path.Join(root, item.Path))
+			err = fsys.Remove(filepath.Join(root, item.Path))
 			if err != nil {
 				return err
 			}
@@ -186,14 +194,14 @@ func RemoveAll(fsys FS, root string) error {
 		item.MarkedForRemoval = true
 		items = append(items, item)
 		// Push directory item's child items onto the stack.
-		dirEntries, err := fsys.ReadDir(path.Join(root, item.Path))
+		dirEntries, err := fsys.ReadDir(filepath.Join(root, item.Path))
 		if err != nil {
 			return err
 		}
 		for i := len(dirEntries) - 1; i >= 0; i-- {
 			dirEntry := dirEntries[i]
 			items = append(items, Item{
-				Path:   path.Join(item.Path, dirEntry.Name()),
+				Path:   filepath.Join(item.Path, dirEntry.Name()),
 				IsFile: !dirEntry.IsDir(),
 			})
 		}
