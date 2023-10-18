@@ -61,10 +61,10 @@ ul { margin: 0; padding: 0; }
 .mb4 { margin-bottom: 2rem; }
 
 /* margin right */
-.ml1 { margin-left: .25rem; }
+.mr2 { margin-right: .5rem; }
 
 /* margin left */
-.mr2 { margin-right: .5rem; }
+.ml1 { margin-left: .25rem; }
 
 /* padding all */
 .pa2 { padding: .5rem; }
@@ -180,6 +180,7 @@ ul { margin: 0; padding: 0; }
 .truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ws-normal { white-space: normal; }
 .nowrap { white-space: nowrap; }
+.word-wrap { word-break: break-all; }
 
 /* misc */
 code, .code { font-family: Consolas, monaco, monospace; }

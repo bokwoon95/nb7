@@ -26,11 +26,9 @@ new.go
 
 log => images => RSS => publish
 
-TODO: why is the captcha not showing on mobile when it triggers?
 TODO: /posts/showcase/ is a special post category which displays the posts in an instagram-like image grid formation. Override with showcase.html in the templates. But do it only if people want it, because I don't use it and it's be a waste of space if I added that feature and no one used it.
     - Actually, instead of a special category I can just add a new template function that grabs all the links of the photos for a given post, and the template can then use its custom logic to pick the right image to show as the featured image.
 TODO: rss reader (notebrew.com/admin/reader)
-TODO: should notebrew.com be the catch-all website? So people go there to browse rss stuff like they do HN, discover new posts, etc. But my main issue is that it would tread over the toes of the main site i.e. what if someone hosts notebrew on just one domain? All the dynamic stuff has to be squirrelled away into example.com/admin/, not example.com
 TODO: why does clicking a *.html.gz file hang and then 404? What's being calculated here?
 TODO: rethink error codes: I don't like how some validation errors are also standalone errors, maybe merge them together and split them by some other fault line
 TODO: what if the generated pages are compressed, does file.go still handle displaying the contents transparently? main use case are the generated index.html.gz files.
@@ -63,12 +61,9 @@ TODO: also add the regenerate option to folders (it just means the whole folder 
 TODO: When a site is created, we always generate the index page and posts page. Furthermore, we also put a copy of the default index.html and posts.html inside the user's templates.
     - These are what I call "permanent templates" (index.html, posts.html, post.html, 404.html). Even if you deleted them, they just get replaced with the base copy stashed in the embedded static directory. This is also how users can "reset" their permanent templates back to the default, just delete it and it will get replaced with the default template.
     - implemented as ensureFile(name, fallback string) which obtains a file from the user's site folder and if missing copies the contents of the fallback over to the user's site folder and reopens the file.
-TODO: use a more aggressive word-break policy for the "what is a note slug?" and "what is a post slug?" sections so that opening it doesn't cause the page width to blow out beyond the existing viewport.
-TODO: add "existing categories" list (links to each category folder) to the createcategory page.
-TODO: rework TemplateError so that it serializes itself into a json object of arrays and prints everything out so  even the front end users have a clue what's going on when they are shown a crappily written template.
 TODO: is it possible to roll notes and logs into one? Feeling very bearish on logs, it's too complicated/extraneous of a feature for people to understand.
 TODO: maybe don't put the bluge index in the admin folder because it is assumed the admin folder is safe to be replicated across dropbox/gdrive and losing file locking to a networked service is bound to corrupt bluge indexes and make no one happy. A user can either run ripgrep on their notes or they can rely on the bluge index on their computer (but kepts elsewhere in a .local/share/notebrew-bluge like how certmagic does it).
-    - This is the biggest change to notes so far:
+TODO: This is the biggest change to notes so far:
     1. Notes are only in .txt, no longer .md.
     2. Notes no longer have categories, folders can be arbitrarily nested. This ought to keep the number of notes down even if you spammed multiple notes everyday.
     3. Notes must be given filenames and they will use these names. No timestamp prefixes. This means it becomes impossible to track the date a note was created (bad?).
