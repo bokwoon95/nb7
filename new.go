@@ -26,6 +26,7 @@ import (
 	"github.com/libdns/godaddy"
 	"github.com/libdns/namecheap"
 	"github.com/libdns/porkbun"
+	"github.com/mholt/acmez"
 )
 
 func New(fsys FS) (*Notebrew, error) {
@@ -394,6 +395,7 @@ func (nbrew *Notebrew) NewServer() (*http.Server, error) {
 			localDir = ""
 		}
 	}
+	var dns01Solver acmez.Solver
 	b, err := fs.ReadFile(nbrew.FS, "config/dns01.json")
 	if err != nil {
 		if !errors.Is(err, fs.ErrNotExist) {
@@ -448,7 +450,7 @@ func (nbrew *Notebrew) NewServer() (*http.Server, error) {
 				return nil, fmt.Errorf("https://ipv4.icanhazip.com: reading response body: %w", err)
 			}
 			clientIP := strings.TrimSpace(b.String())
-			certmagic.DefaultACME.DNS01Solver = &certmagic.DNS01Solver{
+			dns01Solver = &certmagic.DNS01Solver{
 				DNSProvider: &namecheap.Provider{
 					APIKey:      apiKey,
 					User:        username,
@@ -461,7 +463,7 @@ func (nbrew *Notebrew) NewServer() (*http.Server, error) {
 			if apiToken == "" {
 				return nil, fmt.Errorf("%s: cloudflare: apiToken missing", filepath.Join(localDir, "config/dns01.json"))
 			}
-			certmagic.DefaultACME.DNS01Solver = &certmagic.DNS01Solver{
+			dns01Solver = &certmagic.DNS01Solver{
 				DNSProvider: &cloudflare.Provider{
 					APIToken: apiToken,
 				},
@@ -475,7 +477,7 @@ func (nbrew *Notebrew) NewServer() (*http.Server, error) {
 			if secretKey == "" {
 				return nil, fmt.Errorf("%s: porkbun: secretKey missing", filepath.Join(localDir, "config/dns01.json"))
 			}
-			certmagic.DefaultACME.DNS01Solver = &certmagic.DNS01Solver{
+			dns01Solver = &certmagic.DNS01Solver{
 				DNSProvider: &porkbun.Provider{
 					APIKey:       apiKey,
 					APISecretKey: secretKey,
@@ -486,7 +488,7 @@ func (nbrew *Notebrew) NewServer() (*http.Server, error) {
 			if apiToken == "" {
 				return nil, fmt.Errorf("%s: godaddy: apiToken missing", filepath.Join(localDir, "config/dns01.json"))
 			}
-			certmagic.DefaultACME.DNS01Solver = &certmagic.DNS01Solver{
+			dns01Solver = &certmagic.DNS01Solver{
 				DNSProvider: &godaddy.Provider{
 					APIToken: apiToken,
 				},
@@ -507,12 +509,24 @@ func (nbrew *Notebrew) NewServer() (*http.Server, error) {
 	// certConfig manages the certificate for the admin domain, content domain
 	// and wildcard subdomain.
 	certConfig := certmagic.NewDefault()
-	// customDomainCertConfig manages the certificates for custom domains.
-	customDomainCertConfig := certmagic.NewDefault()
+	certConfig.Issuers = []certmagic.Issuer{
+		// Create a new ACME issuer with the dns01Solver because this cert
+		// config potentially has to issue wildcard certificates which only the
+		// DNS-01 challenge solver is capable of.
+		certmagic.NewACMEIssuer(certConfig, certmagic.ACMEIssuer{
+			CA:          certmagic.DefaultACME.CA,
+			TestCA:      certmagic.DefaultACME.TestCA,
+			Logger:      certmagic.DefaultACME.Logger,
+			HTTPProxy:   certmagic.DefaultACME.HTTPProxy,
+			DNS01Solver: dns01Solver,
+		}),
+	}
 	err = certConfig.ManageAsync(context.Background(), domains)
 	if err != nil {
 		return nil, err
 	}
+	// customDomainCertConfig manages the certificates for custom domains.
+	customDomainCertConfig := certmagic.NewDefault()
 	customDomainCertConfig.OnDemand = &certmagic.OnDemandConfig{
 		DecisionFunc: func(name string) error {
 			fileInfo, err := fs.Stat(nbrew.FS, name)
