@@ -59,6 +59,8 @@ TODO: This is the biggest change to notes so far:
     2. Notes no longer have categories, folders can be arbitrarily nested. This ought to keep the number of notes down even if you spammed multiple notes everyday.
     3. Notes must be given filenames and they will use these names. No timestamp prefixes. This means it becomes impossible to track the date a note was created (bad?).
 TODO: consider replacing the fulltext search with just ripgrep... we could write a Go function that invokes ripgrep and streams the results over to the user... hmm....
+TODO: fs implementation optionally takes in an S3-compatible URL which it uses to store images (a database is also needed to store the metadata like size and last modified). enabled by the presence of config/s3.txt.
+    - when crawling the filesystem to see how much space the user has taken, we don't want to issue sql queries each file one by one by name. Instead there should be an extension interface method on FS that allows for collecting all the fs.FileInfos from walking a directory, that allows for an optimized single sql query to fetch all the metadata in one shot rather than each file one by one. 
 
 DECIDED: initially open up notebrew fully and free of charge and manually curate the users and bad actors/spammers. While the volume is low, I can do it manually (I'd still need some way to manually streamline the curation process for me, maybe through a notebrew subcommand).
 DECIDED: no upvotes, no analytics, no email subscribers. Those can come later, but notebrew really is just a dumb simple website.
