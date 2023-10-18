@@ -24,7 +24,7 @@ rename.go
 serve_http.go
 new.go
 
-log => images => RSS => publish
+notes => images => RSS => publish
 
 TODO: /posts/showcase/ is a special post category which displays the posts in an instagram-like image grid formation. Override with showcase.html in the templates. But do it only if people want it, because I don't use it and it's be a waste of space if I added that feature and no one used it.
     - Actually, instead of a special category I can just add a new template function that grabs all the links of the photos for a given post, and the template can then use its custom logic to pick the right image to show as the featured image.
@@ -34,14 +34,10 @@ TODO: rethink error codes: I don't like how some validation errors are also stan
 TODO: what if the generated pages are compressed, does file.go still handle displaying the contents transparently? main use case are the generated index.html.gz files.
 TODO: CLI usage: notebrew createpost, notebrew createnote "this is a new note" -site bokwoon -category breh -slug "weegee"
 TODO: allow users to update their email address, but whenever that happens send a message to the old email with a password reset link (add new columns: users.old_email, users.old_email_reset_token_hash) that is invalidated after like 30 days. So if the user has their email changed by an attacker they have up to 30 days to take back control. Once a new password is set, the email reverts back to the old one. Actually maybe leave it valid permamently.
-TODO: upload files, download themes from github
-- output/themes dropdown > download theme > enter URL > uses go-git to clone a repo from github.
-- downloadtheme.go/downloadtheme.html
 TODO: coalesce the following into a single "site" tab in the menu bar
 - the link to the content site
 - the storage used and storage breakdown
 - site-wide search
-TODO: regenerate.go
 TODO: conservative rendering by default:
 - creating a post merely generates the post page plus the category list page
 - updating a post merely updates the post page
@@ -52,27 +48,21 @@ TODO: conservative rendering by default:
 - updating a theme template updates the template, but also offers the user the option to regenerate the whole site (or they can surgically regenerate specific pages instead).
 - In the admin page, there is a dropdown menu next to the site that says "regenerate site" (above "delete site")
 - This is the piece de resistance: for each page, there is an item dropdown menu allowing the user to regenerate specific pages (the user can also select multiple pages and click "regenerate"). This means we can avoid whole-site rendering most of the time.
-TODO: top left corner now links to the admin domain, followed by the relevant ContentSiteURL is present.
 TODO: cut | copy | paste | rename (no need for link indexing and rewriting yet, that comes later)
-TODO: notes/posts/pages/themes search indexing
-TODO: notebrew.com/admin/log/
 TODO: we can wire up the view dropdown menu for pages and posts alr
 TODO: also add the regenerate option to folders (it just means the whole folder will be regenerated)
 TODO: When a site is created, we always generate the index page and posts page. Furthermore, we also put a copy of the default index.html and posts.html inside the user's templates.
     - These are what I call "permanent templates" (index.html, posts.html, post.html, 404.html). Even if you deleted them, they just get replaced with the base copy stashed in the embedded static directory. This is also how users can "reset" their permanent templates back to the default, just delete it and it will get replaced with the default template.
     - implemented as ensureFile(name, fallback string) which obtains a file from the user's site folder and if missing copies the contents of the fallback over to the user's site folder and reopens the file.
-TODO: is it possible to roll notes and logs into one? Feeling very bearish on logs, it's too complicated/extraneous of a feature for people to understand.
-TODO: maybe don't put the bluge index in the admin folder because it is assumed the admin folder is safe to be replicated across dropbox/gdrive and losing file locking to a networked service is bound to corrupt bluge indexes and make no one happy. A user can either run ripgrep on their notes or they can rely on the bluge index on their computer (but kepts elsewhere in a .local/share/notebrew-bluge like how certmagic does it).
 TODO: This is the biggest change to notes so far:
     1. Notes are only in .txt, no longer .md.
     2. Notes no longer have categories, folders can be arbitrarily nested. This ought to keep the number of notes down even if you spammed multiple notes everyday.
     3. Notes must be given filenames and they will use these names. No timestamp prefixes. This means it becomes impossible to track the date a note was created (bad?).
 TODO: consider replacing the fulltext search with just ripgrep... we could write a Go function that invokes ripgrep and streams the results over to the user... hmm....
 
-free user only gets text and 1 site.
-paid user gets text + images + fonts and multiple sites (up to 10 per day).
-
 DECIDED: initially open up notebrew fully and free of charge and manually curate the users and bad actors/spammers. While the volume is low, I can do it manually (I'd still need some way to manually streamline the curation process for me, maybe through a notebrew subcommand).
+DECIDED: no upvotes, no analytics, no email subscribers. Those can come later, but notebrew really is just a dumb simple website.
+DECIDED: free users only get text and no images (they must rely on an external image hosting).
 DECIDED: skip downloading themes from github. I don't want to run into a situation where people are downloading git repos willy nilly into my server. Some repos are *big*, and there's no way to distinguish between a content repo (full of PDFs and images) vs a theme repo.
 DECIDED: notebrew.db and the bluge index folder *will* live inside notebrew-admin/. This is so that multiple notebrew folders are clearly demarcated and don't require anything outside the folder.
 DECIDED: no more relying on ripgrep | grep | select-string for directory search. Instead the DB's full text search capabilities will be used if the database is present, or bluge will be used if the database is not present. There is no pressure to keep the full text indexes perfectly in sync. If a user adds a note or post externally, it will not be indexed. Neither is it possible for users to reindex a directory from the front end because I don't want people to crash the server by constantly reindexing. Only actions made through the front end will be indexed. That's it. If a user wants to add files directly into the folder, they're best off relying on ripgrep | grep | select-string or they can use the `notebrew reindex` command.
