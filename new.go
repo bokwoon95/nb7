@@ -12,6 +12,7 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
+	"net/netip"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -458,6 +459,13 @@ func (nbrew *Notebrew) NewServer() (*http.Server, error) {
 				return nil, fmt.Errorf("https://ipv4.icanhazip.com: reading response body: %w", err)
 			}
 			clientIP := strings.TrimSpace(b.String())
+			ip, err := netip.ParseAddr(clientIP)
+			if err != nil {
+				return nil, fmt.Errorf("could not determine IP address of the current machine: https://ipv4.icanhazip.com returned %q which is not an IP address", clientIP)
+			}
+			if !ip.Is4() {
+				return nil, fmt.Errorf("the current machine's IP address (%s) is not IPv4: an IPv4 address is needed to integrate with namecheap's API, which is needed for free SSL certficates for your subdomains: if you are unable to obtain an IPv4 address, consider using the \"subdirectory\" multisite mode instead of \"subdomain\"", clientIP)
+			}
 			dns01Solver = &certmagic.DNS01Solver{
 				DNSProvider: &namecheap.Provider{
 					APIKey:      apiKey,
