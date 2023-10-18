@@ -68,6 +68,7 @@ TODO: This is the biggest change to notes so far:
     2. Notes no longer have categories, folders can be arbitrarily nested. This ought to keep the number of notes down even if you spammed multiple notes everyday.
     3. Notes must be given filenames and they will use these names. No timestamp prefixes. This means it becomes impossible to track the date a note was created (bad?).
 TODO: consider replacing the fulltext search with just ripgrep... we could write a Go function that invokes ripgrep and streams the results over to the user... hmm....
+TODO: movie notebrew.db out of notebrew-admin? But then keeping multiple notebrew installations on the same computer becomes a nightmare, because its components are no longer all in one folder...
 
 free user only gets text and 1 site.
 paid user gets text + images + fonts and multiple sites (up to 10 per day).
