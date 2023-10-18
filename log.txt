@@ -68,12 +68,13 @@ TODO: This is the biggest change to notes so far:
     2. Notes no longer have categories, folders can be arbitrarily nested. This ought to keep the number of notes down even if you spammed multiple notes everyday.
     3. Notes must be given filenames and they will use these names. No timestamp prefixes. This means it becomes impossible to track the date a note was created (bad?).
 TODO: consider replacing the fulltext search with just ripgrep... we could write a Go function that invokes ripgrep and streams the results over to the user... hmm....
-TODO: movie notebrew.db out of notebrew-admin? But then keeping multiple notebrew installations on the same computer becomes a nightmare, because its components are no longer all in one folder...
 
 free user only gets text and 1 site.
 paid user gets text + images + fonts and multiple sites (up to 10 per day).
 
-SKIP: downloading themes from github. I don't want to run into a situation where people are downloading git repos willy nilly into my server. Some repos are *big*, and there's no way to distinguish between a content repo (full of PDFs and images) vs a theme repo.
+DECIDED: skip downloading themes from github. I don't want to run into a situation where people are downloading git repos willy nilly into my server. Some repos are *big*, and there's no way to distinguish between a content repo (full of PDFs and images) vs a theme repo.
+DECIDED: notebrew.db and the bluge index folder *will* live inside notebrew-admin/. This is so that multiple notebrew folders are clearly demarcated and don't require anything outside the folder.
+DECIDED: no more relying on ripgrep | grep | select-string for directory search. Instead the DB's full text search capabilities will be used if the database is present, or bluge will be used if the database is not present. There is no pressure to keep the full text indexes perfectly in sync. If a user adds a note or post externally, it will not be indexed. Neither is it possible for users to reindex a directory from the front end because I don't want people to crash the server by constantly reindexing. Only actions made through the front end will be indexed. That's it. If a user wants to add files directly into the folder, they're best off relying on ripgrep | grep | select-string or they can use the `notebrew reindex` command.
 
 TOFIX:
 - for each js script loaded, add a top level comment explaining what it does so it doesn't seem like you are loading in a bunch of scripts for nothing like a filthy js dev.
