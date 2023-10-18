@@ -255,8 +255,8 @@ func main() {
 					fmt.Println(server.Addr + " already in use")
 					return nil
 				}
+				open("http://" + server.Addr + "/admin/")
 				fmt.Println("http://" + server.Addr)
-				open("http://" + server.Addr)
 				return nil
 			} else {
 				return err
@@ -279,7 +279,7 @@ func main() {
 			fmt.Println("Listening on " + server.Addr)
 			go server.ServeTLS(listener, "", "")
 		} else {
-			open("http://" + server.Addr)
+			open("http://" + server.Addr + "/admin/")
 			// NOTE: We may need to give a more intricate ASCII header in order for the
 			// GUI double clickers to realize that the terminal window is important, so
 			// that they won't accidentally close it thinking it is some random

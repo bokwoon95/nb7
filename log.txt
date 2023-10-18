@@ -73,6 +73,8 @@ TODO: movie notebrew.db out of notebrew-admin? But then keeping multiple notebre
 free user only gets text and 1 site.
 paid user gets text + images + fonts and multiple sites (up to 10 per day).
 
+SKIP: downloading themes from github. I don't want to run into a situation where people are downloading git repos willy nilly into my server. Some repos are *big*, and there's no way to distinguish between a content repo (full of PDFs and images) vs a theme repo.
+
 TOFIX:
 - for each js script loaded, add a top level comment explaining what it does so it doesn't seem like you are loading in a bunch of scripts for nothing like a filthy js dev.
 - Hm I really do want some site availibility metrics, bare minimum being how many requests in a time period and stuff.
