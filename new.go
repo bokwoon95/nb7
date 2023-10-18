@@ -340,6 +340,29 @@ func New(fsys FS) (*Notebrew, error) {
 				err,
 			)
 		}
+		if nbrew.Dialect == "sqlite" {
+			rows, err := nbrew.DB.Query("PRAGMA quick_check")
+			if err != nil {
+				return nil, fmt.Errorf("running PRAGMA quick_check: %w", err)
+			}
+			defer rows.Close()
+			var problems []string
+			for rows.Next() {
+				var problem string
+				err = rows.Scan(&problem)
+				if err != nil {
+					return nil, fmt.Errorf("PRAGMA quick_check: scanning row: %w", err)
+				}
+				problems = append(problems, problem)
+			}
+			if len(problems) > 0 && problems[0] != "ok" {
+				b, err := json.MarshalIndent(problems, "", "  ")
+				if err != nil {
+					return nil, err
+				}
+				return nil, fmt.Errorf("the sqlite database %q is corrupted, please remove the file or fix it: %s", dsn, string(b))
+			}
+		}
 		err = automigrate(nbrew.Dialect, nbrew.DB)
 		if err != nil {
 			return nil, fmt.Errorf("%s: automigrate failed: %w", filepath.Join(localDir, "config/database.txt"), err)
