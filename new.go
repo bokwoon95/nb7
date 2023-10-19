@@ -537,6 +537,7 @@ func (nbrew *Notebrew) NewServer() (*http.Server, error) {
 			DNS01Solver: dns01Solver,
 		}),
 	}
+	fmt.Printf("notebrew managing domains: %v\n", domains)
 	err = certConfig.ManageSync(context.Background(), domains)
 	if err != nil {
 		return nil, err
