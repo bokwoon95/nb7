@@ -324,8 +324,8 @@ func (nbrew *Notebrew) signup(w http.ResponseWriter, r *http.Request, ip string)
 				writeResponse(w, r, response)
 				return
 			}
-			if writeTimeout > 0 {
-				err = http.NewResponseController(w).SetWriteDeadline(time.Now().Add(15 * time.Second))
+			if nbrew.Scheme == "https://" {
+				err = http.NewResponseController(w).SetWriteDeadline(time.Now().Add(60 * time.Second))
 				if err != nil {
 					getLogger(r.Context()).Error(err.Error())
 					internalServerError(w, r, err)
@@ -333,7 +333,7 @@ func (nbrew *Notebrew) signup(w http.ResponseWriter, r *http.Request, ip string)
 				}
 			}
 			client := &http.Client{
-				Timeout: 15 * time.Second,
+				Timeout: 60 * time.Second,
 			}
 			values := url.Values{
 				"secret":   []string{captchaCredentials.SecretKey},

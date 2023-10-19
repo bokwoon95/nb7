@@ -9,7 +9,4 @@ import (
 
 func init() {
 	rootFS = os.DirFS(".")
-	readTimeout = 0
-	writeTimeout = 0
-	idleTimeout = 0
 }

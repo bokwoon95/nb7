@@ -388,17 +388,11 @@ func New(fsys FS) (*Notebrew, error) {
 	return nbrew, nil
 }
 
-var (
-	readTimeout  time.Duration = 10 * time.Second
-	writeTimeout time.Duration = 10 * time.Second
-	idleTimeout  time.Duration = 120 * time.Second
-)
-
 func (nbrew *Notebrew) NewServer() (*http.Server, error) {
 	server := &http.Server{
-		ReadTimeout:  readTimeout,
-		WriteTimeout: writeTimeout,
-		IdleTimeout:  idleTimeout,
+		ReadTimeout:  60 * time.Second,
+		WriteTimeout: 60 * time.Second,
+		IdleTimeout:  120 * time.Second,
 		Addr:         nbrew.AdminDomain,
 		Handler:      nbrew,
 	}
@@ -424,9 +418,6 @@ func (nbrew *Notebrew) NewServer() (*http.Server, error) {
 	if err != nil {
 		if !errors.Is(err, fs.ErrNotExist) {
 			return nil, err
-		}
-		if nbrew.MultisiteMode == "subdomain" && certmagic.DefaultACME.CA == certmagic.LetsEncryptProductionCA {
-			return nil, fmt.Errorf(`%s: "subdomain" not supported, use "subdirectory" instead (more info: https://notebrew.com/path/to/docs/)`, filepath.Join(localDir, "config/multisite.txt"))
 		}
 	} else {
 		var config map[string]string
@@ -520,6 +511,9 @@ func (nbrew *Notebrew) NewServer() (*http.Server, error) {
 		domains = append(domains, nbrew.ContentDomain, "www."+nbrew.ContentDomain)
 	}
 	if nbrew.MultisiteMode == "subdomain" {
+		if certmagic.DefaultACME.CA == certmagic.LetsEncryptProductionCA && dns01Solver == nil {
+			return nil, fmt.Errorf(`%s: "subdomain" not supported because DNS-01 solver not configured, please use "subdirectory" instead (more info: https://notebrew.com/path/to/docs/)`, filepath.Join(localDir, "config/multisite.txt"))
+		}
 		domains = append(domains, "*."+nbrew.ContentDomain)
 	}
 	// certConfig manages the certificate for the admin domain, content domain

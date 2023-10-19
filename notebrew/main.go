@@ -242,7 +242,7 @@ func main() {
 			return err
 		}
 		wait := make(chan os.Signal, 1)
-		signal.Notify(wait, syscall.SIGINT, syscall.SIGTERM)
+		signal.Notify(wait, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 		// Don't use ListenAndServe, manually acquire a listener. That way we
 		// can report back to the user if the port is already in user.
 		listener, err := net.Listen("tcp", server.Addr)
@@ -260,8 +260,8 @@ func main() {
 					fmt.Println(server.Addr + " already in use")
 					return nil
 				}
-				open("http://" + server.Addr + "/admin/")
 				fmt.Println("http://" + server.Addr)
+				open("http://" + server.Addr + "/admin/")
 				return nil
 			} else {
 				return err
@@ -284,13 +284,18 @@ func main() {
 			fmt.Println("Listening on " + server.Addr)
 			go server.ServeTLS(listener, "", "")
 		} else {
-			open("http://" + server.Addr + "/admin/")
 			// NOTE: We may need to give a more intricate ASCII header in order for the
 			// GUI double clickers to realize that the terminal window is important, so
 			// that they won't accidentally close it thinking it is some random
 			// terminal.
 			fmt.Println("Listening on http://" + server.Addr)
+			// If we're running on localhost, we don't need to enforce strict
+			// timeouts (makes debugging easier).
+			server.ReadTimeout = 0
+			server.WriteTimeout = 0
+			server.IdleTimeout = 0
 			go server.Serve(listener)
+			open("http://" + server.Addr + "/admin/")
 		}
 		<-wait
 		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
