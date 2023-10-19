@@ -134,7 +134,7 @@
     {{- end }}
     {{- range $i, $entry := $.Entries }}
     {{- if eq $.Path "" }}
-    <div class="min-h2 mv1">
+    <div class="min-h2 mv2">
         {{- if eq $entry.Name "notes" }}
         <details data-dont-autoclose-details>
             <summary class="pointer hide-marker flex flex-wrap items-center" data-disable-click-selection>
@@ -236,7 +236,7 @@
     </div>
     <hr>
     {{- else }}
-    <div class="min-h2 mv1">
+    <div class="min-h2 mv2">
         <label for="{{ $entry.Name }}" class="flex items-center pointer" data-disable-click-selection>
             {{ $readOnly := and (eq (head $.Path) "output") (ne (head (tail $.Path)) "themes") (ne (head (tail $.Path)) "images") }}
             {{- if not $readOnly }}
