@@ -49,6 +49,13 @@ func main() {
 				return err
 			}
 			dir = filepath.Join(userHomeDir, "notebrew-admin")
+			b, err := os.ReadFile(filepath.Join(dir, "config/notebrew-admin.txt"))
+			if err != nil && !errors.Is(err, fs.ErrNotExist) {
+				return err
+			}
+			if len(b) > 0 {
+				dir = string(b)
+			}
 		}
 		err = os.MkdirAll(dir, 0755)
 		if err != nil {
@@ -90,10 +97,8 @@ func main() {
 		if len(args) > 0 {
 			command, args := args[0], args[1:]
 			switch command {
-			case "createinvite", "deleteinvite",
-				"createsite", "deletesite",
-				"createuser", "deleteuser",
-				"permissions", "resetpassword":
+			case "createinvite", "deleteinvite", "createsite", "deletesite",
+				"createuser", "deleteuser", "permissions", "resetpassword":
 				// For commands that require a database, configure the database to
 				// sqlite if it hasn't already been configured.
 				b, err := os.ReadFile(filepath.Join(dir, "config/database.txt"))

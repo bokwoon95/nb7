@@ -28,6 +28,7 @@ notes => images => RSS => publish
 
 TODO: /posts/showcase/ is a special post category which displays the posts in an instagram-like image grid formation. Override with showcase.html in the templates. But do it only if people want it, because I don't use it and it's be a waste of space if I added that feature and no one used it.
     - Actually, instead of a special category I can just add a new template function that grabs all the links of the photos for a given post, and the template can then use its custom logic to pick the right image to show as the featured image.
+TODO: notebrew output /path/to/git/directory # generates output and synchronizes it to another directory (e.g. git) so that it can be git pushed to github pages/netlify.
 TODO: rss reader (notebrew.com/admin/reader)
 TODO: why does clicking a *.html.gz file hang and then 404? What's being calculated here?
 TODO: rethink error codes: I don't like how some validation errors are also standalone errors, maybe merge them together and split them by some other fault line
