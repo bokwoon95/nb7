@@ -29,7 +29,6 @@ notes => images => RSS => publish
 TODO: /posts/showcase/ is a special post category which displays the posts in an instagram-like image grid formation. Override with showcase.html in the templates. But do it only if people want it, because I don't use it and it's be a waste of space if I added that feature and no one used it.
     - Actually, instead of a special category I can just add a new template function that grabs all the links of the photos for a given post, and the template can then use its custom logic to pick the right image to show as the featured image.
 TODO: notebrew output /path/to/git/directory # generates output and synchronizes it to another directory (e.g. git) so that it can be git pushed to github pages/netlify.
-TODO: rss reader (notebrew.com/admin/reader)
 TODO: why does clicking a *.html.gz file hang and then 404? What's being calculated here?
 TODO: rethink error codes: I don't like how some validation errors are also standalone errors, maybe merge them together and split them by some other fault line
 TODO: what if the generated pages are compressed, does file.go still handle displaying the contents transparently? main use case are the generated index.html.gz files.
@@ -55,14 +54,14 @@ TODO: also add the regenerate option to folders (it just means the whole folder 
 TODO: When a site is created, we always generate the index page and posts page. Furthermore, we also put a copy of the default index.html and posts.html inside the user's templates.
     - These are what I call "permanent templates" (index.html, posts.html, post.html, 404.html). Even if you deleted them, they just get replaced with the base copy stashed in the embedded static directory. This is also how users can "reset" their permanent templates back to the default, just delete it and it will get replaced with the default template.
     - implemented as ensureFile(name, fallback string) which obtains a file from the user's site folder and if missing copies the contents of the fallback over to the user's site folder and reopens the file.
+TODO: file.html: when editing a page or a post, show an additional link as a preview to the page like this: <- back | admin | pages | bokwoon.notebrew.io/bruh/
+TODO: RSS: bokwoon.nbrew.io/feed/, notebrew.com/admin/@bokwoon/rssreader/
+TODO: fs implementation optionally takes in an S3-compatible URL which it uses to store images (a database is also needed to store the metadata like size and last modified). enabled by the presence of config/s3.txt.
+    - when crawling the filesystem to see how much space the user has taken, we don't want to issue sql queries each file one by one by name. Instead there should be an extension interface method on FS that allows for collecting all the fs.FileInfos from walking a directory, that allows for an optimized single sql query to fetch all the metadata in one shot rather than each file one by one.
 TODO: This is the biggest change to notes so far:
     1. Notes are only in .txt, no longer .md.
     2. Notes no longer have categories, folders can be arbitrarily nested. This ought to keep the number of notes down even if you spammed multiple notes everyday.
     3. Notes must be given filenames and they will use these names. No timestamp prefixes. This means it becomes impossible to track the date a note was created (bad?).
-TODO: consider replacing the fulltext search with just ripgrep... we could write a Go function that invokes ripgrep and streams the results over to the user... hmm....
-TODO: fs implementation optionally takes in an S3-compatible URL which it uses to store images (a database is also needed to store the metadata like size and last modified). enabled by the presence of config/s3.txt.
-    - when crawling the filesystem to see how much space the user has taken, we don't want to issue sql queries each file one by one by name. Instead there should be an extension interface method on FS that allows for collecting all the fs.FileInfos from walking a directory, that allows for an optimized single sql query to fetch all the metadata in one shot rather than each file one by one.
-TODO: file.html: when editing a page or a post, show an additional link as a preview to the page like this: <- back | admin | pages | bokwoon.notebrew.io/bruh/
 
 After seeing how bearblog has to use AI to filter out spam, I really *really* don't want to go down that route. If I cant keep up with spam I wont even try to make it a free and open web service at all, I'll just open it up during the showcase phase but after that I'll disable signups.
 
