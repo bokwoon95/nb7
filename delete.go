@@ -29,11 +29,11 @@ func (nbrew *Notebrew) delet(w http.ResponseWriter, r *http.Request, username, s
 		Names        []string `json:"names,omitempty"`
 	}
 	type Response struct {
-		Status         Error    `json:"status"`
-		ContentSiteURL string   `json:"contentSiteURL,omitempty"`
-		ParentFolder   string   `json:"parentFolder,omitempty"`
-		Items          []Item   `json:"items,omitempty"`
-		Errors         []string `json:"errors,omitempty"`
+		Status         Error   `json:"status"`
+		ContentSiteURL string  `json:"contentSiteURL,omitempty"`
+		ParentFolder   string  `json:"parentFolder,omitempty"`
+		Items          []Item  `json:"items,omitempty"`
+		Errors         []Error `json:"errors,omitempty"`
 	}
 
 	isValidParentFolder := func(parentFolder string) bool {
@@ -282,7 +282,7 @@ func (nbrew *Notebrew) delet(w http.ResponseWriter, r *http.Request, username, s
 			}
 			err := RemoveAll(nbrew.FS, path.Join(sitePrefix, response.ParentFolder, name))
 			if err != nil {
-				response.Errors = append(response.Errors, fmt.Sprintf("%s: %v", name, err))
+				response.Errors = append(response.Errors, Error(fmt.Sprintf("%s: %v", name, err)))
 			} else {
 				response.Items = append(response.Items, Item{Name: name})
 			}
@@ -314,7 +314,7 @@ func (nbrew *Notebrew) delet(w http.ResponseWriter, r *http.Request, username, s
 		if err != nil {
 			var templateError TemplateError
 			if errors.As(err, &templateError) {
-				response.Errors = templateError.ToList()
+				response.Errors = templateError.Errors()
 				response.Status = ErrFileGenerationFailed
 				writeResponse(w, r, response)
 				return

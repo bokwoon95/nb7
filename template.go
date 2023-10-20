@@ -299,19 +299,19 @@ func (templateErrors TemplateError) Error() string {
 	return fmt.Sprintf("the following templates have errors: %s", string(b))
 }
 
-func (templateErrors TemplateError) ToList() []string {
-	var list []string
+func (templateErrors TemplateError) Errors() []Error {
+	var errmsgs []Error
 	names := make([]string, 0, len(templateErrors))
 	for name := range templateErrors {
 		names = append(names, name)
 	}
 	slices.Sort(names)
 	for _, name := range names {
-		for _, msg := range templateErrors[name] {
-			list = append(list, msg)
+		for _, errmsg := range templateErrors[name] {
+			errmsgs = append(errmsgs, Error(errmsg))
 		}
 	}
-	return list
+	return errmsgs
 }
 
 func (nbrew *Notebrew) RegenerateSite(ctx context.Context, sitePrefix string) error {
