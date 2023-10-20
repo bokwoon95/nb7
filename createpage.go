@@ -257,9 +257,7 @@ func (nbrew *Notebrew) createpage(w http.ResponseWriter, r *http.Request, userna
 		if err != nil {
 			var templateError TemplateError
 			if errors.As(err, &templateError) {
-				for _, msg := range templateError.Errors() {
-					response.Errors["content"] = append(response.Errors["content"], Error(msg))
-				}
+				response.Errors["content"] = templateError.Errors()
 				response.Status = ErrFileGenerationFailed
 				writeResponse(w, r, response)
 				return
