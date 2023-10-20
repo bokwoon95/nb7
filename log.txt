@@ -81,6 +81,5 @@ TOFIX:
 - Don't calculate the number of folders and files for anything in the output folder (other than themes)
 - also etag pictures and fonts, even if you dont gzip
 - the alert x button in folder.html is off center/unbalanced compared to the text on the other side.
-- don't truncate the title for posts/notes in the folder page, just wrap (safe? good idea?)
 
 TODO: we need cross-handler tests to check for nil DB == 404, Content-Type headers are all set appropriately, etc.
