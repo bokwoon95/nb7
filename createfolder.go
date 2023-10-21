@@ -31,7 +31,7 @@ func (nbrew *Notebrew) createfolder(w http.ResponseWriter, r *http.Request, user
 	isValidParentFolder := func(parentFolder string) bool {
 		segments := strings.Split(parentFolder, "/")
 		switch segments[0] {
-		case "pages":
+		case "notes", "pages":
 			fileInfo, err := fs.Stat(nbrew.FS, path.Join(sitePrefix, parentFolder))
 			if err != nil {
 				return false

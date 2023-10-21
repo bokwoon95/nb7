@@ -62,9 +62,9 @@ TODO: This is the biggest change to notes so far:
     1. Notes are only in .txt, no longer .md.
     2. Notes no longer have categories, folders can be arbitrarily nested. This ought to keep the number of notes down even if you spammed multiple notes everyday.
     3. Notes must be given filenames and they will use these names. No timestamp prefixes. This means it becomes impossible to track the date a note was created (bad?).
-TODO: time for nb8, I think.
 
 After seeing how bearblog has to use AI to filter out spam, I really *really* don't want to go down that route. If I cant keep up with spam I wont even try to make it a free and open web service at all, I'll just open it up during the showcase phase but after that I'll disable signups.
+TODO: time for nb8, I think.
 
 DECIDED: initially open up notebrew fully and free of charge and manually curate the users and bad actors/spammers. While the volume is low, I can do it manually (I'd still need some way to manually streamline the curation process for me, maybe through a notebrew subcommand).
 DECIDED: no upvotes, no analytics, no email subscribers. Those can come later, but notebrew really is just a dumb simple website.
